@@ -545,20 +545,98 @@ mix(WatchHub);
 
 const objectToString = ({}).toString();
 
-export function render(type, props, attachPoint){
+function pushNode(node, refNode, position){
+
+	function insertBefore(node, refNode){
+		refNode.parentNode.insertBefore(node, refNode);
+	}
+
+	function insertAfter(node, refNode){
+		let parent = refNode.parentNode;
+		if(parent.lastChild === refNode){
+			parent.appendChild(node);
+		}else{
+			parent.insertBefore(node, refNode.nextSibling);
+		}
+	}
+
+	function unrender(node){
+		let component = Component.catalog.get(node);
+		if(component){
+			component.unrender();
+		}
+	}
+
+	if(typeof position === "number"){
+		let children = refNode.childNodes;
+		if(!children.length || children.length <= position){
+			refNode.appendChild(node);
+		}else{
+			insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
+		}
+	}else{
+		switch(position){
+			case "before":
+				insertBefore(node, refNode);
+				break;
+			case "after":
+				insertAfter(node, refNode);
+				break;
+			case "replace":
+				refNode.parentNode.replaceChild(node, refNode);
+				unrender(refNode);
+				break;
+			case "only":
+				while(refNode.firstChild){
+					unrender(refNode.removeChild(refNode.firstChild));
+				}
+				refNode.appendChild(node);
+				break;
+			case "first":
+				if(refNode.firstChild){
+					insertBefore(node, refNode.firstChild);
+				}else{
+					refNode.appendChild(node);
+				}
+				break;
+			case "last":
+				refNode.appendChild(node);
+				break;
+			default:
+				throw new Error("illegal position");
+		}
+	}
+}
+
+export function render(type, props, attachPoint, position){
 	// six signatures...
-	//     1. render(e:Element)                              => render(Component, {elements:e}, null)
-	//     2. render(e:Element, node:domNode)                => render(Component, {elements:e}, node)
-	//     3. render(C:Component)                            => render(C, {}, null)
-	//     4. render(C:Component, args:kwargs)               => render(C, args, null)
-	//     5. render(C:Component, node:domNode)              => render(C, {}, node)
-	//     6. render(C:Component, args:kwargs, node:domNode) => render(C, args, node)
+	//     1. render(e:Element)
+	//     => render(Component, {elements:e}, null)
+	//
+	//     2. render(e:Element, node:domNode[, position:Position="last"])
+	// 	   => render(Component, {elements:e}, node, position)
+	//
+	//     3. render(C:Component)
+	//     => render(C, {}, null)
+	//
+	//     4. render(C:Component, args:kwargs)
+	//     => render(C, args, null)
+	//
+	//     5. render(C:Component, node:domNode[, position:Position="last"])
+	//     => render(C, {}, node, position)
+	//
+	//     6. render(C:Component, args:kwargs, node:domNode[, position:Position="last"])
+	//     => render(C, args, node, position)
+	//
+	// Position one of "first", "last", "before", "after"
+	//
 	let C;
 	let ppProps = {};
 	if(type instanceof Element){
 		// [1] or [2]
+		position = attachPoint || "last";
 		attachPoint = props;
-		if(componentType(type)===TypeComponentNode){
+		if(componentType(type) === TypeComponentNode){
 			C = type.type;
 			props = type.ctorProps;
 			ppProps = type.ppProps
@@ -577,10 +655,24 @@ export function render(type, props, attachPoint){
 				// [4]
 				C = type;
 			}else{
-				// [5]
+				// [5] without position
 				C = type;
 				attachPoint = props;
+				position = "last";
 				props = {}
+			}
+		}else if(arguments.length === 3){
+			let typeofAttachPoint = typeof attachPoint;
+			if(typeofAttachPoint === "string" || typeofAttachPoint === "number"){
+				// [5] with position
+				C = type;
+				position = attachPoint;
+				attachPoint = props;
+				props = {}
+			}else{
+				// [6] without position
+				C = type;
+				position = "last";
 			}
 		}else{
 			// [6]
@@ -590,12 +682,13 @@ export function render(type, props, attachPoint){
 	let result = new C(props);
 	result.render();
 	postProcess(ppProps, result, result, false);
+
 	if(attachPoint){
 		let root = result._dom.root;
 		if(Array.isArray(root)){
-			root.forEach((node) => attachPoint.appendChild(node));
+			root.forEach((node) => pushNode(node, attachPoint, position));
 		}else{
-			attachPoint.appendChild(root);
+			pushNode(root, attachPoint, position);
 		}
 	}
 	return result;
