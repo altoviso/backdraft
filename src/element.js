@@ -20,7 +20,7 @@ export default function element(type, props = {}, ...children){
 	// figure out if signature was actually element(type, child, [,child...])
 	if(props instanceof Element || Array.isArray(props) || typeof props === "string"){
 		// props was actually a child
-		children.unshift(props)
+		children.unshift(props);
 		props = {};
 	}// else props is really props
 
