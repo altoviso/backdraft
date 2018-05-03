@@ -228,7 +228,7 @@ export default class Component {
 			if(Array.isArray(root)){
 				root.forEach((node) => Component.catalog.set(node, this));
 			}else{
-				Component.catalog.set(root, this)
+				Component.catalog.set(root, this);
 				if(this.id){
 					root.id = this.id;
 				}
@@ -237,6 +237,9 @@ export default class Component {
 
 				if(this[ppTabIndex] !== undefined){
 					(this._dom.tabIndexNode || this._dom.root).tabIndex = this[ppTabIndex]
+				}
+				if(this[ppTitle] !== undefined){
+					(this._dom.titleIndexNode || this._dom.root).title = this[ppTitle]
 				}
 			}
 			this.postRender && this.postRender();
@@ -489,7 +492,8 @@ export default class Component {
 
 	get tabIndex(){
 		if(this._dom){
-			return (this._dom.tabIndexNode || this._dom.root).tabIndex;
+			// unconditionally make sure this[ppTabIndex] and the dom is synchronized on each get
+			return (this[ppTabIndex] = (this._dom.tabIndexNode || this._dom.root).tabIndex);
 		}else{
 			return this[ppTabIndex]
 		}
