@@ -171,6 +171,11 @@ export default class Component {
 			}
 			delete kwargs.elements;
 		}
+
+		if(kwargs.postRender){
+			this.postRender = kwargs.postRender;
+			delete kwargs.postRender;
+		}
 	}
 
 	destroy(){
