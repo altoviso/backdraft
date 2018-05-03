@@ -164,10 +164,10 @@ export default class Component {
 		}
 
 		if(kwargs.elements){
-			if(kwargs.elements instanceof Element){
-				Object.defineProperty(this, "elements", {value: kwargs.elements});
-			}else{
+			if(typeof kwargs.elements === "function"){
 				Object.defineProperty(this, "elements", {get: kwargs.elements});
+			}else{
+				Object.defineProperty(this, "elements", {value: kwargs.elements});
 			}
 			delete kwargs.elements;
 		}
