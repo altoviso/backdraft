@@ -168,7 +168,6 @@ export default {
 			c = new Component({elements: elements});
 			assert(c[Component.ppTabIndex] === undefined);
 			c.render();
-			assert(c._dom.root.tabIndex === -1);
 			assert(c._dom.root.firstChild.tabIndex === 1);
 			assert(c.tabIndex === 1);
 			c.tabIndex = 2;
