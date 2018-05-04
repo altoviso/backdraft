@@ -1,16 +1,153 @@
 <!DOCTYPE html>
+<!--
+    This document causes bd-smoke to load scripts given in the URL query string with the "profile" or "p" option and
+    then execute all tests defined in those scripts. This document does _not_ include an AMD loader, so all scripts
+    are explicitly injected by smoke
+-->
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Backdraft Test Main Page</title>
+    <style type="text/css">
+        * {
+            font-family: sans-serif;
+        }
+
+        #smoke {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 1em;
+            right: 1em;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #progress {
+            flex-grow: 1;
+            flex-shrink: 1;
+            min-height: 5em;
+            overflow: auto;
+
+        }
+
+        .started::before {
+            display: inline-block;
+            width: 4em;
+            content: "STARTED";
+        }
+
+        .pass::before {
+            display: inline-block;
+            width: 4em;
+            color: green;
+            content: "PASS";
+        }
+
+        .fail::before {
+            display: inline-block;
+            width: 4em;
+            color: red;
+            content: "FAIL";
+        }
+
+        #results p {
+            margin: .3em .5em;
+        }
+
+        #results p span {
+            display: inline-block;
+            width: 6em;
+        }
+    </style>
 </head>
 <body>
 <noscript id="noScript">
     You need to enable JavaScript to run this app.
 </noscript>
+<div id="smoke">
+    <h1>smoke - the backdraft test harness by <a href="http://www.altoviso.com">ALTOVISO</a></h1>
+    <p>non-AMD browser runner; open the console to see further results.</p>
+    <h2>Progress</h2>
+    <h3 id="startTime"></h3>
+    <div id="progress"></div>
+    <div>
+        <h2>Results:</h2>
+        <div id="results"></div>
+    </div>
+    <h3 id="completeTime"></h3>
+</div>
 <div id="root"></div>
 <script src="../node_modules/bd-smoke/smoke.js"></script>
-<script type="module" src="./tests.js"></script>
+<script id="tests" type="module" src="./tests.js"></script>
+<script>
+	"use strict";
+
+	(function(smoke){
+		function getTestName(context, test){
+			return context.map(node =>{
+				return node.id;
+			}).join("/") + (test[0] ? "/" + test[0] : "");
+		}
+
+		let currentNode,
+			progressNode = document.getElementById("progress");
+
+		function createNode(context, node){
+			currentNode = document.createElement("div");
+			currentNode.innerHTML = getTestName(context, node);
+			currentNode.className = "started";
+			progressNode.appendChild(currentNode);
+		}
+
+		const Logger = class extends smoke.Logger {
+			constructor(options){
+				super(options);
+			}
+
+			startTest(context, node){
+				createNode(context, node);
+				super.startTest(context, node);
+			}
+
+			passTest(context, node){
+				currentNode.className = "pass";
+				super.passTest(context, node);
+			}
+
+			failTest(context, node, error){
+				currentNode.className = "fail";
+				super.failTest(context, node, error);
+			}
+
+			logNote(note){
+				let node = document.createElement("p");
+				node.innerHTML = note;
+				progressNode.appendChild(node);
+				super.logNote(note);
+			}
+		};
+		smoke.options.logger = new Logger(smoke.options);
+
+		function run(){
+			document.getElementById("startTime").innerHTML = "Start Time: " + (new Date());
+			smoke.configureBrowser().then(function(){
+				smoke.runDefault().then(function(logger){
+					document.getElementById("results").innerHTML =
+						"<p><span>total:</span>" + logger.totalCount + "</p>" +
+						"<p><span>pass:</span>" + logger.passCount + "</p>" +
+						"<p><span>fail:</span>" + logger.failCount + "</p>" +
+						"<p><span>scaffold fail:</span>" + logger.scaffoldFailCount + "</p>";
+					document.getElementById("completeTime").innerHTML = "Complete Time: " + (new Date());
+
+				});
+			});
+        }
+        let n = document.getElementById("tests");
+		n.addEventListener("load", run);
+	})(smoke);
+</script>
+
 </body>
 </html>

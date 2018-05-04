@@ -5,8 +5,3 @@ let smoke = window.smoke;
 
 smoke.defTest(test_render);
 smoke.defTest(test_Component);
-
-smoke.configureBrowser().then(function(){
-	smoke.runDefault().then(function(logger){
-	});
-});
