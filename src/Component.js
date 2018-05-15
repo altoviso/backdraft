@@ -259,7 +259,9 @@ export default class Component extends EventHub(WatchHub()) {
 					(this._dom.titleIndexNode || this._dom.root).title = this[ppTitle]
 				}
 			}
-			this.postRender && this.postRender();
+			if(this.postRender){
+				this.ownWhileRendered(this.postRender());
+			}
 			proc && proc.call(this);
 			this._applyWatchersRaw("rendered", false, true);
 		}
