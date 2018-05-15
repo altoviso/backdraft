@@ -1,5 +1,4 @@
 import EventHub from './EventHub.js'
-import WatchHub from './WatchHub.js'
 import Component from './Component.js'
 import element from './element.js'
 
@@ -237,7 +236,7 @@ let focusedComponent = null,
 	previousFocusedComponent = null,
 	previousFocusedNode = null;
 
-class FocusManager extends EventHub{
+class FocusManager extends EventHub() {
 	get focusedComponent(){
 		return focusedComponent;
 	}
@@ -341,7 +340,7 @@ connect(document.body, "focusout", function(e){
 	}, 5);
 });
 
-let viewportWatcher = new EventHub();
+let viewportWatcher = new (EventHub());
 
 let scrollTimeoutHandle = 0;
 connect(document.body, "scroll", function(e){
