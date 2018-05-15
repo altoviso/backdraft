@@ -123,6 +123,16 @@ function postProcess(ppProps, target, source, resultIsDomNode){
 	});
 }
 
+function pushHandles(dest, ...handles){
+	handles.forEach(h =>{
+		if(Array.isArray(h)){
+			pushHandles(dest, ...h);
+		}else if(h){
+			dest.push(h)
+		}
+	});
+}
+
 export default class Component extends EventHub(WatchHub()) {
 	constructor(kwargs){
 		super(kwargs);
@@ -295,13 +305,11 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	own(...handles){
-		let ownedHandles = this[ppOwnedHandles] || (this[ppOwnedHandles] = []);
-		handles.forEach(h => ownedHandles.push(h));
+		pushHandles(this[ppOwnedHandles] || (this[ppOwnedHandles] = []), ...handles);
 	}
 
 	ownWhileRendered(...handles){
-		let ownedHandles = this._dom.handles || (this._dom.handles = []);
-		handles.forEach(h => ownedHandles.push(h));
+		pushHandles(this._dom.handles || (this._dom.handles = []), ...handles);
 	}
 
 	get parent(){
