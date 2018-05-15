@@ -34,7 +34,7 @@ export default function WatchHub(superClass){
 			if(!watcher){
 				let hash = name;
 				return Reflect.ownKeys(hash).map((name) => this.watch(name, hash[name]));
-			}else if(Array.isarray(name)){
+			}else if(Array.isArray(name)){
 				return name.map((name)=>this.watch(name, watcher));
 			}else{
 				let watchers = this[ppVariables][name] || (this[ppVariables][name] = []);
