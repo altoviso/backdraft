@@ -355,7 +355,10 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	delChild(child, destroy){
-		let index = this.children.indexOf(child);
+		if(!this.rendered){
+			throw new Error("parent component must be rendered before explicitly inserting a child");
+		}
+		let index = this.children ? this.children.indexOf(child) : -1;
 		if(index !== -1){
 			let root = child._dom && child._dom.root;
 			if(Array.isArray(root)){
