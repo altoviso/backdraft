@@ -537,7 +537,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set enabled(value){
-		this._applyWatchers("tabIndex", ppTitle, !!value);
+		this._applyWatchers("enabled", ppEnabled, !!value);
 		this[value ? "removeClassName" : "addClassName"]("bd-disabled");
 	}
 
