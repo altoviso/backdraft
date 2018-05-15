@@ -23,6 +23,9 @@ export default function WatchHub(superClass){
 			if(oldValue !== newValue){
 				this[privateName] = newValue;
 				this._applyWatchersRaw(name, oldValue, newValue);
+				return true;
+			}else{
+				return false;
 			}
 		}
 
