@@ -123,10 +123,9 @@ function postProcess(ppProps, target, source, resultIsDomNode){
 	});
 }
 
-export default class Component {
+export default class Component extends EventHub(WatchHub()) {
 	constructor(kwargs){
-		WatchHub.call(this);
-		EventHub.call(this);
+		super(kwargs);
 
 		this[ppHasFocus] = false;
 		kwargs = this.kwargs = Object.assign({}, kwargs);
@@ -530,18 +529,6 @@ export default class Component {
 		}
 	}
 }
-
-function mix(mixin){
-	mixin = mixin.prototype;
-	Reflect.ownKeys(mixin).forEach((key) =>{
-		if(key !== "constructor" && key !== "prototype" && key !== "name"){
-			Object.defineProperty(Component.prototype, key, Object.getOwnPropertyDescriptor(mixin, key));
-		}
-	})
-}
-
-mix(EventHub);
-mix(WatchHub);
 
 const objectToString = ({}).toString();
 
