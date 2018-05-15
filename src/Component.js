@@ -261,7 +261,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	unrender(){
-		if(this._dom){
+		if(this.rendered){
 			let root = this._dom.root;
 			if(Array.isArray(root)){
 				root.forEach((node) =>{
@@ -291,7 +291,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get rendered(){
-		return !!this._dom;
+		return !!(this._dom && this._dom.root);
 	}
 
 	own(...handles){
@@ -400,7 +400,7 @@ export default class Component extends EventHub(WatchHub()) {
 
 	get className(){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT returned
-		if(this._dom){
+		if(this.rendered){
 			// if rendered, then look at what's actually in the document...maybe client code _improperly_ manipulated directly
 			let root = this._dom.root;
 			if(Array.isArray(root)){
@@ -472,7 +472,7 @@ export default class Component extends EventHub(WatchHub()) {
 	[ppSetClassName](newValue, oldValue){
 		newValue = cleanClassName(newValue);
 		this[ppClassName] = newValue;
-		if(this._dom){
+		if(this.rendered){
 			this._dom.root.className = calcDomClassName(this);
 		}
 		this._applyWatchersRaw("className", oldValue, newValue);
@@ -498,7 +498,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get tabIndex(){
-		if(this._dom){
+		if(this.rendered){
 			// unconditionally make sure this[ppTabIndex] and the dom is synchronized on each get
 			return (this[ppTabIndex] = (this._dom.tabIndexNode || this._dom.root).tabIndex);
 		}else{
@@ -508,7 +508,7 @@ export default class Component extends EventHub(WatchHub()) {
 
 	set tabIndex(value){
 		if(value !== this[ppTabIndex]){
-			this._dom && ((this._dom.tabIndexNode || this._dom.root).tabIndex = value);
+			this.rendered && ((this._dom.tabIndexNode || this._dom.root).tabIndex = value);
 			this._applyWatchers("tabIndex", ppTabIndex, value);
 		}
 	}
@@ -523,7 +523,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get title(){
-		if(this._dom){
+		if(this.rendered){
 			return (this._dom.titleNode || this._dom.root).title;
 		}else{
 			return this[ppTitle];
@@ -532,8 +532,8 @@ export default class Component extends EventHub(WatchHub()) {
 
 	set title(value){
 		if(value !== this[ppTitle]){
-			this._dom && ((this._dom.titleNode || this._dom.root).title = value);
-			this._applyWatchers("tabIndex", ppTitle, value);
+			this.rendered && ((this._dom.titleNode || this._dom.root).title = value);
+			this._applyWatchers("title", ppTitle, value);
 		}
 	}
 }
