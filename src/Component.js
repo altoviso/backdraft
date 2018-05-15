@@ -454,32 +454,38 @@ export default class Component extends EventHub(WatchHub()) {
 		return this[ppClassName].indexOf(value) !== -1;
 	}
 
-	addClassName(value){
-
-		value = cleanClassName(value);
-		if(this[ppClassName].indexOf(value) === -1){
-			this[ppSetClassName]((this[ppClassName] ? this[ppClassName] + " " : "") + value, this[ppClassName]);
-		}
+	addClassName(...values){
+		values.forEach((value)=>{
+			value = cleanClassName(value);
+			if(this[ppClassName].indexOf(value) === -1){
+				this[ppSetClassName]((this[ppClassName] ? this[ppClassName] + " " : "") + value, this[ppClassName]);
+			}
+		});
+		return this;
 	}
 
-	removeClassName(value){
+	removeClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-
-		value = cleanClassName(value);
-		if(this[ppClassName].indexOf(value) !== -1){
-			this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
-		}
+		values.forEach((value)=>{
+			value = cleanClassName(value);
+			if(this[ppClassName].indexOf(value) !== -1){
+				this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
+			}
+		});
+		return this;
 	}
 
-	toggleClassName(value){
+	toggleClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-
-		value = cleanClassName(value);
-		if(this[ppClassName].indexOf(value) !== -1){
-			this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
-		}else{
-			this[ppSetClassName](this[ppClassName] + " " + value, this[ppClassName])
-		}
+		values.forEach((value)=>{
+			value = cleanClassName(value);
+			if(this[ppClassName].indexOf(value) !== -1){
+				this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
+			}else{
+				this[ppSetClassName](this[ppClassName] + " " + value, this[ppClassName])
+			}
+		});
+		return this;
 	}
 
 	[ppSetClassName](newValue, oldValue){
