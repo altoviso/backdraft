@@ -280,7 +280,7 @@ export default class Component extends EventHub(WatchHub()) {
 				this._dom.handles.forEach(handle => handle.destroy());
 			}
 			if(this.children){
-				this.children.forEach((child) =>{
+				this.children.slice().forEach((child) =>{
 					child.destroy();
 				});
 			}
