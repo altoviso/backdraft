@@ -162,6 +162,8 @@ export default class Component extends EventHub(WatchHub()) {
 		if(kwargs.enabled){
 			this[ppEnabled] = kwargs.enabled;
 			delete kwargs.enabled;
+		}else{
+			this[ppEnabled] = true;
 		}
 
 		if(kwargs.elements){
