@@ -136,8 +136,10 @@ export default class Component extends EventHub(WatchHub()) {
 		}
 
 		if(kwargs.staticClassName){
-			this[ppStaticClassName] = kwargs.staticClassName;
+			this[ppStaticClassName] = kwargs.staticClassName + (this.constructor.className ? " " + this.constructor.className : "");
 			delete kwargs.staticClassName;
+		}else if(this.constructor.className){
+			this[ppStaticClassName] = this.constructor.className;
 		}
 
 		if(kwargs.className){
