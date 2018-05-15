@@ -27,6 +27,8 @@ export default function EventHub(superClass){
 			if(!handler){
 				let hash = eventName;
 				Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
+			}else if(Array.isArray(eventName)){
+				return eventName.map(name => this.advise(name, handler));
 			}else{
 				let handlers = this[ppEvents][eventName] || (this[ppEvents][eventName] = []),
 					wrappedHandler = {handler: handler};
