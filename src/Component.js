@@ -236,7 +236,11 @@ export default class Component extends EventHub(WatchHub()) {
 					root.id = this.id;
 				}
 				this.addClassName(root.className);
-				root.className = calcDomClassName(this);
+				let className = calcDomClassName(this);
+				if(className){
+					root.className = className;
+
+				}
 
 				if(this[ppTabIndex] !== undefined){
 					(this._dom.tabIndexNode || this._dom.root).tabIndex = this[ppTabIndex]
