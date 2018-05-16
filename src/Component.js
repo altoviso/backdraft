@@ -340,6 +340,9 @@ export default class Component extends EventHub(WatchHub()) {
 		if(!this.rendered){
 			throw new Error("parent component must be rendered before explicitly inserting a child");
 		}
+		if(child instanceof Element){
+			child = render(child);
+		}
 		if(!(child instanceof Component)){
 			throw new Error("child must be a subclass of Component");
 		}
