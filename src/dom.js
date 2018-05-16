@@ -20,13 +20,7 @@ function setAttr(node, name, value){
 			setAttr(node, name, hash[name]);
 		});
 	}else{
-		if(name === "className"){
-			if(Array.isArray(value)){
-				node.className = value.reduce((item) => item ? result + " " + item : result, "").replace(/\s{2,}/g, " ").trim();
-			}else{
-				node.className = value.replace(/\s{2,}/g, " ").trim();
-			}
-		}else if(name === "style"){
+		if(name === "style"){
 			setStyle(node, value);
 		}else if(name in node){
 			node[name] = value;
@@ -105,7 +99,9 @@ function setPosit(node, posit){
 function create(tag, props, refNode){
 	let result = document.createElement(tag);
 	if(props){
-		setAttr(result, props);
+		for(let p in props){
+			setAttr(result, p, props[p]);
+		}
 	}
 	if(refNode){
 		refNode.appendChild(result);
