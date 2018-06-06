@@ -81,6 +81,17 @@ function setStyle(node, property, value){
 	}
 }
 
+function getPosit(target){
+	let result = normalizeNodeArg(target).getBoundingClientRect();
+	result.t = result.top;
+	result.b = result.bottom;
+	result.l = result.left;
+	result.r = result.right;
+	result.h = result.height;
+	result.w = result.width;
+	return result;
+}
+
 function setPosit(node, posit){
 	for(let p in posit){
 		switch(p){
@@ -372,7 +383,6 @@ export {
 	setStyle,
 	setPosit,
 	create,
-	insert,
 	hide,
 	show,
 	getPosit,
