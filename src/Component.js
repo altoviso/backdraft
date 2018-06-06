@@ -389,10 +389,6 @@ export default class Component extends EventHub(WatchHub()) {
 		});
 	}
 
-	resize(hint // [hash, optional] typically with h, w properties, but semantics defined by particular class
-	){
-	}
-
 	get visible(){
 		return !this.containsClassName("bd-hidden");
 	}
@@ -402,7 +398,7 @@ export default class Component extends EventHub(WatchHub()) {
 		if(value !== !this.containsClassName("bd-hidden")){
 			if(value){
 				this.removeClassName("bd-hidden");
-				this.resize();
+				this.resize && this.resize();
 			}else{
 				this.addClassName("bd-hidden");
 			}
