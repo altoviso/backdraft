@@ -17,6 +17,8 @@ export function Element(type, ctorProps, ppProps, children){
 	}else if(children.length){
 		this.children = children;
 	}
+
+	//TODO: should we freeze the object up?
 }
 
 export default function element(type, props = {}, ...children){
@@ -56,13 +58,11 @@ export default function element(type, props = {}, ...children){
 	return new Element(type, ctorProps, postProcessingProps, flattenedChildren);
 }
 
-element.insPostProcessingFunction = function(test, name, symbol, func){
+element.insPostProcessingFunction = function(name, func){
 	if(element[name]){
 		throw Error("duplicate postprocessing function name");
 	}
-	if(element[symbol]){
-		throw Error("duplicate postprocessing function symbol");
-	}
+	let symbol = Symbol("post-process-function-" + name);
 	Object.defineProperty(element, name, {value: symbol, enumerable: true});
 	Object.defineProperty(element, symbol, {value: func, enumerable: true});
 	postProcessingSet.add(symbol);

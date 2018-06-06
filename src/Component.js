@@ -2,13 +2,13 @@ import {default as element, Element} from "./element.js"
 import EventHub from './EventHub.js'
 import WatchHub from './WatchHub.js'
 
-element.insPostProcessingFunction(element, "attach", Symbol("post-process-function-attach"),
+element.insPostProcessingFunction("attach",
 	function(target, source, resultIsDomNode, name){
 		target[name] = source;
 	}
 );
 
-element.insPostProcessingFunction(element, "watch", Symbol("post-process-function-watch"),
+element.insPostProcessingFunction("watch",
 	function(target, source, resultIsDomNode, watchers){
 		Reflect.ownKeys(watchers).forEach((name) =>{
 			source.ownWhileRendered(source.watch(name, watchers[name]))
@@ -16,25 +16,25 @@ element.insPostProcessingFunction(element, "watch", Symbol("post-process-functio
 	}
 );
 
-element.insPostProcessingFunction(element, "applyMethod", Symbol("post-process-function-apply-method"),
+element.insPostProcessingFunction("applyMethod",
 	function(target, source, resultIsDomNode, name, ...args){
 		source[name](...args);
 	}
 );
 
-element.insPostProcessingFunction(element, "tabIndexNode", Symbol("post-process-function-tabIndex-node"),
+element.insPostProcessingFunction("tabIndexNode",
 	function(target, source){
 		target._dom.tabIndexNode = source;
 	}
 );
 
-element.insPostProcessingFunction(element, "titleNode", Symbol("post-process-function-title-node"),
+element.insPostProcessingFunction("titleNode",
 	function(target, source){
 		target._dom.titleNode = source;
 	}
 );
 
-element.insPostProcessingFunction(element, "staticClassName", Symbol("post-process-function-static-className"),
+element.insPostProcessingFunction("staticClassName",
 	function(target, source, resultIsDomNode, className){
 		target[ppStaticClassName] = className
 	}
