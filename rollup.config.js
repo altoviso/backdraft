@@ -1,8 +1,12 @@
 export default {
 	input: "src/backdraft.js",
-	output: {
+	output: [{
+		format: "umd",
+		name: "backdraft",
+		file: "dist/backdraft-umd.js"
+	}, {
 		format: "es",
 		name: "backdraft",
-		file: "built/backdraft.js"
-	}
+		file: "dist/backdraft.js"
+	}]
 };
