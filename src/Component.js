@@ -112,13 +112,13 @@ function validateElements(instance, elements){
 	}
 }
 
-function postProcess(ppProps, target, source, resultIsDomNode){
+function postProcess(ppProps, owner, target, targetIsDomNode){
 	Reflect.ownKeys(ppProps).forEach((ppProp) =>{
 		let args = ppProps[ppProp];
 		if(Array.isArray(args)){
-			element[ppProp](target, source, resultIsDomNode, ...args);
+			element[ppProp](owner, target, targetIsDomNode, ...args);
 		}else{
-			element[ppProp](target, source, resultIsDomNode, args);
+			element[ppProp](owner, target, targetIsDomNode, args);
 		}
 	});
 }
@@ -458,7 +458,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	addClassName(...values){
-		values.forEach((value)=>{
+		values.forEach((value) =>{
 			value = cleanClassName(value);
 			if(this[ppClassName].indexOf(value) === -1){
 				this[ppSetClassName]((this[ppClassName] ? this[ppClassName] + " " : "") + value, this[ppClassName]);
@@ -469,7 +469,7 @@ export default class Component extends EventHub(WatchHub()) {
 
 	removeClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		values.forEach((value)=>{
+		values.forEach((value) =>{
 			value = cleanClassName(value);
 			if(this[ppClassName].indexOf(value) !== -1){
 				this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
@@ -480,7 +480,7 @@ export default class Component extends EventHub(WatchHub()) {
 
 	toggleClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		values.forEach((value)=>{
+		values.forEach((value) =>{
 			value = cleanClassName(value);
 			if(this[ppClassName].indexOf(value) !== -1){
 				this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
@@ -562,68 +562,6 @@ export default class Component extends EventHub(WatchHub()) {
 
 const objectToString = ({}).toString();
 
-function pushNode(node, refNode, position){
-
-	function insertBefore(node, refNode){
-		refNode.parentNode.insertBefore(node, refNode);
-	}
-
-	function insertAfter(node, refNode){
-		let parent = refNode.parentNode;
-		if(parent.lastChild === refNode){
-			parent.appendChild(node);
-		}else{
-			parent.insertBefore(node, refNode.nextSibling);
-		}
-	}
-
-	function unrender(node){
-		let component = Component.catalog.get(node);
-		if(component){
-			component.unrender();
-		}
-	}
-
-	if(typeof position === "number"){
-		let children = refNode.childNodes;
-		if(!children.length || children.length <= position){
-			refNode.appendChild(node);
-		}else{
-			insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
-		}
-	}else{
-		switch(position){
-			case "before":
-				insertBefore(node, refNode);
-				break;
-			case "after":
-				insertAfter(node, refNode);
-				break;
-			case "replace":
-				refNode.parentNode.replaceChild(node, refNode);
-				unrender(refNode);
-				break;
-			case "only":
-				while(refNode.firstChild){
-					unrender(refNode.removeChild(refNode.firstChild));
-				}
-				refNode.appendChild(node);
-				break;
-			case "first":
-				if(refNode.firstChild){
-					insertBefore(node, refNode.firstChild);
-				}else{
-					refNode.appendChild(node);
-				}
-				break;
-			case "last":
-				refNode.appendChild(node);
-				break;
-			default:
-				throw new Error("illegal position");
-		}
-	}
-}
 
 export function render(type, props, attachPoint, position){
 	// six signatures...
@@ -701,11 +639,25 @@ export function render(type, props, attachPoint, position){
 	postProcess(ppProps, result, result, false);
 
 	if(attachPoint){
+
+		function unrender(node){
+			if(node){
+				if(Array.isArray(node)){
+					node.forEach(unrender);
+				}else{
+					let component = Component.catalog.get(node);
+					if(component){
+						component.unrender();
+					}
+				}
+			}
+		}
+
 		let root = result._dom.root;
 		if(Array.isArray(root)){
-			root.forEach((node) => pushNode(node, attachPoint, position));
+			root.forEach((node) => unrender(Component.insertNode(node, attachPoint, position)));
 		}else{
-			pushNode(root, attachPoint, position);
+			unrender(Component.insertNode(root, attachPoint, position));
 		}
 	}
 	return result;
