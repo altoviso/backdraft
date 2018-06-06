@@ -73,11 +73,9 @@ const TypeTextNode = Symbol("text-node");
 const TypeComponentNode = Symbol("component-node");
 
 function componentType(element){
-	if(element instanceof Element){
-		return typeof element.type === "string" ? TypeDomNode : TypeComponentNode;
-	}else{
-		return TypeTextNode;
-	}
+	return element instanceof Element ?
+		(typeof element.type === "string" ? TypeDomNode :
+			TypeComponentNode) : TypeTextNode;
 }
 
 function addChildToDomNode(parent, domNode, child, childType){
@@ -88,7 +86,7 @@ function addChildToDomNode(parent, domNode, child, childType){
 		}else{
 			domNode.appendChild(childDomRoot);
 		}
-		parent.adopt(child);
+		parent._adopt(child);
 	}else{
 		domNode.appendChild(child);
 	}
@@ -96,7 +94,7 @@ function addChildToDomNode(parent, domNode, child, childType){
 
 function validateElements(instance, elements){
 	function error(){
-		throw new Error("Illegal: root elements for a Component cannot be Components; see http://www.backdraftjs.org/TODO")
+		throw new Error("Illegal: root elements for a Component cannot be Components")
 	}
 
 	if(Array.isArray(elements)){
@@ -318,21 +316,17 @@ export default class Component extends EventHub(WatchHub()) {
 		return this[ppParent];
 	}
 
-	set parent(value){
-		if(value !== this[ppParent]){
-			let oldValue = this[ppParent];
-			this._applyWatchersRaw("parent", oldValue, (this[ppParent] = value));
+	_adopt(child){
+		if(child[ppParent]){
+			child[ppParent].delChild(child, true);
 		}
-	}
-
-	adopt(child){
 		(this.children || (this.children = [])).push(child);
-		child.parent = this;
+		child[ppParent] = this;
 	}
 
-	orphan(){
-		if(this.parent){
-			this.parent = null;
+	_orphan(){
+		if(this[ppParent]){
+			this[ppParent] = null;
 		}
 	}
 
@@ -354,13 +348,10 @@ export default class Component extends EventHub(WatchHub()) {
 		}else{
 			node.appendChild(childRoot)
 		}
-		this.adopt(child);
+		this._adopt(child);
 	}
 
-	delChild(child, destroy){
-		if(!this.rendered){
-			throw new Error("parent component must be rendered before explicitly inserting a child");
-		}
+	delChild(child, preserve){
 		let index = this.children ? this.children.indexOf(child) : -1;
 		if(index !== -1){
 			let root = child._dom && child._dom.root;
@@ -369,9 +360,9 @@ export default class Component extends EventHub(WatchHub()) {
 			}else{
 				root.parentNode && root.parentNode.removeChild(root)
 			}
-			child.orphan();
+			child._orphan();
 			this.children.splice(index, 1);
-			if(destroy){
+			if(!preserve){
 				child.destroy();
 				child = false;
 			}
