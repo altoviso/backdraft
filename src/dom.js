@@ -370,14 +370,14 @@ function processNode(node){
 	// signal blur from the path end to the first identical component (not including the first identical component)
 	for(j = i; j < oldStackLength; j++){
 		component = focusStack.pop();
-		component[ppOnBlur];
+		component[ppOnBlur]();
 		focusManager._applyHandlers({name: "blurComponent", component: component});
 	}
 
 	// signal focus for all new components that just gained the focus
 	for(j = i; j < newStackLength; j++){
 		focusStack.push(component = stack[j]);
-		component[ppOnFocus];
+		component[ppOnFocus]();
 		focusManager._applyHandlers({name: "focusComponent", component: component});
 	}
 
