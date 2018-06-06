@@ -18,7 +18,7 @@ Backdraft is extensively documented at [backdraftjs.org](http://backdraftjs.org)
 With `npm`:
 
 ```
-npm install -D backdraftjs
+npm install backdraftjs
 ```
 
 With `yarn`:
