@@ -73,7 +73,6 @@ function setStyle(node, property, value){
 			let hash = property;
 			Object.keys(hash).forEach(property =>{
 				node.style[property] = hash[property];
-				setStyle(node, property, hash[property]);
 			});
 		}
 	}else{
