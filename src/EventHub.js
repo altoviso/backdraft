@@ -15,6 +15,8 @@ export default function EventHub(superClass){
 		_applyHandlers(e){
 			if(!e.name){
 				e = {name: e, target: this};
+			}else{
+				e.target = this;
 			}
 			let handlers = this[ppEvents][e.name];
 			if(handlers){
