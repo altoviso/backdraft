@@ -30,7 +30,7 @@ export default {
 			assert(c[Component.ppClassName] === "");
 			assert(c[Component.ppTabIndex] === undefined);
 			assert(c[Component.ppTitle] === undefined);
-			assert(c[Component.ppEnabled] === undefined);
+			assert(c[Component.ppEnabled] === true);
 			assert(c.postRender === undefined);
 			assert(!c.rendered);
 			assert(c._dom === undefined);
