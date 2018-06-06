@@ -41,13 +41,24 @@ function getStyle(node, property){
 	return (typeof result === "string" && /px$/.test(result)) ? parseFloat(result) : result;
 }
 
-function getStyles(node, properties){
+function getStyles(node, ...styleNames){
 	if(lastComputedStyleNode !== node){
 		lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
 	}
 
+	let styles = [];
+	styleNames.forEach((p) =>{
+		if(Array.isArray(p)){
+			styles = styles.concat(p);
+		}else if(typeof p === "string"){
+			styles.push(p);
+		}else{
+			Object.keys(p).forEach((p) => styles.push(p));
+		}
+	});
+
 	let result = {};
-	Object.keys(properties).forEach((property) =>{
+	styles.forEach((property) =>{
 		let result = lastComputedStyle[property];
 		result[property] = (typeof result === "string" && /px$/.test(result)) ? parseFloat(result) : result;
 	});
@@ -141,16 +152,7 @@ function show(...nodes){
 	});
 }
 
-function getClientRect(target){
-	let result = normalizeNodeArg(target).getBoundingClientRect();
-	result.t = result.top;
-	result.b = result.bottom;
-	result.l = result.left;
-	result.r = result.right;
-	result.h = result.height;
-	result.w = result.width;
-	return result;
-}
+
 
 function getMaxZIndex(parent){
 	let node, cs, max = 0, children = parent.childNodes, i = 0, end = children.length;
@@ -217,7 +219,7 @@ function stopEvent(event){
 	}
 }
 
-element.insPostProcessingFunction(element, "advise", Symbol("post-process-function-advise"),
+element.insPostProcessingFunction("advise",
 	function(target, source, resultIsDomNode, listeners){
 		Reflect.ownKeys(listeners).forEach((name) =>{
 			let listener = listeners[name];
@@ -370,9 +372,10 @@ export {
 	setStyle,
 	setPosit,
 	create,
+	insert,
 	hide,
 	show,
-	getClientRect,
+	getPosit,
 	getMaxZIndex,
 	destroyDomChildren,
 	destroyDomNode,
