@@ -117,18 +117,76 @@ function setPosit(node, posit){
 	}
 }
 
-function create(tag, props, refNode){
+
+function insert(node, refNode, position){
+
+	function insertBefore(node, refNode){
+		refNode.parentNode.insertBefore(node, refNode);
+	}
+
+	function insertAfter(node, refNode){
+		let parent = refNode.parentNode;
+		if(parent.lastChild === refNode){
+			parent.appendChild(node);
+		}else{
+			parent.insertBefore(node, refNode.nextSibling);
+		}
+	}
+
+	if(typeof position === "number"){
+		let children = refNode.childNodes;
+		if(!children.length || children.length <= position){
+			refNode.appendChild(node);
+		}else{
+			insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
+		}
+	}else{
+		if(!position){
+			position = "last";
+		}
+		switch(position){
+			case "before":
+				insertBefore(node, refNode);
+				break;
+			case "after":
+				insertAfter(node, refNode);
+				break;
+			case "replace":
+				refNode.parentNode.replaceChild(node, refNode);
+				return (refNode);
+			case "only":
+				let result = [];
+				while(refNode.firstChild){
+					result.push(refNode.removeChild(refNode.firstChild));
+				}
+				refNode.appendChild(node);
+				return result;
+			case "first":
+				if(refNode.firstChild){
+					insertBefore(node, refNode.firstChild);
+				}else{
+					refNode.appendChild(node);
+				}
+				break;
+			case "last":
+				refNode.appendChild(node);
+				break;
+			default:
+				throw new Error("illegal position");
+		}
+	}
+}
+
+function create(tag, props){
 	let result = document.createElement(tag);
 	if(props){
 		for(let p in props){
 			setAttr(result, p, props[p]);
 		}
 	}
-	if(refNode){
-		refNode.appendChild(result);
-	}
 	return result;
 }
+
 
 function normalizeNodeArg(arg){
 	return (arg._dom && arg._dom.root) || (typeof arg === "string" && document.getElementById(arg)) || arg;
@@ -382,6 +440,7 @@ export {
 	setStyle,
 	setPosit,
 	create,
+	insert,
 	hide,
 	show,
 	getPosit,
