@@ -136,40 +136,44 @@ export default class Component extends EventHub(WatchHub()) {
 		super(kwargs);
 
 		this[ppHasFocus] = false;
-		kwargs = this.kwargs = Object.assign({}, kwargs);
 
-		if(kwargs.id){
-			Object.defineProperty(this, "id", {value: kwargs.id, enumerable: true});
-			delete kwargs.id;
+		let saveKwargs = false;
+		let theConstructor = this.constructor;
+		if(theConstructor.saveKwargs !== false){
+			kwargs = this.kwargs = Object.assign({}, kwargs);
+			saveKwargs = true;
 		}
 
+		Object.defineProperty(this, "id", {value: kwargs.id, enumerable: true});
+		saveKwargs && kwargs.id && delete kwargs.id;
+
 		if(kwargs.staticClassName){
-			this[ppStaticClassName] = kwargs.staticClassName + (this.constructor.className ? " " + this.constructor.className : "");
-			delete kwargs.staticClassName;
-		}else if(this.constructor.className){
-			this[ppStaticClassName] = this.constructor.className;
+			this[ppStaticClassName] = kwargs.staticClassName + (theConstructor.className ? " " + theConstructor.className : "");
+			if(saveKwargs) delete kwargs.staticClassName;
+		}else if(theConstructor.className){
+			this[ppStaticClassName] = theConstructor.className;
 		}
 
 		if(kwargs.className){
 			this[ppClassName] = kwargs.className;
-			delete kwargs.className;
+			if(saveKwargs) delete kwargs.className;
 		}else{
 			this[ppClassName] = "";
 		}
 
 		if(kwargs.tabIndex){
 			this[ppTabIndex] = kwargs.tabIndex;
-			delete kwargs.tabIndex;
+			if(saveKwargs) delete kwargs.tabIndex;
 		}
 
 		if(kwargs.title){
 			this[ppTitle] = kwargs.title;
-			delete kwargs.title;
+			if(saveKwargs) delete kwargs.title;
 		}
 
-		if(kwargs.enabled){
-			this[ppEnabled] = kwargs.enabled;
-			delete kwargs.enabled;
+		if(kwargs.enabled !== undefined){
+			this[ppEnabled] = !!kwargs.enabled;
+			if(saveKwargs) delete kwargs.enabled;
 		}else{
 			this[ppEnabled] = true;
 		}
@@ -180,12 +184,12 @@ export default class Component extends EventHub(WatchHub()) {
 			}else{
 				Object.defineProperty(this, "elements", {value: kwargs.elements});
 			}
-			delete kwargs.elements;
+			if(saveKwargs) delete kwargs.elements;
 		}
 
 		if(kwargs.postRender){
 			this.postRender = kwargs.postRender;
-			delete kwargs.postRender;
+			if(saveKwargs) delete kwargs.postRender;
 		}
 	}
 
