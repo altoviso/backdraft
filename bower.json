@@ -1,28 +1,16 @@
 {
-	"name": "bd-core",
-	"version": "2.0.3",
+	"name": "bd-smoke",
 	"description": "a JavaScript library for building browser-hosted user interfaces",
 	"homepage": "http://backdraftjs.org",
-	"bugs": "http://github.com/altoviso/backdraft/issues",
-	"github": "http://github.com/altoviso/backdraft",
 	"repository": {
 		"type": "git",
 		"url": "git://github.com/altoviso/backdraft.git"
 	},
 	"main": "lib.js",
-	"directories": {
-		"test": "test"
-	},
-	"scripts": {
-		"build": "./node_modules/.bin/rollup -c"
-	},
-	"author": "Rawld Gill",
+	"authors": [
+		"Rawld Gill <rgill@altoviso.com> (http://altoviso.com/)"
+	],
 	"license": "BSD-3-Clause",
-	"dependencies": {},
-	"devDependencies": {
-		"rollup": "^0.57.1",
-		"bd-smoke": "^0.3.1"
-	},
 	"keywords": [
 		"backdraft",
 		"bd",
@@ -35,5 +23,16 @@
 		"javascript library",
 		"application library",
 		"browser application library"
+	],
+	"devDependencies": {
+		"rollup": "^0.57.1",
+		"bd-smoke": "^0.3.1"
+	},
+	"ignore": [
+		"**/.*",
+		"node_modules",
+		"bower_components",
+		"test",
+		"tests"
 	]
 }
