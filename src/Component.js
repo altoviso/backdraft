@@ -287,7 +287,7 @@ export default class Component extends EventHub(WatchHub()) {
 				root.parentNode && root.parentNode.removeChild(root);
 			}
 			if(this[ppParent]){
-				this[ppParent].delChild(this);
+				this[ppParent].delChild(this, true);
 				delete this[ppParent];
 			}
 			if(this._dom.handles){
