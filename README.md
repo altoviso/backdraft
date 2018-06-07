@@ -18,19 +18,19 @@ Backdraft is extensively documented at [backdraftjs.org](http://backdraftjs.org)
 With `npm`:
 
 ```
-npm install backdraftjs
+npm install bd-core
 ```
 
 With `yarn`:
 
 ```
-yarn add backdraftjs
+yarn add bd-core
 ```
 
 With `bower`:
 
 ```
-bower install --save backdraftjs
+bower install --save bd-core
 ```
 
 For more details see [http://backdraftjs.org/install.html](http://backdraftjs.org/install.html)

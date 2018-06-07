@@ -1,4 +1,4 @@
-import {e, Component} from "../src/backdraft.js"
+import {e, Component} from "../lib.js"
 
 let root = document.getElementById("root");
 

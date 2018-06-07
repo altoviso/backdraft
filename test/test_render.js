@@ -1,4 +1,4 @@
-import {e, render, Component, destroyDomChildren} from "../src/backdraft.js"
+import {e, render, Component, destroyDomChildren} from "../lib.js"
 
 let root = document.getElementById("root");
 
