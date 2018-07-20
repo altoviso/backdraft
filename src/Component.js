@@ -353,6 +353,7 @@ export default class Component extends EventHub(WatchHub()) {
 			node.appendChild(childRoot)
 		}
 		this._adopt(child);
+		return child;
 	}
 
 	delChild(child, preserve){
