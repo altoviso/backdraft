@@ -228,9 +228,11 @@ export default class Component extends EventHub(WatchHub()) {
 
 	destroy(){
 		this.unrender();
-		delete this.kwargs;
+		this[ppOwnedHandles] && this[ppOwnedHandles].forEach(handle => handle.destroy());
 		this.destroyWatch();
 		this.destroyAdvise();
+		delete this.kwargs;
+		this.destroyed = true;
 	}
 
 	_renderElements(e){
