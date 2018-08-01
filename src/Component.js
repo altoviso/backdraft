@@ -640,8 +640,9 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set enabled(value){
-		this._applyWatchers("enabled", ppEnabled, !!value);
-		this[value ? "removeClassName" : "addClassName"]("bd-disabled");
+		if(this._applyWatchers("enabled", ppEnabled, !!value)){
+			this[value ? "removeClassName" : "addClassName"]("bd-disabled");
+		}
 	}
 
 	get visible(){
@@ -670,9 +671,8 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set title(value){
-		if(value !== this[ppTitle]){
+		if(this._applyWatchers("title", ppTitle, value)){
 			this.rendered && ((this._dom.titleNode || this._dom.root).title = value);
-			this._applyWatchers("title", ppTitle, value);
 		}
 	}
 }
