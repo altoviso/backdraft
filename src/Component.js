@@ -539,7 +539,7 @@ export default class Component extends EventHub(WatchHub()) {
 			}
 			let className = root.className;
 			if(this[ppStaticClassName]){
-				this[ppStaticClassName].split(" ").forEach(s => className.replace(s, ""));
+				this[ppStaticClassName].split(" ").forEach(s => className = className.replace(s, ""));
 			}
 			return cleanClassName(className);
 		}else{
