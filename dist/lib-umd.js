@@ -1453,7 +1453,7 @@
 	Component.insertNode = insert;
 
 	function version(){
-		return "2.2.0";
+		return "2.2.1";
 	}
 
 	exports.Component = Component;

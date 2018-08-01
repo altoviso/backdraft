@@ -1447,7 +1447,7 @@ Component.createNode = create;
 Component.insertNode = insert;
 
 function version(){
-	return "2.2.0";
+	return "2.2.1";
 }
 
 export { Component, version, element as e, Element, EventHub, WatchHub, render, getAttributeValueFromEvent, setAttr, getStyle, getStyles, setStyle, setPosit, create, insert, hide, show, getPosit, getMaxZIndex, destroyDomChildren, destroyDomNode, connect, stopEvent, focusManager, viewportWatcher };
