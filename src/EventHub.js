@@ -13,12 +13,17 @@ export default function EventHub(superClass){
 
 		// protected interface...
 		_applyHandlers(e){
-			if(!e.name){
-				e = {name: e, target: this};
+			let handlers;
+			if(e instanceof Event){
+				handlers = this[ppEvents][e.type];
 			}else{
-				e.target = this;
+				if(!e.name){
+					e = {name: e, target: this};
+				}else{
+					e.target = this;
+				}
+				handlers = this[ppEvents][e.name];
 			}
-			let handlers = this[ppEvents][e.name];
 			if(handlers){
 				handlers.slice().forEach(handler => handler.handler(e));
 			}
