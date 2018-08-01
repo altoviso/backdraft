@@ -208,9 +208,14 @@ export default class Component extends EventHub(WatchHub()) {
 
 		if(kwargs.elements){
 			if(typeof kwargs.elements === "function"){
-				Object.defineProperty(this, "elements", {get: kwargs.elements});
+				Object.defineProperty(this, "_elements", {value: kwargs.elements});
 			}else{
-				Object.defineProperty(this, "elements", {value: kwargs.elements});
+				let _elements = (function(elements){
+					return function(){
+						return elements;
+					};
+				})(kwargs.elements);
+				Object.defineProperty(this, "_elements", {value: _elements});
 			}
 			if(saveKwargs) delete kwargs.elements;
 		}
@@ -270,7 +275,7 @@ export default class Component extends EventHub(WatchHub()) {
 	){
 		if(!this._dom){
 			let dom = this._dom = {};
-			let elements = this.elements;
+			let elements = this._elements();
 			validateElements(this, elements);
 			let root = dom.root = this._renderElements(elements);
 			if(Array.isArray(root)){
@@ -303,7 +308,7 @@ export default class Component extends EventHub(WatchHub()) {
 		return this._dom.root;
 	}
 
-	get elements(){
+	_elements(){
 		return element("div", {});
 	}
 
