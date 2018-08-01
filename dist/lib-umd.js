@@ -19,12 +19,17 @@
 
 			// protected interface...
 			_applyHandlers(e){
-				if(!e.name){
-					e = {name: e, target: this};
+				let handlers;
+				if(e instanceof Event){
+					handlers = this[ppEvents][e.type];
 				}else{
-					e.target = this;
+					if(!e.name){
+						e = {name: e, target: this};
+					}else{
+						e.target = this;
+					}
+					handlers = this[ppEvents][e.name];
 				}
-				let handlers = this[ppEvents][e.name];
 				if(handlers){
 					handlers.slice().forEach(handler => handler.handler(e));
 				}
@@ -74,7 +79,7 @@
 		this.ctorProps = ctorProps;
 		if(ctorProps.className){
 			if(Array.isArray(ctorProps.className)){
-				ctorProps.className = ctorProps.className.reduce((item) => item ? result + " " + item : result, "").replace(/\s{2,}/g, " ").trim();
+				ctorProps.className = ctorProps.className.reduce((result, item) => item ? result + " " + item : result, "").replace(/\s{2,}/g, " ").trim();
 			}else{
 				ctorProps.className = ctorProps.className.replace(/\s{2,}/g, " ").trim();
 			}
@@ -209,6 +214,11 @@
 	element.insPostProcessingFunction("attach",
 		function(target, source, resultIsDomNode, name){
 			target[name] = source;
+			target.ownWhileRendered({
+				destroy: function(){
+					delete target[name];
+				}
+			});
 		}
 	);
 
@@ -244,6 +254,22 @@
 		}
 	);
 
+	element.insPostProcessingFunction("parentAttachPoint",
+		function(target, source, resultIsDomNode, propertyName){
+			// source should be a component instance and resultIsDomNode should be false
+			source[ppParentAttachPoint] = propertyName;
+		}
+	);
+
+	element.insPostProcessingFunction("childrenAttachPoint",
+		function(target, source, resultIsDomNode, value){
+			// source should be a DOM node and resultIsDomNode should be true
+			if(value){
+				target[ppChildrenAttachPoint] = source;
+			}
+		}
+	);
+
 	// private properties
 	const
 		ppClassName = Symbol("bd-component-ppClassName"),
@@ -256,6 +282,9 @@
 		ppOnFocus = Symbol("bd-component-ppOnFocus"),
 		ppOnBlur = Symbol("bd-component-pponBlur"),
 		ppSetClassName = Symbol("bd-component-ppSetClassName"),
+		ppParentAttachPoint = Symbol("bd-component-ppParentAttachPoint"),
+		ppChildrenAttachPoint = Symbol("bd-component-ppChildrenAttachPoint"),
+		ppAttachedToDoc = Symbol("bd-component-ppAttachedToDoc"),
 		ppOwnedHandles = Symbol("bd-component-ppOwnedHandles");
 
 	function cleanClassName(s){
@@ -278,21 +307,21 @@
 
 	function componentType(element$$1){
 		return element$$1 instanceof Element ?
-			(typeof element$$1.type === "string" ? TypeDomNode :
-				TypeComponentNode) : TypeTextNode;
+			(typeof element$$1.type === "string" ? TypeDomNode : TypeComponentNode) :
+			TypeTextNode;
 	}
 
 	function addChildToDomNode(parent, domNode, child, childType){
 		if(childType === TypeComponentNode){
 			let childDomRoot = child._dom.root;
 			if(Array.isArray(childDomRoot)){
-				childDomRoot.forEach((node) => domNode.appendChild(node));
+				childDomRoot.forEach((node) => Component.insertNode(node, domNode));
 			}else{
-				domNode.appendChild(childDomRoot);
+				Component.insertNode(childDomRoot, domNode);
 			}
 			parent._adopt(child);
 		}else{
-			domNode.appendChild(child);
+			Component.insertNode(child, domNode);
 		}
 	}
 
@@ -333,6 +362,10 @@
 				dest.push(h);
 			}
 		});
+	}
+
+	function isComponentDerivedCtor(f){
+		return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
 	}
 
 	class Component extends EventHub(WatchHub()) {
@@ -384,9 +417,14 @@
 
 			if(kwargs.elements){
 				if(typeof kwargs.elements === "function"){
-					Object.defineProperty(this, "elements", {get: kwargs.elements});
+					Object.defineProperty(this, "_elements", {value: kwargs.elements});
 				}else{
-					Object.defineProperty(this, "elements", {value: kwargs.elements});
+					let _elements = (function(elements){
+						return function(){
+							return elements;
+						};
+					})(kwargs.elements);
+					Object.defineProperty(this, "_elements", {value: _elements});
 				}
 				if(saveKwargs) delete kwargs.elements;
 			}
@@ -399,9 +437,11 @@
 
 		destroy(){
 			this.unrender();
-			delete this.kwargs;
+			this[ppOwnedHandles] && this[ppOwnedHandles].forEach(handle => handle.destroy());
 			this.destroyWatch();
 			this.destroyAdvise();
+			delete this.kwargs;
+			this.destroyed = true;
 		}
 
 		_renderElements(e){
@@ -417,7 +457,7 @@
 						let renderedChildren = this._renderElements(children);
 						if(Array.isArray(renderedChildren)){
 							renderedChildren.forEach((child, i) => addChildToDomNode(this, domNode, child, componentType(children[i])));
-						}else if(children){
+						}else{
 							addChildToDomNode(this, domNode, renderedChildren, componentType(children));
 						}
 					}
@@ -426,12 +466,17 @@
 					componentInstance.render();
 					postProcess(ppProps, this, componentInstance, false);
 					if(children){
-						console.error("children not allowed for Component elements");
+						let renderedChildren = this._renderElements(children);
+						if(Array.isArray(renderedChildren)){
+							renderedChildren.forEach((child) => result.insChild(child));
+						}else{
+							result.insChild(renderedChildren);
+						}
 					}
 				}
 				return result;
 			}else{
-				// e must be convertable to a string
+				// e must be convertible to a string
 				return document.createTextNode(e);
 			}
 		}
@@ -441,7 +486,7 @@
 		){
 			if(!this._dom){
 				let dom = this._dom = {};
-				let elements = this.elements;
+				let elements = this._elements();
 				validateElements(this, elements);
 				let root = dom.root = this._renderElements(elements);
 				if(Array.isArray(root)){
@@ -474,12 +519,23 @@
 			return this._dom.root;
 		}
 
-		get elements(){
+		_elements(){
 			return element("div", {});
 		}
 
 		unrender(){
 			if(this.rendered){
+				if(this[ppParent]){
+					this[ppParent].delChild(this, true);
+				}
+
+				if(this.children){
+					this.children.slice().forEach((child) =>{
+						child.destroy();
+					});
+				}
+				delete this.children;
+
 				let root = this._dom.root;
 				if(Array.isArray(root)){
 					root.forEach((node) =>{
@@ -490,20 +546,11 @@
 					Component.catalog.delete(root);
 					root.parentNode && root.parentNode.removeChild(root);
 				}
-				if(this[ppParent]){
-					this[ppParent].delChild(this, true);
-					delete this[ppParent];
-				}
 				if(this._dom.handles){
 					this._dom.handles.forEach(handle => handle.destroy());
 				}
-				if(this.children){
-					this.children.slice().forEach((child) =>{
-						child.destroy();
-					});
-				}
-				delete this.children;
 				delete this._dom;
+				this._attachToDoc(false);
 				this._applyWatchersRaw("rendered", true, false);
 			}
 		}
@@ -524,38 +571,119 @@
 			return this[ppParent];
 		}
 
+		_setParent(parent){
+			if(this._applyWatchers("parent", ppParent, parent)){
+				if(parent){
+					let root = parent._dom.root;
+					this._attachToDoc(document.body.contains(Array.isArray(root) ? root[0] : root));
+				}else{
+					this._attachToDoc(false);
+				}
+			}
+		}
+
 		_adopt(child){
 			if(child[ppParent]){
-				child[ppParent].delChild(child, true);
+				throw new Error("unexpected");
 			}
 			(this.children || (this.children = [])).push(child);
-			child[ppParent] = this;
+			child._setParent(this);
 		}
 
-		_orphan(){
-			if(this[ppParent]){
-				this[ppParent] = null;
+
+		_attachToDoc(value){
+			if(this._applyWatchers("attachedToBody", ppAttachedToDoc, !!value)){
+				this.children && this.children.forEach(child => child._attachToDoc(value));
+				return true;
+			}else{
+				return false;
 			}
 		}
 
-		insChild(child, node){
+		get attachedToDoc(){
+			return !!this[ppAttachedToDoc];
+		}
+
+		insChild(...args){
 			if(!this.rendered){
 				throw new Error("parent component must be rendered before explicitly inserting a child");
 			}
-			if(child instanceof Element){
-				child = render(child);
-			}
-			if(!(child instanceof Component)){
-				throw new Error("child must be a subclass of Component");
+			let {src, attachPoint, position} = decodeRender(args);
+			let child;
+			if(src instanceof Component){
+				child = src;
+				if(child.parent){
+					child.parent.delChild(child, true);
+				}
+				child.render();
+			}else{ // child instanceof Element
+				if(componentType(src) !== TypeComponentNode){
+					src = element(Component, {elements: src});
+				}
+				child = this._renderElements(src);
 			}
 
-			node = node ? (node in this ? this[node] : node) : this._dom.root;
-			let childRoot = child.render();
-			if(Array.isArray(childRoot)){
-				childRoot.forEach((childNode) => node.appendChild(childNode));
-			}else{
-				node.appendChild(childRoot);
+			if(/before|after|replace|only|first|last/.test(attachPoint) || typeof attachPoint === "number"){
+				position = attachPoint;
+				attachPoint = 0;
 			}
+
+			if(attachPoint){
+				if(attachPoint in this){
+					// node reference
+					attachPoint = this[attachPoint];
+				}else if(position!==undefined){
+					// attachPoint must be a child Component
+					let index = this.children ? this.children.indexOf(attachPoint) : -1;
+					if(index !== -1){
+						// attachPoint is a child
+						attachPoint = attachPoint._dom.root;
+						if(Array.isArray(attachPoint)){
+							switch(position){
+								case "replace":
+								case "only":
+								case "before":
+									attachPoint = attachPoint[0];
+									break;
+								case "after":
+									attachPoint = attachPoint[attachPoint.length - 1];
+									break;
+								default:
+									throw new Error("unexpected");
+							}
+						}
+					}else{
+						throw new Error("unexpected");
+					}
+				}else{
+					// attachPoint without a position must give a node reference
+					throw new Error("unexpected");
+				}
+			}else if(child[ppParentAttachPoint]){
+				if(child[ppParentAttachPoint] in this){
+					attachPoint = this[child[ppParentAttachPoint]];
+				}else{
+					throw new Error("unexpected");
+				}
+			}else{
+				attachPoint = this[ppChildrenAttachPoint] || this._dom.root;
+				if(Array.isArray(attachPoint)){
+					throw new Error("unexpected");
+				}
+			}
+
+			let childRoot = child._dom.root;
+			if(Array.isArray(childRoot)){
+				let firstChildNode = childRoot[0];
+				unrender(Component.insertNode(firstChildNode, attachPoint, position));
+				childRoot.slice(1).reduce((prevNode, node) =>{
+					Component.insertNode(node, prevNode, "after");
+					return node;
+				}, firstChildNode);
+			}else{
+				unrender(Component.insertNode(childRoot, attachPoint, position));
+			}
+
 			this._adopt(child);
 			return child;
 		}
@@ -564,12 +692,11 @@
 			let index = this.children ? this.children.indexOf(child) : -1;
 			if(index !== -1){
 				let root = child._dom && child._dom.root;
-				if(Array.isArray(root)){
-					root.forEach(node => node.parentNode && node.parentNode.removeChild(node));
-				}else{
-					root.parentNode && root.parentNode.removeChild(root);
-				}
-				child._orphan();
+				let removeNode = (node) =>{
+					node.parentNode && node.parentNode.removeChild(node);
+				};
+				Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
+				child._setParent(null);
 				this.children.splice(index, 1);
 				if(!preserve){
 					child.destroy();
@@ -594,21 +721,6 @@
 			});
 		}
 
-		get visible(){
-			return !this.containsClassName("bd-hidden");
-		}
-
-		set visible(value){
-			value = !!value;
-			if(value !== !this.containsClassName("bd-hidden")){
-				if(value){
-					this.removeClassName("bd-hidden");
-					this.resize && this.resize();
-				}else{
-					this.addClassName("bd-hidden");
-				}
-			}
-		}
 
 		get className(){
 			// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT returned
@@ -620,7 +732,7 @@
 				}
 				let className = root.className;
 				if(this[ppStaticClassName]){
-					this[ppStaticClassName].split(" ").forEach(s => className.replace(s, ""));
+					this[ppStaticClassName].split(" ").forEach(s => className = className.replace(s, ""));
 				}
 				return cleanClassName(className);
 			}else{
@@ -736,8 +848,26 @@
 		}
 
 		set enabled(value){
-			this._applyWatchers("enabled", ppEnabled, !!value);
-			this[value ? "removeClassName" : "addClassName"]("bd-disabled");
+			if(this._applyWatchers("enabled", ppEnabled, !!value)){
+				this[value ? "removeClassName" : "addClassName"]("bd-disabled");
+			}
+		}
+
+		get visible(){
+			return !this.containsClassName("bd-hidden");
+		}
+
+		set visible(value){
+			value = !!value;
+			if(value !== !this.containsClassName("bd-hidden")){
+				if(value){
+					this.removeClassName("bd-hidden");
+					this.resize && this.resize();
+				}else{
+					this.addClassName("bd-hidden");
+				}
+				this._applyWatchersRaw("visible", !value, value);
+			}
 		}
 
 		get title(){
@@ -749,112 +879,125 @@
 		}
 
 		set title(value){
-			if(value !== this[ppTitle]){
+			if(this._applyWatchers("title", ppTitle, value)){
 				this.rendered && ((this._dom.titleNode || this._dom.root).title = value);
-				this._applyWatchers("title", ppTitle, value);
 			}
 		}
 	}
 
-	const objectToString = ({}).toString();
+	const prototypeOfObject = Object.getPrototypeOf({});
 
 
-	function render(type, props, attachPoint, position){
-		// six signatures...
+	function decodeRender(args){
+		// eight signatures...
+		//     Signatures 1-2 render an element, 3-6 render a Component, 7-8 render an instance of a Component
+		//
+		//     Each of the above groups may or may not have the args node:domNode[, position:Position="last"]
+		//     which indicate where to attach the rendered Component instance (or not).
+		//
+		//     when this decode routine is used by Component::insertChild, then node can be a string | symbol, indicating
+		//     an instance property that holds the node
+		//
 		//     1. render(e:Element)
-		//     => render(Component, {elements:e}, null)
+		//     => isComponentDerivedCtor(e.type), then render e.type(e.props); render Component({elements:e})
 		//
 		//     2. render(e:Element, node:domNode[, position:Position="last"])
-		// 	   => render(Component, {elements:e}, node, position)
+		// 	   => [1] with attach information
 		//
 		//     3. render(C:Component)
-		//     => render(C, {}, null)
+		//     => render(C, {})
 		//
 		//     4. render(C:Component, args:kwargs)
-		//     => render(C, args, null)
+		//     => render(C, args)
+		//     // note: args is kwargs for C's constructor; therefore, postprocessing instructions are meaningless unless C's
+		//     // construction defines some usage for them (atypical)
 		//
 		//     5. render(C:Component, node:domNode[, position:Position="last"])
-		//     => render(C, {}, node, position)
+		//     => [3] with attach information
 		//
 		//     6. render(C:Component, args:kwargs, node:domNode[, position:Position="last"])
-		//     => render(C, args, node, position)
+		//     => [4] with attach information
 		//
-		// Position one of "first", "last", "before", "after"
+		//     7. render(c:instanceof Component)
+		//     => c.render()
 		//
-		let C;
-		let ppProps = {};
-		if(type instanceof Element){
-			// [1] or [2]
-			position = attachPoint || "last";
-			attachPoint = props;
-			if(componentType(type) === TypeComponentNode){
-				C = type.type;
-				props = type.ctorProps;
-				ppProps = type.ppProps;
-			}else{
-				C = Component;
-				props = {elements: type};
-			}
+		//     8. render(c:instanceof Component, node:domNode[, position:Position="last"])
+		// 	   => [7] with attach information
+		//
+		//     Position one of "first", "last", "before", "after", "replace", "only"; see dom::insert
+		//
+		//     returns {
+		//	       src: instanceof Component | Element
+		//		   attachPoint: node | string | undefined
+		//		   position: string | undefined
+		//     }
+		//
+		//     for signatures 3-6, an Element is manufactured given the arguments
+		//
+		let [arg1, arg2, arg3, arg4] = args;
+		if(arg1 instanceof Element || arg1 instanceof Component){
+			// [1] or [2] || [7] or [8]
+			return {src: arg1, attachPoint: arg2, position: arg3};
 		}else{
-			if(arguments.length === 1){
+			if(!isComponentDerivedCtor(arg1)){
+				throw new Error("first argument must be an Element, Component, or a class derived from Component");
+			}
+			if(args.length === 1){
 				// [3]
-				C = type;
-				props = {};
-				attachPoint = null;
-			}else if(arguments.length === 2){
-				if(props + "" === objectToString){
-					// [4]
-					C = type;
-				}else{
-					// [5] without position
-					C = type;
-					attachPoint = props;
-					position = "last";
-					props = {};
-				}
-			}else if(arguments.length === 3){
-				let typeofAttachPoint = typeof attachPoint;
-				if(typeofAttachPoint === "string" || typeofAttachPoint === "number"){
-					// [5] with position
-					C = type;
-					position = attachPoint;
-					attachPoint = props;
-					props = {};
-				}else{
-					// [6] without position
-					C = type;
-					position = "last";
-				}
+				return {src: element(arg1)};
 			}else{
-				// [6]
-				C = type;
+				// more than one argument; the second argument is either props or not
+				if(Object.getPrototypeOf(arg2) === prototypeOfObject){
+					// [4] or [6]
+					// WARNING: this signature requires kwargs to be a plain Javascript Object (which is should be!)
+					return {src: element(arg1, arg2), attachPoint: arg3, position: arg4};
+				}else{
+					// [5]
+					return {src: element(arg1), attachPoint: arg2, position: arg3};
+				}
 			}
 		}
-		let result = new C(props);
-		result.render();
-		postProcess(ppProps, result, result, false);
+	}
+
+	function unrender(node){
+		function unrender_(node){
+			let component = Component.catalog.get(node);
+			if(component){
+				component.destroy();
+			}
+		}
+
+		Array.isArray(node) ? node.forEach(unrender_) : (node && unrender_(node));
+	}
+
+	function render(...args){
+		let result;
+		let {src, attachPoint, position} = decodeRender(args);
+		if(src instanceof Element){
+			if(componentType(src) === TypeComponentNode){
+				result = new src.type(src.ctorProps);
+			}else{
+				result = new Component({elements: src});
+			}
+			result.render();
+		}else{ // src instanceof Component
+			result = src;
+			result.render();
+		}
 
 		if(attachPoint){
-
-			function unrender(node){
-				if(node){
-					if(Array.isArray(node)){
-						node.forEach(unrender);
-					}else{
-						let component = Component.catalog.get(node);
-						if(component){
-							component.unrender();
-						}
-					}
-				}
-			}
-
 			let root = result._dom.root;
 			if(Array.isArray(root)){
-				root.forEach((node) => unrender(Component.insertNode(node, attachPoint, position)));
+				let firstChildNode = root[0];
+				unrender(Component.insertNode(firstChildNode, attachPoint, position));
+				root.slice(1).reduce((prevNode, node) =>{
+					Component.insertNode(node, prevNode, "after");
+					return node;
+				}, firstChildNode);
 			}else{
 				unrender(Component.insertNode(root, attachPoint, position));
 			}
+			result._attachToDoc(document.body.contains(attachPoint));
 		}
 		return result;
 	}
@@ -871,6 +1014,9 @@
 		ppOnBlur: ppOnBlur,
 		ppSetClassName: ppSetClassName,
 		ppOwnedHandles: ppOwnedHandles,
+		ppParentAttachPoint: ppParentAttachPoint,
+		ppChildrenAttachPoint: ppChildrenAttachPoint,
+		ppAttachedToDoc: ppAttachedToDoc,
 		catalog: new Map(),
 		render: render
 	});
@@ -905,6 +1051,13 @@
 
 	let lastComputedStyleNode = 0;
 	let lastComputedStyle = 0;
+
+	function getComputedStyle_(node){
+		if(lastComputedStyleNode !== node){
+			lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
+		}
+		return lastComputedStyle;
+	}
 
 	function getStyle(node, property){
 		if(lastComputedStyleNode !== node){
@@ -990,63 +1143,58 @@
 		}
 	}
 
+	function insertBefore(node, refNode){
+		refNode.parentNode.insertBefore(node, refNode);
+	}
+
+	function insertAfter(node, refNode){
+		let parent = refNode.parentNode;
+		if(parent.lastChild === refNode){
+			parent.appendChild(node);
+		}else{
+			parent.insertBefore(node, refNode.nextSibling);
+		}
+	}
 
 	function insert(node, refNode, position){
-
-		function insertBefore(node, refNode){
-			refNode.parentNode.insertBefore(node, refNode);
-		}
-
-		function insertAfter(node, refNode){
-			let parent = refNode.parentNode;
-			if(parent.lastChild === refNode){
-				parent.appendChild(node);
-			}else{
-				parent.insertBefore(node, refNode.nextSibling);
-			}
-		}
-
-		if(typeof position === "number"){
-			let children = refNode.childNodes;
-			if(!children.length || children.length <= position){
+		if(position===undefined || position === "last"){
+			// short circuit the common case
+			refNode.appendChild(node);
+		}else switch(position){
+			case "before":
+				insertBefore(node, refNode);
+				break;
+			case "after":
+				insertAfter(node, refNode);
+				break;
+			case "replace":
+				refNode.parentNode.replaceChild(node, refNode);
+				return (refNode);
+			case "only":
+				let result = [];
+				while(refNode.firstChild){
+					result.push(refNode.removeChild(refNode.firstChild));
+				}
 				refNode.appendChild(node);
-			}else{
-				insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
-			}
-		}else{
-			if(!position){
-				position = "last";
-			}
-			switch(position){
-				case "before":
-					insertBefore(node, refNode);
-					break;
-				case "after":
-					insertAfter(node, refNode);
-					break;
-				case "replace":
-					refNode.parentNode.replaceChild(node, refNode);
-					return (refNode);
-				case "only":
-					let result = [];
-					while(refNode.firstChild){
-						result.push(refNode.removeChild(refNode.firstChild));
-					}
+				return result;
+			case "first":
+				if(refNode.firstChild){
+					insertBefore(node, refNode.firstChild);
+				}else{
 					refNode.appendChild(node);
-					return result;
-				case "first":
-					if(refNode.firstChild){
-						insertBefore(node, refNode.firstChild);
-					}else{
+				}
+				break;
+			default:
+				if(typeof position === "number"){
+					let children = refNode.childNodes;
+					if(!children.length || children.length <= position){
 						refNode.appendChild(node);
+					}else{
+						insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
 					}
-					break;
-				case "last":
-					refNode.appendChild(node);
-					break;
-				default:
+				}else{
 					throw new Error("illegal position");
-			}
+				}
 		}
 	}
 
@@ -1059,7 +1207,6 @@
 		}
 		return result;
 	}
-
 
 	function normalizeNodeArg(arg){
 		return (arg._dom && arg._dom.root) || (typeof arg === "string" && document.getElementById(arg)) || arg;
@@ -1092,8 +1239,6 @@
 			}
 		});
 	}
-
-
 
 	function getMaxZIndex(parent){
 		let node, cs, max = 0, children = parent.childNodes, i = 0, end = children.length;
@@ -1282,7 +1427,7 @@
 	let viewportWatcher = new (EventHub());
 
 	let scrollTimeoutHandle = 0;
-	connect(document.body, "scroll", function(e){
+	connect(window, "scroll", function(e){
 		if(scrollTimeoutHandle){
 			clearTimeout(scrollTimeoutHandle);
 		}
@@ -1294,7 +1439,7 @@
 
 
 	let resizeTimeoutHandle = 0;
-	connect(document.body, "resize", function(e){
+	connect(window, "resize", function(e){
 		if(resizeTimeoutHandle){
 			clearTimeout(resizeTimeoutHandle);
 		}
@@ -1308,7 +1453,7 @@
 	Component.insertNode = insert;
 
 	function version(){
-		return "2.1.0";
+		return "2.2.0";
 	}
 
 	exports.Component = Component;

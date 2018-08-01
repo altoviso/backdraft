@@ -11,5 +11,5 @@ export {render} from "./src/Component.js"
 export {Component}
 
 export function version(){
-	return "2.1.0";
+	return "2.2.0";
 }
