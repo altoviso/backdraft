@@ -401,7 +401,7 @@ connect(document.body, "focusout", function(e){
 let viewportWatcher = new (EventHub());
 
 let scrollTimeoutHandle = 0;
-connect(document.body, "scroll", function(e){
+connect(window, "scroll", function(e){
 	if(scrollTimeoutHandle){
 		clearTimeout(scrollTimeoutHandle)
 	}
@@ -413,7 +413,7 @@ connect(document.body, "scroll", function(e){
 
 
 let resizeTimeoutHandle = 0;
-connect(document.body, "resize", function(e){
+connect(window, "resize", function(e){
 	if(resizeTimeoutHandle){
 		clearTimeout(resizeTimeoutHandle)
 	}
