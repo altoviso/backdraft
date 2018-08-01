@@ -106,13 +106,13 @@ function addChildToDomNode(parent, domNode, child, childType){
 	if(childType === TypeComponentNode){
 		let childDomRoot = child._dom.root;
 		if(Array.isArray(childDomRoot)){
-			childDomRoot.forEach((node) => domNode.appendChild(node));
+			childDomRoot.forEach((node) => Component.insertNode(node, domNode));
 		}else{
-			domNode.appendChild(childDomRoot);
+			Component.insertNode(childDomRoot, domNode);
 		}
 		parent._adopt(child);
 	}else{
-		domNode.appendChild(child);
+		Component.insertNode(child, domNode);
 	}
 }
 
