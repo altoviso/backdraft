@@ -117,63 +117,58 @@ function setPosit(node, posit){
 	}
 }
 
+function insertBefore(node, refNode){
+	refNode.parentNode.insertBefore(node, refNode);
+}
+
+function insertAfter(node, refNode){
+	let parent = refNode.parentNode;
+	if(parent.lastChild === refNode){
+		parent.appendChild(node);
+	}else{
+		parent.insertBefore(node, refNode.nextSibling);
+	}
+}
 
 function insert(node, refNode, position){
-
-	function insertBefore(node, refNode){
-		refNode.parentNode.insertBefore(node, refNode);
-	}
-
-	function insertAfter(node, refNode){
-		let parent = refNode.parentNode;
-		if(parent.lastChild === refNode){
-			parent.appendChild(node);
-		}else{
-			parent.insertBefore(node, refNode.nextSibling);
-		}
-	}
-
-	if(typeof position === "number"){
-		let children = refNode.childNodes;
-		if(!children.length || children.length <= position){
+	if(position===undefined || position === "last"){
+		// short circuit the common case
+		refNode.appendChild(node);
+	}else switch(position){
+		case "before":
+			insertBefore(node, refNode);
+			break;
+		case "after":
+			insertAfter(node, refNode);
+			break;
+		case "replace":
+			refNode.parentNode.replaceChild(node, refNode);
+			return (refNode);
+		case "only":
+			let result = [];
+			while(refNode.firstChild){
+				result.push(refNode.removeChild(refNode.firstChild));
+			}
 			refNode.appendChild(node);
-		}else{
-			insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
-		}
-	}else{
-		if(!position){
-			position = "last";
-		}
-		switch(position){
-			case "before":
-				insertBefore(node, refNode);
-				break;
-			case "after":
-				insertAfter(node, refNode);
-				break;
-			case "replace":
-				refNode.parentNode.replaceChild(node, refNode);
-				return (refNode);
-			case "only":
-				let result = [];
-				while(refNode.firstChild){
-					result.push(refNode.removeChild(refNode.firstChild));
-				}
+			return result;
+		case "first":
+			if(refNode.firstChild){
+				insertBefore(node, refNode.firstChild);
+			}else{
 				refNode.appendChild(node);
-				return result;
-			case "first":
-				if(refNode.firstChild){
-					insertBefore(node, refNode.firstChild);
-				}else{
+			}
+			break;
+		default:
+			if(typeof position === "number"){
+				let children = refNode.childNodes;
+				if(!children.length || children.length <= position){
 					refNode.appendChild(node);
+				}else{
+					insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
 				}
-				break;
-			case "last":
-				refNode.appendChild(node);
-				break;
-			default:
+			}else{
 				throw new Error("illegal position");
-		}
+			}
 	}
 }
 
@@ -186,7 +181,6 @@ function create(tag, props){
 	}
 	return result;
 }
-
 
 function normalizeNodeArg(arg){
 	return (arg._dom && arg._dom.root) || (typeof arg === "string" && document.getElementById(arg)) || arg;
@@ -219,8 +213,6 @@ function show(...nodes){
 		}
 	});
 }
-
-
 
 function getMaxZIndex(parent){
 	let node, cs, max = 0, children = parent.childNodes, i = 0, end = children.length;
