@@ -5,6 +5,11 @@ import WatchHub from './WatchHub.js'
 element.insPostProcessingFunction("attach",
 	function(target, source, resultIsDomNode, name){
 		target[name] = source;
+		target.ownWhileRendered({
+			destroy: function(){
+				delete target[name];
+			}
+		});
 	}
 );
 
