@@ -98,8 +98,8 @@ const TypeComponentNode = Symbol("component-node");
 
 function componentType(element){
 	return element instanceof Element ?
-		(typeof element.type === "string" ? TypeDomNode :
-			TypeComponentNode) : TypeTextNode;
+		(typeof element.type === "string" ? TypeDomNode : TypeComponentNode) :
+		TypeTextNode;
 }
 
 function addChildToDomNode(parent, domNode, child, childType){
