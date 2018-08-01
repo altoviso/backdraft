@@ -33,6 +33,13 @@ function setAttr(node, name, value){
 let lastComputedStyleNode = 0;
 let lastComputedStyle = 0;
 
+function getComputedStyle_(node){
+	if(lastComputedStyleNode !== node){
+		lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
+	}
+	return lastComputedStyle;
+}
+
 function getStyle(node, property){
 	if(lastComputedStyleNode !== node){
 		lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));

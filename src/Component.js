@@ -259,7 +259,7 @@ export default class Component extends EventHub(WatchHub()) {
 				if(children){
 					let renderedChildren = this._renderElements(children);
 					if(Array.isArray(renderedChildren)){
-						renderedChildren.forEach((child, i) => result.insChild(child));
+						renderedChildren.forEach((child) => result.insChild(child));
 					}else{
 						result.insChild(renderedChildren);
 					}
@@ -267,7 +267,7 @@ export default class Component extends EventHub(WatchHub()) {
 			}
 			return result;
 		}else{
-			// e must be convertable to a string
+			// e must be convertible to a string
 			return document.createTextNode(e);
 		}
 	}
@@ -464,7 +464,6 @@ export default class Component extends EventHub(WatchHub()) {
 		}
 
 		let childRoot = child._dom.root;
-		let possibleReplacedNode;
 		if(Array.isArray(childRoot)){
 			let firstChildNode = childRoot[0];
 			unrender(Component.insertNode(firstChildNode, attachPoint, position));
@@ -473,7 +472,7 @@ export default class Component extends EventHub(WatchHub()) {
 				return node;
 			}, firstChildNode);
 		}else{
-			unrender(possibleReplacedNode = Component.insertNode(childRoot, attachPoint, position));
+			unrender(Component.insertNode(childRoot, attachPoint, position));
 		}
 
 		this._adopt(child);
@@ -779,7 +778,6 @@ export function render(...args){
 
 	if(attachPoint){
 		let root = result._dom.root;
-		let possibleReplacedNode;
 		if(Array.isArray(root)){
 			let firstChildNode = root[0];
 			unrender(Component.insertNode(firstChildNode, attachPoint, position));
@@ -788,7 +786,7 @@ export function render(...args){
 				return node;
 			}, firstChildNode);
 		}else{
-			unrender(possibleReplacedNode = Component.insertNode(root, attachPoint, position));
+			unrender(Component.insertNode(root, attachPoint, position));
 		}
 		result._attachToDoc(document.body.contains(attachPoint));
 	}

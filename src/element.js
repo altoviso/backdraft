@@ -5,7 +5,7 @@ export function Element(type, ctorProps, ppProps, children){
 	this.ctorProps = ctorProps;
 	if(ctorProps.className){
 		if(Array.isArray(ctorProps.className)){
-			ctorProps.className = ctorProps.className.reduce((item) => item ? result + " " + item : result, "").replace(/\s{2,}/g, " ").trim();
+			ctorProps.className = ctorProps.className.reduce((result, item) => item ? result + " " + item : result, "").replace(/\s{2,}/g, " ").trim();
 		}else{
 			ctorProps.className = ctorProps.className.replace(/\s{2,}/g, " ").trim();
 		}
