@@ -300,6 +300,8 @@ export default class Component extends EventHub(WatchHub()) {
 				if(this[ppTitle] !== undefined){
 					(this._dom.titleIndexNode || this._dom.root).title = this[ppTitle]
 				}
+				
+				this[this[ppEnabled] ? "removeClassName" : "addClassName"]("bd-disabled");
 			}
 			if(this.postRender){
 				this.ownWhileRendered(this.postRender());
