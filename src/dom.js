@@ -291,6 +291,9 @@ element.insPostProcessingFunction("advise",
 	function(target, source, resultIsDomNode, listeners){
 		Reflect.ownKeys(listeners).forEach((name) =>{
 			let listener = listeners[name];
+			if(typeof listener!=="function"){
+				listener = target[listener].bind(target);
+			}
 			target.ownWhileRendered(resultIsDomNode ? connect(source, name, listener) : source.advise(name, listener));
 		});
 	}
