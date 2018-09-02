@@ -259,6 +259,46 @@ function postProcess(ppProps, owner, target, targetIsDomNode){
 	});
 }
 
+function renderElements(owner, e){
+	if(Array.isArray(e)){
+		return e.map((e) => renderElements(owner, e));
+	}else if(e instanceof Element){
+		const {type, ctorProps, ppProps, children} = e;
+		let result;
+		if(componentType(e) === TypeDomNode){
+			let domNode = result = Component.createNode(type, ctorProps);
+			if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
+				owner._dom.tabIndexNode = domNode;
+			}
+			postProcess(ppProps, owner, domNode, true);
+			if(children){
+				let renderedChildren = renderElements(owner, children);
+				if(Array.isArray(renderedChildren)){
+					renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, componentType(children[i])));
+				}else{
+					addChildToDomNode(owner, domNode, renderedChildren, componentType(children));
+				}
+			}
+		}else{
+			let componentInstance = result = new type(ctorProps);
+			componentInstance.render();
+			postProcess(ppProps, owner, componentInstance, false);
+			if(children){
+				let renderedChildren = renderElements(owner, children);
+				if(Array.isArray(renderedChildren)){
+					renderedChildren.forEach((child) => result.insChild(child));
+				}else{
+					result.insChild(renderedChildren);
+				}
+			}
+		}
+		return result;
+	}else{
+		// e must be convertible to a string
+		return document.createTextNode(e);
+	}
+}
+
 function pushHandles(dest, ...handles){
 	handles.forEach(h => {
 		if(Array.isArray(h)){
@@ -350,42 +390,7 @@ export default class Component extends EventHub(WatchHub()) {
 		this.destroyed = true;
 	}
 
-	_renderElements(e){
-		if(Array.isArray(e)){
-			return e.map((e) => this._renderElements(e));
-		}else if(e instanceof Element){
-			const {type, ctorProps, ppProps, children} = e;
-			let result;
-			if(componentType(e) === TypeDomNode){
-				let domNode = result = Component.createNode(type, ctorProps);
-				postProcess(ppProps, this, domNode, true);
-				if(children){
-					let renderedChildren = this._renderElements(children);
-					if(Array.isArray(renderedChildren)){
-						renderedChildren.forEach((child, i) => addChildToDomNode(this, domNode, child, componentType(children[i])));
-					}else{
-						addChildToDomNode(this, domNode, renderedChildren, componentType(children));
-					}
-				}
-			}else{
-				let componentInstance = result = new type(ctorProps);
-				componentInstance.render();
-				postProcess(ppProps, this, componentInstance, false);
-				if(children){
-					let renderedChildren = this._renderElements(children);
-					if(Array.isArray(renderedChildren)){
-						renderedChildren.forEach((child) => result.insChild(child));
-					}else{
-						result.insChild(renderedChildren);
-					}
-				}
-			}
-			return result;
-		}else{
-			// e must be convertible to a string
-			return document.createTextNode(e);
-		}
-	}
+
 
 	render(
 		proc // [function, optional] called after this class's render work is done, called in context of this
@@ -394,7 +399,7 @@ export default class Component extends EventHub(WatchHub()) {
 			let dom = this._dom = {};
 			let elements = this._elements();
 			validateElements(this, elements);
-			let root = dom.root = this._renderElements(elements);
+			let root = dom.root = this.constructor.renderElements(this, elements);
 			if(Array.isArray(root)){
 				root.forEach((node) => Component.catalog.set(node, this));
 			}else{
@@ -534,7 +539,7 @@ export default class Component extends EventHub(WatchHub()) {
 			if(componentType(src) !== TypeComponentNode){
 				src = element(Component, {elements: src});
 			}
-			child = this._renderElements(src);
+			child = this.constructor.renderElements(this, src);
 		}
 
 		if(/before|after|replace|only|first|last/.test(attachPoint) || typeof attachPoint === "number"){
@@ -634,7 +639,6 @@ export default class Component extends EventHub(WatchHub()) {
 			}
 		});
 	}
-
 
 	get className(){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT returned
@@ -799,9 +803,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 }
 
-
 const prototypeOfObject = Object.getPrototypeOf({});
-
 
 function decodeRender(args){
 	// eight signatures...
@@ -918,6 +920,7 @@ export function render(...args){
 }
 
 Object.assign(Component, {
+	renderElements:renderElements,
 	ppClassName: ppClassName,
 	ppStaticClassName: ppStaticClassName,
 	ppEnabled: ppEnabled,
@@ -933,5 +936,5 @@ Object.assign(Component, {
 	ppChildrenAttachPoint: ppChildrenAttachPoint,
 	ppAttachedToDoc: ppAttachedToDoc,
 	catalog: new Map(),
-	render: render
+	render: render,
 });
