@@ -1,6 +1,8 @@
 let postProcessingSet = new Set();
 
 export function Element(type, ctorProps, ppProps, children){
+	//TODO: should we validate type, ctorProps, ppProps, and children
+
 	this.type = type;
 	this.ctorProps = ctorProps;
 	if(ctorProps.className){
@@ -38,7 +40,7 @@ export default function element(type, props = {}, ...children){
 	let flattenedChildren = [];
 	function flatten(child){
 		if(Array.isArray(child)){
-			child.forEach((child)=>flatten(child));
+			child.forEach(flatten);
 		}else if(child){
 			flattenedChildren.push(child);
 		}
@@ -60,7 +62,7 @@ export default function element(type, props = {}, ...children){
 
 element.insPostProcessingFunction = function(name, func){
 	if(element[name]){
-		throw Error("duplicate postprocessing function name");
+		throw Error("duplicate postprocessing function name: " + name);
 	}
 	let symbol = Symbol("post-process-function-" + name);
 	Object.defineProperty(element, name, {value: symbol, enumerable: true});
