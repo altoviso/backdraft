@@ -25,15 +25,27 @@ element.insPostProcessingFunction("watch",
 	}
 );
 
-element.insPostProcessingFunction("applyMethod",
-	function(target, source, resultIsDomNode, name, ...args){
-		source[name](...args);
-	}
-);
-
-element.insPostProcessingFunction("tabIndexNode",
-	function(target, source){
-		target._dom.tabIndexNode = source;
+element.insPostProcessingFunction("exec",
+	function(target, source, resultIsDomNode, ...args){
+		for(let i = 0; i < args.length;){
+			let f = args[i++];
+			if(typeof f === "function"){
+				f(target, source);
+			}else if(typeof f === "string"){
+				if(!(typeof source[f] === "function")){
+					// eslint-disable-next-line no-console
+					console.error("unexpected");
+				}
+				if(i < args.length && Array.isArray(args[i])){
+					source[f](...args[i++], target, source);
+				}else{
+					source[f](target, source);
+				}
+			}else{
+				// eslint-disable-next-line no-console
+				console.error("unexpected");
+			}
+		}
 	}
 );
 
