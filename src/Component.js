@@ -77,6 +77,94 @@ element.insPostProcessingFunction("childrenAttachPoint",
 	}
 );
 
+element.insPostProcessingFunction("reflectClassPart",
+	function(target, source, resultIsDomNode, ...args){
+		// possibly many of the following sequences....
+		// <string>
+		// <string>, <formatter>
+		// <watchable>
+		//
+		// note that <watchable>, <formatter> works, but should not be used and is not guaranteed; instead, ensure
+		// that any required formatter is built into the watchable
+		function install(prop, formatter){
+			let watcher = formatter ?
+				(newValue, oldValue) => {
+					newValue = formatter(newValue);
+					oldValue = formatter(oldValue);
+					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
+				} :
+				(newValue, oldValue) => {
+					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
+				};
+			if(typeof prop === "string"){
+				target.addClassName(formatter ? formatter(target[prop]) : target[prop]);
+				target.ownWhileRendered(target.watch(prop, watcher));
+			}else{
+				target.addClassName(prop.value);
+				target.ownWhileRendered(prop.watch(watcher));
+			}
+		}
+
+		while(args.length){
+			install(args.shift(), typeof args[0] === "function" ? args.shift() : null);
+		}
+	}
+);
+
+element.insPostProcessingFunction("reflect",
+	function(target, source, resultIsDomNode, prop, formatter){
+		// <string>
+		// <string>, <formatter>
+		// <watchable>
+		let p = source.tagName === "INPUT" ? "value" : "innerHTML";
+		if(typeof prop === "string"){
+			source[p] = formatter ? formatter(target[prop]) : target[prop];
+			let watcher = formatter ?
+				newValue => {
+					source[p] = formatter(newValue);
+				} :
+				newValue => {
+					source[p] = newValue;
+				};
+			target.ownWhileRendered(target.watch(prop, watcher));
+		}else{
+			source[p] = prop.value;
+			target.ownWhileRendered(prop.watch(newValue => (source[p] = newValue)));
+		}
+	}
+);
+
+element.insPostProcessingFunction("reflectProp",
+	function(target, source, resultIsDomNode, props){
+		// props is a hash from property to one of...
+		//     <string>
+		//     <string>, <formatter>
+		//     <watchable>
+		Object.keys(props).forEach(destProp => {
+			let srcProp = props[destProp];
+			let formatter = null;
+			if(Array.isArray(srcProp)){
+				formatter = srcProp[1];
+				srcProp = srcProp[0];
+			}
+			if(typeof srcProp === "string"){
+				source[destProp] = formatter ? formatter(target[srcProp]) : target[srcProp];
+				let watcher = formatter ?
+					(newValue) => {
+						source[destProp] = formatter(newValue);
+					} :
+					(newValue) => {
+						source[destProp] = newValue;
+					};
+				target.ownWhileRendered(target.watch(srcProp, watcher));
+			}else{
+				source[destProp] = srcProp.value;
+				target.ownWhileRendered(srcProp.watch(newValue => (source[destProp] = newValue)));
+			}
+		});
+	}
+);
+
 // private properties
 const
 	ppClassName = Symbol("bd-component-ppClassName"),
