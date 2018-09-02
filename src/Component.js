@@ -1,6 +1,6 @@
-import {default as element, Element} from "./element.js"
-import EventHub from './EventHub.js'
-import WatchHub from './WatchHub.js'
+import {default as element, Element} from "./element.js";
+import EventHub from "./EventHub.js";
+import WatchHub from "./WatchHub.js";
 
 element.insPostProcessingFunction("attach",
 	function(target, source, resultIsDomNode, name){
@@ -15,9 +15,9 @@ element.insPostProcessingFunction("attach",
 
 element.insPostProcessingFunction("watch",
 	function(target, source, resultIsDomNode, watchers){
-		Reflect.ownKeys(watchers).forEach((name) =>{
-			source.ownWhileRendered(source.watch(name, watchers[name]))
-		})
+		Reflect.ownKeys(watchers).forEach((name) => {
+			source.ownWhileRendered(source.watch(name, watchers[name]));
+		});
 	}
 );
 
@@ -41,14 +41,14 @@ element.insPostProcessingFunction("titleNode",
 
 element.insPostProcessingFunction("staticClassName",
 	function(target, source, resultIsDomNode, className){
-		target[ppStaticClassName] = className
+		target[ppStaticClassName] = className;
 	}
 );
 
 element.insPostProcessingFunction("parentAttachPoint",
 	function(target, source, resultIsDomNode, propertyName){
 		// source should be a component instance and resultIsDomNode should be false
-		source[ppParentAttachPoint] = propertyName
+		source[ppParentAttachPoint] = propertyName;
 	}
 );
 
@@ -118,24 +118,24 @@ function addChildToDomNode(parent, domNode, child, childType){
 
 function validateElements(instance, elements){
 	function error(){
-		throw new Error("Illegal: root elements for a Component cannot be Components")
+		throw new Error("Illegal: root elements for a Component cannot be Components");
 	}
 
 	if(Array.isArray(elements)){
-		elements.forEach((e) =>{
+		elements.forEach((e) => {
 			if(componentType(e) !== TypeDomNode){
 				error();
 			}
 		});
 	}else{
 		if(componentType(elements) !== TypeDomNode){
-			error()
+			error();
 		}
 	}
 }
 
 function postProcess(ppProps, owner, target, targetIsDomNode){
-	Reflect.ownKeys(ppProps).forEach((ppProp) =>{
+	Reflect.ownKeys(ppProps).forEach((ppProp) => {
 		let args = ppProps[ppProp];
 		if(Array.isArray(args)){
 			element[ppProp](owner, target, targetIsDomNode, ...args);
@@ -146,11 +146,11 @@ function postProcess(ppProps, owner, target, targetIsDomNode){
 }
 
 function pushHandles(dest, ...handles){
-	handles.forEach(h =>{
+	handles.forEach(h => {
 		if(Array.isArray(h)){
 			pushHandles(dest, ...h);
 		}else if(h){
-			dest.push(h)
+			dest.push(h);
 		}
 	});
 }
@@ -172,6 +172,7 @@ export default class Component extends EventHub(WatchHub()) {
 			saveKwargs = true;
 		}
 
+		// id, if provided, is read-only
 		Object.defineProperty(this, "id", {value: kwargs.id, enumerable: true});
 		saveKwargs && kwargs.id && delete kwargs.id;
 
@@ -298,9 +299,9 @@ export default class Component extends EventHub(WatchHub()) {
 					(this._dom.tabIndexNode || this._dom.root).tabIndex = this[ppTabIndex]
 				}
 				if(this[ppTitle] !== undefined){
-					(this._dom.titleIndexNode || this._dom.root).title = this[ppTitle]
+					(this._dom.titleNode || this._dom.root).title = this[ppTitle];
 				}
-				
+
 				this[this[ppEnabled] ? "removeClassName" : "addClassName"]("bd-disabled");
 			}
 			if(this.postRender){
@@ -323,7 +324,7 @@ export default class Component extends EventHub(WatchHub()) {
 			}
 
 			if(this.children){
-				this.children.slice().forEach((child) =>{
+				this.children.slice().forEach((child) => {
 					child.destroy();
 				});
 			}
@@ -331,7 +332,7 @@ export default class Component extends EventHub(WatchHub()) {
 
 			let root = this._dom.root;
 			if(Array.isArray(root)){
-				root.forEach((node) =>{
+				root.forEach((node) => {
 					Component.catalog.delete(node);
 					node.parentNode && node.parentNode.removeChild(node);
 				});
@@ -381,11 +382,11 @@ export default class Component extends EventHub(WatchHub()) {
 		}
 		(this.children || (this.children = [])).push(child);
 		child._setParent(this);
+		child._attachToDoc(this[ppAttachedToDoc]);
 	}
 
-
 	_attachToDoc(value){
-		if(this._applyWatchers("attachedToBody", ppAttachedToDoc, !!value)){
+		if(this._applyWatchers("attachedToDoc", ppAttachedToDoc, !!value)){
 			this.children && this.children.forEach(child => child._attachToDoc(value));
 			return true;
 		}else{
@@ -425,7 +426,7 @@ export default class Component extends EventHub(WatchHub()) {
 			if(attachPoint in this){
 				// node reference
 				attachPoint = this[attachPoint];
-			}else if(position!==undefined){
+			}else if(position !== undefined){
 				// attachPoint must be a child Component
 				let index = this.children ? this.children.indexOf(attachPoint) : -1;
 				if(index !== -1){
@@ -469,7 +470,7 @@ export default class Component extends EventHub(WatchHub()) {
 		if(Array.isArray(childRoot)){
 			let firstChildNode = childRoot[0];
 			unrender(Component.insertNode(firstChildNode, attachPoint, position));
-			childRoot.slice(1).reduce((prevNode, node) =>{
+			childRoot.slice(1).reduce((prevNode, node) => {
 				Component.insertNode(node, prevNode, "after");
 				return node;
 			}, firstChildNode);
@@ -485,8 +486,8 @@ export default class Component extends EventHub(WatchHub()) {
 		let index = this.children ? this.children.indexOf(child) : -1;
 		if(index !== -1){
 			let root = child._dom && child._dom.root;
-			let removeNode = (node) =>{
-				node.parentNode && node.parentNode.removeChild(node)
+			let removeNode = (node) => {
+				node.parentNode && node.parentNode.removeChild(node);
 			};
 			Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
 			child._setParent(null);
@@ -504,7 +505,7 @@ export default class Component extends EventHub(WatchHub()) {
 		let thisChildren = this.children;
 		let node = this.children[0]._dom.root.parentNode;
 
-		children.forEach((child, i) =>{
+		children.forEach((child, i) => {
 			if(thisChildren[i] !== child){
 				let index = thisChildren.indexOf(child, i + 1);
 				thisChildren.splice(index, 1);
@@ -625,7 +626,7 @@ export default class Component extends EventHub(WatchHub()) {
 			// unconditionally make sure this[ppTabIndex] and the dom is synchronized on each get
 			return (this[ppTabIndex] = (this._dom.tabIndexNode || this._dom.root).tabIndex);
 		}else{
-			return this[ppTabIndex]
+			return this[ppTabIndex];
 		}
 	}
 
@@ -677,6 +678,7 @@ export default class Component extends EventHub(WatchHub()) {
 		}
 	}
 }
+
 
 const prototypeOfObject = Object.getPrototypeOf({});
 
@@ -775,7 +777,7 @@ export function render(...args){
 		result.render();
 	}else{ // src instanceof Component
 		result = src;
-		result.render()
+		result.render();
 	}
 
 	if(attachPoint){
@@ -783,7 +785,7 @@ export function render(...args){
 		if(Array.isArray(root)){
 			let firstChildNode = root[0];
 			unrender(Component.insertNode(firstChildNode, attachPoint, position));
-			root.slice(1).reduce((prevNode, node) =>{
+			root.slice(1).reduce((prevNode, node) => {
 				Component.insertNode(node, prevNode, "after");
 				return node;
 			}, firstChildNode);
