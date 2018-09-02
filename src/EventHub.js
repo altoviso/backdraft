@@ -48,7 +48,7 @@ export default function EventHub(superClass){
 							handlers.splice(index, 1);
 						}
 					}
-				}
+				};
 			}
 		}
 
