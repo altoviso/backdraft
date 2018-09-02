@@ -745,6 +745,10 @@ export default class Component extends EventHub(WatchHub()) {
 		return this[ppHasFocus];
 	}
 
+	focus(){
+		(this._dom.tabIndexNode || this._dom.root).focus();
+	}
+
 	get tabIndex(){
 		if(this.rendered){
 			// unconditionally make sure this[ppTabIndex] and the dom is synchronized on each get
@@ -937,4 +941,6 @@ Object.assign(Component, {
 	ppAttachedToDoc: ppAttachedToDoc,
 	catalog: new Map(),
 	render: render,
+	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"],
+	events: []
 });
