@@ -1,6 +1,6 @@
-import EventHub from './EventHub.js'
-import Component from './Component.js'
-import element from './element.js'
+import EventHub from "./EventHub.js";
+import Component from "./Component.js";
+import element from "./element.js";
 
 function getAttributeValueFromEvent(e, attributeName, stopNode){
 	let node = e.target;
@@ -151,13 +151,14 @@ function insert(node, refNode, position){
 		case "replace":
 			refNode.parentNode.replaceChild(node, refNode);
 			return (refNode);
-		case "only":
+		case "only":{
 			let result = [];
 			while(refNode.firstChild){
 				result.push(refNode.removeChild(refNode.firstChild));
 			}
 			refNode.appendChild(node);
 			return result;
+		}
 		case "first":
 			if(refNode.firstChild){
 				insertBefore(node, refNode.firstChild);
@@ -201,7 +202,7 @@ function hide(...nodes){
 		if(node){
 			if(!node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)){
 				node.setAttribute(DATA_BD_HIDE_SAVED_VALUE, node.style.display);
-				node.style.display = "none"
+				node.style.display = "none";
 			}//else, ignore, multiple calls to hide
 		}
 	});
@@ -393,6 +394,7 @@ connect(document.body, "focusin", function(e){
 	processNode(node);
 });
 
+// eslint-disable-next-line no-unused-vars
 connect(document.body, "focusout", function(e){
 	// If the blur event isn't followed by a focus event, it means the user clicked on something unfocusable,
 	// so clear focus.
@@ -408,9 +410,11 @@ connect(document.body, "focusout", function(e){
 let viewportWatcher = new (EventHub());
 
 let scrollTimeoutHandle = 0;
+
+// eslint-disable-next-line no-unused-vars
 connect(window, "scroll", function(e){
 	if(scrollTimeoutHandle){
-		clearTimeout(scrollTimeoutHandle)
+		clearTimeout(scrollTimeoutHandle);
 	}
 	scrollTimeoutHandle = setTimeout(function(){
 		scrollTimeoutHandle = 0;
@@ -420,9 +424,11 @@ connect(window, "scroll", function(e){
 
 
 let resizeTimeoutHandle = 0;
+
+// eslint-disable-next-line no-unused-vars
 connect(window, "resize", function(e){
 	if(resizeTimeoutHandle){
-		clearTimeout(resizeTimeoutHandle)
+		clearTimeout(resizeTimeoutHandle);
 	}
 	resizeTimeoutHandle = setTimeout(function(){
 		resizeTimeoutHandle = 0;
