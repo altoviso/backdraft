@@ -1,3 +1,23 @@
+class Watchable {
+	constructor(owner, prop, formatter){
+		this.owner = owner;
+		this.prop = prop;
+		formatter && (this.formatter = formatter);
+	}
+
+	get value(){
+		return this.formatter ? this.formatter(this.owner[this.prop]) : this.owner[this.prop];
+	}
+
+	watch(watcher){
+		let formatterWatcher;
+		if(this.formatter){
+			formatterWatcher = (newValue, oldValue, src) => watcher(this.formatter(newValue), this.formatter(oldValue), src);
+		}
+		return this.owner.watch(this.prop, formatterWatcher || watcher);
+	}
+}
+
 const ppVariables = Symbol("WatchHub-ppVariables");
 
 function mutate(owner, name, privateName, newValue){
@@ -81,10 +101,15 @@ export default function WatchHub(superClass){
 				}
 			}
 		}
+
+		getWatchable(name, formatter){
+			return new Watchable(this, name, formatter);
+		}
 	};
 }
 
 WatchHub.ppVariables = ppVariables;
+WatchHub.Watchable = Watchable;
 
 
 
