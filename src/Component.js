@@ -82,6 +82,16 @@ function cleanClassName(s){
 	return s.replace(/\s{2,}/g, " ").trim();
 }
 
+function conditionClassNameArgs(args){
+	return args.reduce((acc, item) => {
+		return acc.concat(item.split(" ").map(s => s.trim()).filter(s => !!s));
+	}, []);
+}
+
+function classValueToRegExp(v, args){
+	return v instanceof RegExp ? v : RegExp(" " + v + " ", args);
+}
+
 function calcDomClassName(component){
 	let rootStaticDomClass = component[ppStaticClassName];
 	let className = component[ppClassName];
@@ -295,8 +305,14 @@ export default class Component extends EventHub(WatchHub()) {
 
 				}
 
-				if(this[ppTabIndex] !== undefined){
-					(this._dom.tabIndexNode || this._dom.root).tabIndex = this[ppTabIndex]
+				if(this._dom.tabIndexNode){
+					if(this[ppTabIndex] === undefined){
+						this[ppTabIndex] = this._dom.tabIndexNode.tabIndex;
+					}else{
+						this._dom.tabIndexNode.tabIndex = this[ppTabIndex];
+					}
+				}else if(this[ppTabIndex] !== undefined){
+					(this._dom.tabIndexNode || this._dom.root).tabIndex = this[ppTabIndex];
 				}
 				if(this[ppTitle] !== undefined){
 					(this._dom.titleNode || this._dom.root).title = this[ppTitle];
@@ -539,16 +555,13 @@ export default class Component extends EventHub(WatchHub()) {
 
 		// clean up any space sloppiness, sometimes caused by client-code algorithms that manipulate className
 		value = cleanClassName(value);
+
 		if(!value){
-			if(this[ppClassName]){
-				this[ppSetClassName]("", this[ppClassName]);
-			}
+			this[ppSetClassName]("", this[ppClassName]);
 		}else if(!this[ppClassName]){
 			this[ppSetClassName](value, "");
-		}else{
-			if(value !== this[ppClassName]){
-				this[ppSetClassName](value, this[ppClassName]);
-			}
+		}else if(value !== this[ppClassName]){
+			this[ppSetClassName](value, this[ppClassName]);
 		}
 	}
 
@@ -556,54 +569,57 @@ export default class Component extends EventHub(WatchHub()) {
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 
 		value = cleanClassName(value);
-		return this[ppClassName].indexOf(value) !== -1;
+		return (" " + this[ppClassName] + " ").indexOf(value) !== -1;
 	}
 
 	addClassName(...values){
-		values.forEach((value) =>{
-			value = cleanClassName(value);
-			if(this[ppClassName].indexOf(value) === -1){
-				this[ppSetClassName]((this[ppClassName] ? this[ppClassName] + " " : "") + value, this[ppClassName]);
+		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+			if(!value){
+				return className;
 			}
-		});
+			return classValueToRegExp(value).test(className) ? className : className + value + " ";
+		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
 		return this;
 	}
 
 	removeClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		values.forEach((value) =>{
-			value = cleanClassName(value);
-			if(this[ppClassName].indexOf(value) !== -1){
-				this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
+		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+			if(!value){
+				return className;
 			}
-		});
+			return className.replace(classValueToRegExp(value, "g"), " ");
+		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
 		return this;
 	}
 
 	toggleClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		values.forEach((value) =>{
-			value = cleanClassName(value);
-			if(this[ppClassName].indexOf(value) !== -1){
-				this[ppSetClassName](this[ppClassName].replace(value, ""), this[ppClassName])
-			}else{
-				this[ppSetClassName](this[ppClassName] + " " + value, this[ppClassName])
+		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+			if(!value){
+				return className;
 			}
-		});
+			if(classValueToRegExp(value).test(className)){
+				return className.replace(classValueToRegExp(value, "g"), " ");
+			}else{
+				return className + value + " ";
+			}
+		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
 		return this;
 	}
 
 	[ppSetClassName](newValue, oldValue){
-		newValue = cleanClassName(newValue);
-		this[ppClassName] = newValue;
-		if(this.rendered){
-			this._dom.root.className = calcDomClassName(this);
-		}
-		this._applyWatchersRaw("className", oldValue, newValue);
-		let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
-			newVisibleValue = newValue ? newValue.indexOf("hidden") === -1 : true;
-		if(oldVisibleValue !== newVisibleValue){
-			this._applyWatchersRaw("visible", oldVisibleValue, newVisibleValue);
+		if(newValue !== oldValue){
+			this[ppClassName] = newValue;
+			if(this.rendered){
+				this._dom.root.className = calcDomClassName(this);
+			}
+			this._applyWatchersRaw("className", oldValue, newValue);
+			let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
+				newVisibleValue = newValue ? newValue.indexOf("hidden") === -1 : true;
+			if(oldVisibleValue !== newVisibleValue){
+				this._applyWatchersRaw("visible", oldVisibleValue, newVisibleValue);
+			}
 		}
 	}
 
