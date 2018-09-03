@@ -2,7 +2,7 @@ import {default as element, Element} from "./element.js";
 import EventHub from "./EventHub.js";
 import WatchHub from "./WatchHub.js";
 
-element.insPostProcessingFunction("attach",
+element.insPostProcessingFunction("attach", "bd",
 	function(target, source, resultIsDomNode, name){
 		if(typeof name === "function"){
 			name(source);
@@ -17,7 +17,7 @@ element.insPostProcessingFunction("attach",
 	}
 );
 
-element.insPostProcessingFunction("watch",
+element.insPostProcessingFunction("watch", "bd",
 	function(target, source, resultIsDomNode, watchers){
 		Reflect.ownKeys(watchers).forEach((name) => {
 			source.ownWhileRendered(source.watch(name, watchers[name]));
@@ -25,7 +25,7 @@ element.insPostProcessingFunction("watch",
 	}
 );
 
-element.insPostProcessingFunction("exec",
+element.insPostProcessingFunction("exec", "bd",
 	function(target, source, resultIsDomNode, ...args){
 		for(let i = 0; i < args.length;){
 			let f = args[i++];
@@ -49,26 +49,26 @@ element.insPostProcessingFunction("exec",
 	}
 );
 
-element.insPostProcessingFunction("titleNode",
+element.insPostProcessingFunction("titleNode", "bd",
 	function(target, source){
-		target._dom.titleNode = source;
+		target.bdDom.titleNode = source;
 	}
 );
 
-element.insPostProcessingFunction("staticClassName",
+element.insPostProcessingFunction("staticClassName", "bd",
 	function(target, source, resultIsDomNode, className){
 		target[ppStaticClassName] = className;
 	}
 );
 
-element.insPostProcessingFunction("parentAttachPoint",
+element.insPostProcessingFunction("parentAttachPoint", "bd",
 	function(target, source, resultIsDomNode, propertyName){
 		// source should be a component instance and resultIsDomNode should be false
 		source[ppParentAttachPoint] = propertyName;
 	}
 );
 
-element.insPostProcessingFunction("childrenAttachPoint",
+element.insPostProcessingFunction("childrenAttachPoint", "bd",
 	function(target, source, resultIsDomNode, value){
 		// source should be a DOM node and resultIsDomNode should be true
 		if(value){
@@ -77,7 +77,7 @@ element.insPostProcessingFunction("childrenAttachPoint",
 	}
 );
 
-element.insPostProcessingFunction("reflectClassPart",
+element.insPostProcessingFunction("reflectClass", "bd",
 	function(target, source, resultIsDomNode, ...args){
 		// possibly many of the following sequences....
 		// <string>
@@ -111,7 +111,7 @@ element.insPostProcessingFunction("reflectClassPart",
 	}
 );
 
-element.insPostProcessingFunction("reflect",
+element.insPostProcessingFunction("reflect", "bd",
 	function(target, source, resultIsDomNode, prop, formatter){
 		// <string>
 		// <string>, <formatter>
@@ -134,7 +134,7 @@ element.insPostProcessingFunction("reflect",
 	}
 );
 
-element.insPostProcessingFunction("reflectProp",
+element.insPostProcessingFunction("reflectProp", "bd",
 	function(target, source, resultIsDomNode, props){
 		// props is a hash from property to one of...
 		//     <string>
@@ -206,19 +206,9 @@ function calcDomClassName(component){
 	}
 }
 
-const TypeDomNode = Symbol("dom-node");
-const TypeTextNode = Symbol("text-node");
-const TypeComponentNode = Symbol("component-node");
-
-function componentType(element){
-	return element instanceof Element ?
-		(typeof element.type === "string" ? TypeDomNode : TypeComponentNode) :
-		TypeTextNode;
-}
-
-function addChildToDomNode(parent, domNode, child, childType){
-	if(childType === TypeComponentNode){
-		let childDomRoot = child._dom.root;
+function addChildToDomNode(parent, domNode, child, childIsComponent){
+	if(childIsComponent){
+		let childDomRoot = child.bdDom.root;
 		if(Array.isArray(childDomRoot)){
 			childDomRoot.forEach((node) => Component.insertNode(node, domNode));
 		}else{
@@ -230,21 +220,11 @@ function addChildToDomNode(parent, domNode, child, childType){
 	}
 }
 
-function validateElements(instance, elements){
-	function error(){
-		throw new Error("Illegal: root elements for a Component cannot be Components");
-	}
-
+function validateElements(elements){
 	if(Array.isArray(elements)){
-		elements.forEach((e) => {
-			if(componentType(e) !== TypeDomNode){
-				error();
-			}
-		});
-	}else{
-		if(componentType(elements) !== TypeDomNode){
-			error();
-		}
+		elements.forEach(e => validateElements);
+	}else if(elements.isComponentType){
+		throw new Error("Illegal: root element(s) for a Component cannot be Components");
 	}
 }
 
@@ -265,24 +245,24 @@ function renderElements(owner, e){
 	}else if(e instanceof Element){
 		const {type, ctorProps, ppProps, children} = e;
 		let result;
-		if(componentType(e) === TypeDomNode){
+		if(!e.isComponentType){
 			let domNode = result = Component.createNode(type, ctorProps);
 			if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
 				owner._dom.tabIndexNode = domNode;
 			}
-			postProcess(ppProps, owner, domNode, true);
+			ppProps && postProcess(ppProps, owner, domNode, true);
 			if(children){
 				let renderedChildren = renderElements(owner, children);
 				if(Array.isArray(renderedChildren)){
-					renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, componentType(children[i])));
+					renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType));
 				}else{
-					addChildToDomNode(owner, domNode, renderedChildren, componentType(children));
+					addChildToDomNode(owner, domNode, renderedChildren, children.isComponentType);
 				}
 			}
 		}else{
 			let componentInstance = result = new type(ctorProps);
 			componentInstance.render();
-			postProcess(ppProps, owner, componentInstance, false);
+			ppProps && postProcess(ppProps, owner, componentInstance, false);
 			if(children){
 				let renderedChildren = renderElements(owner, children);
 				if(Array.isArray(renderedChildren)){
@@ -389,8 +369,6 @@ export default class Component extends EventHub(WatchHub()) {
 		delete this.kwargs;
 		this.destroyed = true;
 	}
-
-
 
 	render(
 		proc // [function, optional] called after this class's render work is done, called in context of this
@@ -536,7 +514,7 @@ export default class Component extends EventHub(WatchHub()) {
 			}
 			child.render();
 		}else{ // child instanceof Element
-			if(componentType(src) !== TypeComponentNode){
+			if(!src.isComponentType){
 				src = element(Component, {elements: src});
 			}
 			child = this.constructor.renderElements(this, src);
@@ -682,9 +660,6 @@ export default class Component extends EventHub(WatchHub()) {
 
 	addClassName(...values){
 		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
-			if(!value){
-				return className;
-			}
 			return classValueToRegExp(value).test(className) ? className : className + value + " ";
 		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
 		return this;
@@ -693,9 +668,6 @@ export default class Component extends EventHub(WatchHub()) {
 	removeClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
-			if(!value){
-				return className;
-			}
 			return className.replace(classValueToRegExp(value, "g"), " ");
 		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
 		return this;
@@ -704,9 +676,6 @@ export default class Component extends EventHub(WatchHub()) {
 	toggleClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
-			if(!value){
-				return className;
-			}
 			if(classValueToRegExp(value).test(className)){
 				return className.replace(classValueToRegExp(value, "g"), " ");
 			}else{
@@ -807,6 +776,10 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 }
 
+function isComponentDerivedCtor(f){
+	return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
+}
+
 const prototypeOfObject = Object.getPrototypeOf({});
 
 function decodeRender(args){
@@ -895,7 +868,7 @@ export function render(...args){
 	let result;
 	let {src, attachPoint, position} = decodeRender(args);
 	if(src instanceof Element){
-		if(componentType(src) === TypeComponentNode){
+		if(src.isComponentType){
 			result = new src.type(src.ctorProps);
 		}else{
 			result = new Component({elements: src});
@@ -944,3 +917,5 @@ Object.assign(Component, {
 	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"],
 	events: []
 });
+
+
