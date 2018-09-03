@@ -171,7 +171,12 @@ function cleanClassName(s){
 
 function conditionClassNameArgs(args){
 	return args.reduce((acc, item) => {
-		return acc.concat(item.split(" ").map(s => s.trim()).filter(s => !!s));
+		if(item instanceof RegExp){
+			acc.push(item);
+		}else{
+			acc = acc.concat(item.split(" ").map(s => s.trim()).filter(s => !!s));
+		}
+		return acc;
 	}, []);
 }
 
@@ -330,11 +335,10 @@ export default class Component extends EventHub(WatchHub()) {
 			this[ppStaticClassName] = theConstructor.className;
 		}
 
+		this[ppClassName] = "";
 		if(kwargs.className){
-			this[ppClassName] = kwargs.className;
+			Array.isArray(kwargs.className) ? this.addClassName(...kwargs.className) : this.addClassName(kwargs.className);
 			if(saveKwargs) delete kwargs.className;
-		}else{
-			this[ppClassName] = "";
 		}
 
 		if(kwargs.tabIndex){
