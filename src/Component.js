@@ -197,7 +197,7 @@ function addChildToDomNode(parent, domNode, child, childIsComponent){
 		}else{
 			Component.insertNode(childDomRoot, domNode);
 		}
-		parent._adopt(child);
+		parent.bdAdopt(child);
 	}else{
 		Component.insertNode(child, domNode);
 	}
@@ -231,7 +231,7 @@ function renderElements(owner, e){
 		if(!e.isComponentType){
 			let domNode = result = Component.createNode(type, ctorProps);
 			if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
-				owner._dom.tabIndexNode = domNode;
+				owner.bdDom.tabIndexNode = domNode;
 			}
 			ppProps && postProcess(ppProps, owner, domNode, true);
 			if(children){
@@ -356,14 +356,14 @@ export default class Component extends EventHub(WatchHub()) {
 
 		if(kwargs.elements){
 			if(typeof kwargs.elements === "function"){
-				Object.defineProperty(this, "_elements", {value: kwargs.elements});
+				Object.defineProperty(this, "bdElements", {value: kwargs.elements});
 			}else{
-				let _elements = (function(elements){
+				let bdElements = (function(elements){
 					return function(){
 						return elements;
 					};
 				})(kwargs.elements);
-				Object.defineProperty(this, "_elements", {value: _elements});
+				Object.defineProperty(this, "bdElements", {value: bdElements});
 			}
 			if(saveKwargs) delete kwargs.elements;
 		}
@@ -386,10 +386,13 @@ export default class Component extends EventHub(WatchHub()) {
 	render(
 		proc // [function, optional] called after this class's render work is done, called in context of this
 	){
-		if(!this._dom){
-			let dom = this._dom = {};
-			let elements = this._elements();
-			validateElements(this, elements);
+		if(!this.bdDom){
+			let dom = this.bdDom = this._dom = {};
+			if(this._elements){
+				console.warn("Component::_elements is depricated; it has been renamed to Component::bdElements")
+			}
+			let elements = (this._elements && this._elements()) || this.bdElements();
+			validateElements(elements);
 			let root = dom.root = this.constructor.renderElements(this, elements);
 			if(Array.isArray(root)){
 				root.forEach((node) => Component.catalog.set(node, this));
@@ -405,17 +408,17 @@ export default class Component extends EventHub(WatchHub()) {
 
 				}
 
-				if(this._dom.tabIndexNode){
+				if(this.bdDom.tabIndexNode){
 					if(this[ppTabIndex] === undefined){
-						this[ppTabIndex] = this._dom.tabIndexNode.tabIndex;
+						this[ppTabIndex] = this.bdDom.tabIndexNode.tabIndex;
 					}else{
-						this._dom.tabIndexNode.tabIndex = this[ppTabIndex];
+						this.bdDom.tabIndexNode.tabIndex = this[ppTabIndex];
 					}
 				}else if(this[ppTabIndex] !== undefined){
-					(this._dom.tabIndexNode || this._dom.root).tabIndex = this[ppTabIndex];
+					(this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = this[ppTabIndex];
 				}
 				if(this[ppTitle] !== undefined){
-					(this._dom.titleNode || this._dom.root).title = this[ppTitle];
+					(this.bdDom.titleNode || this.bdDom.root).title = this[ppTitle];
 				}
 
 				this[this[ppEnabled] ? "removeClassName" : "addClassName"]("bd-disabled");
@@ -424,12 +427,12 @@ export default class Component extends EventHub(WatchHub()) {
 				this.ownWhileRendered(this.postRender());
 			}
 			proc && proc.call(this);
-			this._applyWatchersRaw("rendered", false, true);
+			this.bdMutateNotify("rendered", false, true);
 		}
-		return this._dom.root;
+		return this.bdDom.root;
 	}
 
-	_elements(){
+	bdElements(){
 		return element("div", {});
 	}
 
@@ -446,7 +449,7 @@ export default class Component extends EventHub(WatchHub()) {
 			}
 			delete this.children;
 
-			let root = this._dom.root;
+			let root = this.bdDom.root;
 			if(Array.isArray(root)){
 				root.forEach((node) => {
 					Component.catalog.delete(node);
@@ -456,17 +459,18 @@ export default class Component extends EventHub(WatchHub()) {
 				Component.catalog.delete(root);
 				root.parentNode && root.parentNode.removeChild(root);
 			}
-			if(this._dom.handles){
-				this._dom.handles.forEach(handle => handle.destroy());
+			if(this.bdDom.handles){
+				this.bdDom.handles.forEach(handle => handle.destroy());
 			}
+			delete this.bdDom;
 			delete this._dom;
-			this._attachToDoc(false);
-			this._applyWatchersRaw("rendered", true, false);
+			this.bdAttachToDoc(false);
+			this.bdMutateNotify("rendered", true, false);
 		}
 	}
 
 	get rendered(){
-		return !!(this._dom && this._dom.root);
+		return !!(this.bdDom && this.bdDom.root);
 	}
 
 	own(...handles){
@@ -474,25 +478,14 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	ownWhileRendered(...handles){
-		pushHandles(this._dom.handles || (this._dom.handles = []), ...handles);
+		pushHandles(this.bdDom.handles || (this.bdDom.handles = []), ...handles);
 	}
 
 	get parent(){
 		return this[ppParent];
 	}
 
-	_setParent(parent){
-		if(this._applyWatchers("parent", ppParent, parent)){
-			if(parent){
-				let root = parent._dom.root;
-				this._attachToDoc(document.body.contains(Array.isArray(root) ? root[0] : root));
-			}else{
-				this._attachToDoc(false);
-			}
-		}
-	}
-
-	_adopt(child){
+	bdAdopt(child){
 		if(child[ppParent]){
 			throw new Error("unexpected");
 		}
@@ -548,7 +541,7 @@ export default class Component extends EventHub(WatchHub()) {
 				let index = this.children ? this.children.indexOf(attachPoint) : -1;
 				if(index !== -1){
 					// attachPoint is a child
-					attachPoint = attachPoint._dom.root;
+					attachPoint = attachPoint.bdDom.root;
 					if(Array.isArray(attachPoint)){
 						switch(position){
 							case "replace":
@@ -577,13 +570,13 @@ export default class Component extends EventHub(WatchHub()) {
 				throw new Error("unexpected");
 			}
 		}else{
-			attachPoint = this[ppChildrenAttachPoint] || this._dom.root;
+			attachPoint = this[ppChildrenAttachPoint] || this.bdDom.root;
 			if(Array.isArray(attachPoint)){
 				throw new Error("unexpected");
 			}
 		}
 
-		let childRoot = child._dom.root;
+		let childRoot = child.bdDom.root;
 		if(Array.isArray(childRoot)){
 			let firstChildNode = childRoot[0];
 			unrender(Component.insertNode(firstChildNode, attachPoint, position));
@@ -595,14 +588,14 @@ export default class Component extends EventHub(WatchHub()) {
 			unrender(Component.insertNode(childRoot, attachPoint, position));
 		}
 
-		this._adopt(child);
+		this.bdAdopt(child);
 		return child;
 	}
 
 	delChild(child, preserve){
 		let index = this.children ? this.children.indexOf(child) : -1;
 		if(index !== -1){
-			let root = child._dom && child._dom.root;
+			let root = child.bdDom && child.bdDom.root;
 			let removeNode = (node) => {
 				node.parentNode && node.parentNode.removeChild(node);
 			};
@@ -621,13 +614,13 @@ export default class Component extends EventHub(WatchHub()) {
 
 	reorderChildren(children){
 		let thisChildren = this.children;
-		let node = this.children[0]._dom.root.parentNode;
+		let node = this.children[0].bdDom.root.parentNode;
 
 		children.forEach((child, i) => {
 			if(thisChildren[i] !== child){
 				let index = thisChildren.indexOf(child, i + 1);
 				thisChildren.splice(index, 1);
-				node.insertBefore(child._dom.root, thisChildren[i]._dom.root);
+				node.insertBefore(child.bdDom.root, thisChildren[i].bdDom.root);
 				thisChildren.splice(i, 0, child);
 			}
 		});
@@ -637,7 +630,7 @@ export default class Component extends EventHub(WatchHub()) {
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT returned
 		if(this.rendered){
 			// if rendered, then look at what's actually in the document...maybe client code _improperly_ manipulated directly
-			let root = this._dom.root;
+			let root = this.bdDom.root;
 			if(Array.isArray(root)){
 				root = root[0];
 			}
@@ -704,7 +697,7 @@ export default class Component extends EventHub(WatchHub()) {
 		if(newValue !== oldValue){
 			this[ppClassName] = newValue;
 			if(this.rendered){
-				this._dom.root.className = calcDomClassName(this);
+				this.bdDom.root.className = calcDomClassName(this);
 			}
 			this.bdMutateNotify("className", oldValue, newValue);
 			let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
@@ -730,13 +723,13 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	focus(){
-		(this._dom.tabIndexNode || this._dom.root).focus();
+		(this.bdDom.tabIndexNode || this.bdDom.root).focus();
 	}
 
 	get tabIndex(){
 		if(this.rendered){
 			// unconditionally make sure this[ppTabIndex] and the dom is synchronized on each get
-			return (this[ppTabIndex] = (this._dom.tabIndexNode || this._dom.root).tabIndex);
+			return (this[ppTabIndex] = (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex);
 		}else{
 			return this[ppTabIndex];
 		}
@@ -778,7 +771,7 @@ export default class Component extends EventHub(WatchHub()) {
 
 	get title(){
 		if(this.rendered){
-			return (this._dom.titleNode || this._dom.root).title;
+			return (this.bdDom.titleNode || this.bdDom.root).title;
 		}else{
 			return this[ppTitle];
 		}
@@ -895,7 +888,7 @@ export function render(...args){
 	}
 
 	if(attachPoint){
-		let root = result._dom.root;
+		let root = result.bdDom.root;
 		if(Array.isArray(root)){
 			let firstChildNode = root[0];
 			unrender(Component.insertNode(firstChildNode, attachPoint, position));
@@ -906,7 +899,7 @@ export function render(...args){
 		}else{
 			unrender(Component.insertNode(root, attachPoint, position));
 		}
-		result._attachToDoc(document.body.contains(attachPoint));
+		result.bdAttachToDoc(document.body.contains(attachPoint));
 	}
 	return result;
 }

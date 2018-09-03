@@ -28,7 +28,8 @@
 	let tests = [
 		[["element"], "./test/element.es6.js"],
 		[["watchHub"], "./test/watchHub.es6.js"],
-		[["EventHub"], "./test/EventHub.es6.js"]
+		[["EventHub"], "./test/EventHub.es6.js"],
+		[["component"], "./test/component.es6.js"]
 	];
 
 	if(isNode){

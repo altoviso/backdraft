@@ -191,7 +191,7 @@ function create(tag, props){
 }
 
 function normalizeNodeArg(arg){
-	return (arg._dom && arg._dom.root) || (typeof arg === "string" && document.getElementById(arg)) || arg;
+	return (arg.bdDom && arg.bdDom.root) || (typeof arg === "string" && document.getElementById(arg)) || arg;
 }
 
 const DATA_BD_HIDE_SAVED_VALUE = "data-bd-hide-saved-value";
@@ -287,7 +287,7 @@ function stopEvent(event){
 	}
 }
 
-element.insPostProcessingFunction("advise",
+element.insPostProcessingFunction("advise", "bd",
 	function(target, source, resultIsDomNode, listeners){
 		Reflect.ownKeys(listeners).forEach((name) =>{
 			let listener = listeners[name];
@@ -374,19 +374,19 @@ function processNode(node){
 	for(j = i; j < oldStackLength; j++){
 		component = focusStack.pop();
 		component[ppOnBlur]();
-		focusManager._applyHandlers({name: "blurComponent", component: component});
+		focusManager.bdNotify({name: "blurComponent", component: component});
 	}
 
 	// signal focus for all new components that just gained the focus
 	for(j = i; j < newStackLength; j++){
 		focusStack.push(component = stack[j]);
 		component[ppOnFocus]();
-		focusManager._applyHandlers({name: "focusComponent", component: component});
+		focusManager.bdNotify({name: "focusComponent", component: component});
 	}
 
 	previousFocusedComponent = focusedComponent;
 	focusedComponent = focusedComponent_;
-	focusManager._applyHandlers({name: "focusedComponent", component: focusedComponent_});
+	focusManager.bdNotify({name: "focusedComponent", component: focusedComponent_});
 }
 
 connect(document.body, "focusin", function(e){
@@ -421,7 +421,7 @@ connect(window, "scroll", function(e){
 	}
 	scrollTimeoutHandle = setTimeout(function(){
 		scrollTimeoutHandle = 0;
-		viewportWatcher._applyHandlers({name: "scroll"});
+		viewportWatcher.bdNotify({name: "scroll"});
 	}, 10);
 }, true);
 
@@ -435,7 +435,7 @@ connect(window, "resize", function(e){
 	}
 	resizeTimeoutHandle = setTimeout(function(){
 		resizeTimeoutHandle = 0;
-		viewportWatcher._applyHandlers({name: "resize"});
+		viewportWatcher.bdNotify({name: "resize"});
 	}, 10);
 }, true);
 
