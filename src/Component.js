@@ -165,23 +165,6 @@ element.insPostProcessingFunction("reflectProp", "bd",
 	}
 );
 
-// private properties
-const
-	ppClassName = Symbol("bd-component-ppClassName"),
-	ppStaticClassName = Symbol("bd-component-ppStaticClassName"),
-	ppEnabled = Symbol("bd-component-ppEnabled"),
-	ppTabIndex = Symbol("bd-component-ppTabIndex"),
-	ppTitle = Symbol("bd-component-ppTitle"),
-	ppParent = Symbol("bd-component-ppParent"),
-	ppHasFocus = Symbol("bd-component-ppHasFocus"),
-	ppOnFocus = Symbol("bd-component-ppOnFocus"),
-	ppOnBlur = Symbol("bd-component-pponBlur"),
-	ppSetClassName = Symbol("bd-component-ppSetClassName"),
-	ppParentAttachPoint = Symbol("bd-component-ppParentAttachPoint"),
-	ppChildrenAttachPoint = Symbol("bd-component-ppChildrenAttachPoint"),
-	ppAttachedToDoc = Symbol("bd-component-ppAttachedToDoc"),
-	ppOwnedHandles = Symbol("bd-component-ppOwnedHandles");
-
 function cleanClassName(s){
 	return s.replace(/\s{2,}/g, " ").trim();
 }
@@ -289,9 +272,39 @@ function pushHandles(dest, ...handles){
 	});
 }
 
-function isComponentDerivedCtor(f){
-	return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
+// a tiny little helper class to define names as symbols and keep a list of what's been defined
+class Namespace {
+	get(name){
+		return this[name] || (this[name] = Symbol(name));
+	}
+
+	publish(dest){
+		Object.keys(this).forEach(name => {
+			if(dest[name]){
+				throw new Error("dest already has name :" + name);
+			}
+			dest[name] = this[name]
+		});
+	}
 }
+
+// could be done so much better with lisp macros...
+let ns = new Namespace();
+const
+	ppClassName = ns.get("ppClassName"),
+	ppStaticClassName = ns.get("ppStaticClassName"),
+	ppEnabled = ns.get("ppEnabled"),
+	ppTabIndex = ns.get("ppTabIndex"),
+	ppTitle = ns.get("ppTitle"),
+	ppParent = ns.get("ppParent"),
+	ppHasFocus = ns.get("ppHasFocus"),
+	ppOnFocus = ns.get("ppOnFocus"),
+	ppOnBlur = ns.get("ppOnBlur"),
+	ppSetClassName = ns.get("ppSetClassName"),
+	ppParentAttachPoint = ns.get("ppParentAttachPoint"),
+	ppChildrenAttachPoint = ns.get("ppChildrenAttachPoint"),
+	ppAttachedToDoc = ns.get("ppAttachedToDoc"),
+	ppOwnedHandles = ns.get("ppOwnedHandles");
 
 export default class Component extends EventHub(WatchHub()) {
 	constructor(kwargs){
@@ -898,24 +911,13 @@ export function render(...args){
 	return result;
 }
 
+ns.publish(Component);
+
 Object.assign(Component, {
-	renderElements:renderElements,
-	ppClassName: ppClassName,
-	ppStaticClassName: ppStaticClassName,
-	ppEnabled: ppEnabled,
-	ppTabIndex: ppTabIndex,
-	ppTitle: ppTitle,
-	ppParent: ppParent,
-	ppHasFocus: ppHasFocus,
-	ppOnFocus: ppOnFocus,
-	ppOnBlur: ppOnBlur,
-	ppSetClassName: ppSetClassName,
-	ppOwnedHandles: ppOwnedHandles,
-	ppParentAttachPoint: ppParentAttachPoint,
-	ppChildrenAttachPoint: ppChildrenAttachPoint,
-	ppAttachedToDoc: ppAttachedToDoc,
-	catalog: new Map(),
+	renderElements: renderElements,
+	Namespace: Namespace,
 	render: render,
+	catalog: new Map(),
 	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"],
 	events: []
 });
