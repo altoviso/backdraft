@@ -1,35 +1,58 @@
 import {e, render, Component, destroyDomChildren} from "../lib.js"
 
-let root = document.getElementById("root");
+const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
+const assert = smoke.assert;
+const root = document.getElementById("bd-smoke-root");
 
 let id = 0;
 
 class Component_ extends Component {
 	constructor(kwargs){
-		kwargs.id = kwargs.id || id;
-		super(kwargs);
+		super(Object.assign({id: id}, kwargs));
 	}
 
-	_elements(){
+	bdElements(){
 		return e("div", this.id)
 	}
 }
 
 class MultiRootComponent extends Component {
-	_elements(){
+	bdElements(){
 		return [
 			e("div", {id: "root-1"}),
 			e("div", {id: "root-2"})
 		];
 	}
 }
+//     1. render(e:Element)
+//     => isComponentDerivedCtor(e.type), then render e.type(e.props); render Component({elements:e})
+//
+//     2. render(e:Element, node:domNode[, position:Position="last"])
+// 	   => [1] with attach information
+//
+//     3. render(C:Component)
+//     => render(C, {})
+//
+//     4. render(C:Component, args:kwargs)
+//     => render(C, args)
+//     // note: args is kwargs for C's constructor; therefore, postprocessing instructions are meaningless unless C's
+//     // construction defines some usage for them (atypical)
+//
+//     5. render(C:Component, node:domNode[, position:Position="last"])
+//     => [3] with attach information
+//
+//     6. render(C:Component, args:kwargs, node:domNode[, position:Position="last"])
+//     => [4] with attach information
+//
+//     7. render(c:instanceof Component)
+//     => c.render()
+//
+//     8. render(c:instanceof Component, node:domNode[, position:Position="last"])
 
-const smoke = window.smoke;
-const assert = smoke.assert;
-export default {
-	id: "test render signatures",
+smoke.defBrowserTest({
+	id: "render",
 	tests: [
-		["signature [1]", function(){
+		["render(e:Element)", function(){
 			// element with type not a Component
 			let id = "signature[1a]";
 			let c = render(e("div", {id: id}, id));
@@ -48,7 +71,7 @@ export default {
 			c.destroy();
 			assert(root.innerHTML === "");
 		}],
-		["signature [2]", function(){
+		["render(e:Element, node:domNode[, position:Position=\"last\"])", function(){
 			let attachPoint = document.createElement("div");
 			root.appendChild(attachPoint);
 
@@ -86,7 +109,7 @@ export default {
 
 			root.innerHTML = "";
 		}],
-		["signature [3]", function(){
+		["render(C:Component)", function(){
 			id = "signature[3]";
 			let c = render(Component_);
 			root.appendChild(c._dom.root);
@@ -96,7 +119,7 @@ export default {
 			c.destroy();
 			assert(root.innerHTML === "");
 		}],
-		["signature [4]", function(){
+		["render(C:Component, args:kwargs)", function(){
 			let s4 = "signature[4]";
 			let c = render(Component_, {id: s4});
 			root.appendChild(c._dom.root);
@@ -106,7 +129,7 @@ export default {
 			c.destroy();
 			assert(root.innerHTML === "");
 		}],
-		["signature [5]", function(){
+		["render(C:Component, node:domNode[, position:Position=\"last\"])", function(){
 			let attachPoint = document.createElement("div");
 			root.appendChild(attachPoint);
 
@@ -127,7 +150,7 @@ export default {
 
 			root.innerHTML = "";
 		}],
-		["signature [6]", function(){
+		["render(C:Component, args:kwargs, node:domNode[, position:Position=\"last\"])", function(){
 			let attachPoint = document.createElement("div");
 			root.appendChild(attachPoint);
 
@@ -148,7 +171,7 @@ export default {
 
 			root.innerHTML = "";
 		}],
-		["signature [7]", function(){
+		["render(c:instanceof Component)", function(){
 			let s7 = "signature[7]";
 			let c = new Component_({id: s7});
 			let cc = render(c);
@@ -157,7 +180,7 @@ export default {
 			c.destroy();
 		}],
 
-		["signature [8]", function(){
+		["render(c:instanceof Component, node:domNode[, position:Position=\"last\"])", function(){
 			let s8a = "signature[8]";
 			let c1 = new Component_({id: s8a});
 			render(c1, root);
@@ -175,7 +198,7 @@ export default {
 			assert(root.innerHTML === "");
 		}],
 		{
-			id: "render position",
+			id: "render with position arg",
 			before: function(){
 				root.innerHTML = "<div id='1'></div><div id='2'></div><div id='3'></div>";
 				this.n1 = document.getElementById("1");
@@ -261,13 +284,13 @@ export default {
 			]
 		},
 		{
-			id: "render position, multiple roots",
+			id: "render with position arg, multiple roots",
 			before: function(){
 				root.innerHTML = "<div id='1'></div><div id='2'></div><div id='3'></div>";
 				this.n1 = document.getElementById("1");
 				this.n2 = document.getElementById("2");
 				this.n3 = document.getElementById("3");
-				this.check = () =>{
+				this.check = () => {
 					assert(root.childNodes.length === 3);
 					assert(root.childNodes[0] === this.n1);
 					assert(root.childNodes[1] === this.n2);
@@ -363,7 +386,7 @@ export default {
 					assert(c._dom.root[0].nextSibling === c._dom.root[1]);
 					assert(root.childNodes.length === 2);
 					c.destroy();
-					assert(root.childNodes.length===0);
+					assert(root.childNodes.length === 0);
 				}],
 				["replace", function(){
 					let c1 = render(MultiRootComponent, root, "only");
@@ -374,10 +397,10 @@ export default {
 					assert(c1.destroyed);
 					assert(c2.rendered);
 					c2.destroy();
-					assert(root.childNodes.length===0);
+					assert(root.childNodes.length === 0);
 
 				}]
 			]
 		}
 	]
-};
+});

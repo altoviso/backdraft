@@ -29,7 +29,8 @@
 		[["element"], "./test/element.es6.js"],
 		[["watchHub"], "./test/watchHub.es6.js"],
 		[["EventHub"], "./test/EventHub.es6.js"],
-		[["component"], "./test/component.es6.js"]
+		[["component"], "./test/component.es6.js"],
+		[["render"], "./test/render.es6.js"]
 	];
 
 	if(isNode){
