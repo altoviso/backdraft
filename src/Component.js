@@ -484,13 +484,14 @@ export default class Component extends EventHub(WatchHub()) {
 			throw new Error("unexpected");
 		}
 		(this.children || (this.children = [])).push(child);
-		child._setParent(this);
-		child._attachToDoc(this[ppAttachedToDoc]);
+
+		child.bdMutate("parent", ppParent, this);
+		child.bdAttachToDoc(this[ppAttachedToDoc]);
 	}
 
-	_attachToDoc(value){
-		if(this._applyWatchers("attachedToDoc", ppAttachedToDoc, !!value)){
-			this.children && this.children.forEach(child => child._attachToDoc(value));
+	bdAttachToDoc(value){
+		if(this.bdMutate("attachedToDoc", ppAttachedToDoc, !!value)){
+			this.children && this.children.forEach(child => child.bdAttachToDoc(value));
 			return true;
 		}else{
 			return false;
@@ -593,7 +594,8 @@ export default class Component extends EventHub(WatchHub()) {
 				node.parentNode && node.parentNode.removeChild(node);
 			};
 			Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
-			child._setParent(null);
+			child.bdMutate("parent", ppParent, null);
+			child.bdAttachToDoc(false);
 			this.children.splice(index, 1);
 			if(!preserve){
 				child.destroy();
@@ -691,23 +693,23 @@ export default class Component extends EventHub(WatchHub()) {
 			if(this.rendered){
 				this._dom.root.className = calcDomClassName(this);
 			}
-			this._applyWatchersRaw("className", oldValue, newValue);
+			this.bdMutateNotify("className", oldValue, newValue);
 			let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
 				newVisibleValue = newValue ? newValue.indexOf("hidden") === -1 : true;
 			if(oldVisibleValue !== newVisibleValue){
-				this._applyWatchersRaw("visible", oldVisibleValue, newVisibleValue);
+				this.bdMutateNotify("visible", oldVisibleValue, newVisibleValue);
 			}
 		}
 	}
 
 	[ppOnFocus](){
 		this.addClassName("bd-focused");
-		this._applyWatchers("hasFocus", ppHasFocus, true);
+		this.bdMutate("hasFocus", ppHasFocus, true);
 	}
 
 	[ppOnBlur](){
 		this.removeClassName("bd-focused");
-		this._applyWatchers("hasFocus", ppHasFocus, false);
+		this.bdMutate("hasFocus", ppHasFocus, false);
 	}
 
 	get hasFocus(){
@@ -729,8 +731,8 @@ export default class Component extends EventHub(WatchHub()) {
 
 	set tabIndex(value){
 		if(value !== this[ppTabIndex]){
-			this.rendered && ((this._dom.tabIndexNode || this._dom.root).tabIndex = value);
-			this._applyWatchers("tabIndex", ppTabIndex, value);
+			this.rendered && ((this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = value);
+			this.bdMutate("tabIndex", ppTabIndex, value);
 		}
 	}
 
@@ -739,7 +741,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set enabled(value){
-		if(this._applyWatchers("enabled", ppEnabled, !!value)){
+		if(this.bdMutate("enabled", ppEnabled, !!value)){
 			this[value ? "removeClassName" : "addClassName"]("bd-disabled");
 		}
 	}
@@ -757,7 +759,7 @@ export default class Component extends EventHub(WatchHub()) {
 			}else{
 				this.addClassName("bd-hidden");
 			}
-			this._applyWatchersRaw("visible", !value, value);
+			this.bdMutateNotify("visible", !value, value);
 		}
 	}
 
@@ -770,8 +772,8 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set title(value){
-		if(this._applyWatchers("title", ppTitle, value)){
-			this.rendered && ((this._dom.titleNode || this._dom.root).title = value);
+		if(this.bdMutate("title", ppTitle, value)){
+			this.rendered && ((this.bdDom.titleNode || this.bdDom.root).title = value);
 		}
 	}
 }

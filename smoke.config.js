@@ -26,7 +26,8 @@
 	// to run remotely (and therefore, be loaded by smoke on node) and use smoke.defBrowserTestRef to inform smoke about
 	// such tests
 	let tests = [
-		[["element"], "./test/element.es6.js"]
+		[["element"], "./test/element.es6.js"],
+		[["watchHub"], "./test/watchHub.es6.js"]
 	];
 
 	if(isNode){

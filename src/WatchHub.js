@@ -1,8 +1,16 @@
+const watcherCatalog = new WeakMap();
+
 class Watchable {
 	constructor(owner, prop, formatter){
 		this.owner = owner;
 		this.prop = prop;
+		this.handles = [];
 		formatter && (this.formatter = formatter);
+	}
+
+	destroy(){
+		// explicit destruction
+		this.handles.forEach(h => h.destroy());
 	}
 
 	get value(){
@@ -14,15 +22,31 @@ class Watchable {
 		if(this.formatter){
 			formatterWatcher = (newValue, oldValue, src) => watcher(this.formatter(newValue), this.formatter(oldValue), src);
 		}
-		return this.owner.watch(this.prop, formatterWatcher || watcher);
+		let h = this.owner.watch(this.prop, formatterWatcher || watcher);
+		this.handles.push(h);
+		return h
 	}
 }
 
-const ppVariables = Symbol("WatchHub-ppVariables");
 
 function mutate(owner, name, privateName, newValue){
 	let oldValue = owner[name];
-	if(!newValue || !oldValue ? newValue !== oldValue : (newValue.eq ? !newValue.eq(oldValue) : (oldValue.eq ? !oldValue.eq(newValue) : newValue !== oldValue))){
+	let notEq;
+	if(!oldValue){
+		notEq = newValue !== oldValue;
+	}else if(newValue){
+		if(newValue.eq){
+			notEq = !newValue.eq(oldValue);
+		}else if(oldValue.eq){
+			notEq = !oldValue.eq(newValue);
+		}else{
+			notEq = newValue !== oldValue;
+		}
+	}else {
+		notEq = true;
+	}
+
+	if(notEq){
 		if(privateName in owner){
 			owner[privateName] = newValue;
 		}else{
@@ -45,31 +69,65 @@ export default function WatchHub(superClass){
 		}
 
 		// protected interface...
-		_applyWatchersRaw(name, oldValue, newValue){
-			let watchers;
-			if(this[ppVariables] && (watchers = this[ppVariables][name])){
-				watchers.slice().forEach(w => w.watcher(newValue, oldValue, this));
+		bdMutateNotify(name, oldValue, newValue){
+			let variables = watcherCatalog.get(this);
+			if(!variables){
+				return;
+			}
+			if(Array.isArray(name)){
+				// each element in name is either a triple ([name, oldValue, newValue]) or false
+				let doStar = false;
+				for(const p of name) if(p){
+					doStar = true;
+					let watchers = variables[p[0]];
+					if(watchers){
+						oldValue = p[1];
+						newValue = p[2];
+						watchers.slice().forEach(w => w.watcher(newValue, oldValue, this));
+					}
+				}
+				if(doStar){
+					let watchers = variables["*"];
+					watchers.slice().forEach(w => w.watcher(this));
+				}
+			}else{
+				let watchers = variables[name];
+				if(watchers){
+					watchers.slice().forEach(w => w.watcher(newValue, oldValue, this));
+				}
+				watchers = variables["*"];
+				if(watchers){
+					watchers.slice().forEach(w => w.watcher(this));
+				}
 			}
 		}
 
-		_applyWatchers(name, privateName, newValue){
+		bdMutate(name, privateName, newValue){
 			if(arguments.length > 3){
 				let i = 0;
 				let results = [];
+				let mutateOccurred = false;
 				while(i < arguments.length){
-					results.push(mutate(this, arguments[i++], arguments[i++], arguments[i++]));
+					let mutateResult = mutate(this, arguments[i++], arguments[i++], arguments[i++]);
+					mutateOccurred = mutateOccurred || mutateResult;
+					results.push(mutateResult);
 				}
-				for(const p of results) p && this._applyWatchersRaw(...p);
+				this.bdMutateNotify(results);
 			}else{
 				let result = mutate(this, name, privateName, newValue);
-				result && this._applyWatchersRaw(...result);
+				if(result){
+					this.bdMutateNotify(...result);
+					return true;
+				}
+				return false;
 			}
 		}
 
 		// public interface...
 		watch(name, watcher){
-			if(!this[ppVariables]){
-				Object.defineProperty(this, ppVariables, {value: {}, configurable:true});
+			let variables = watcherCatalog.get(this);
+			if(!variables){
+				watcherCatalog.set(this, (variables = {}));
 			}
 			if(!watcher){
 				let hash = name;
@@ -77,15 +135,18 @@ export default function WatchHub(superClass){
 			}else if(Array.isArray(name)){
 				return name.map((name) => this.watch(name, watcher));
 			}else{
-				let watchers = this[ppVariables][name] || (this[ppVariables][name] = []);
+				let watchers = variables[name] || (variables[name] = []);
 				let wrappedwatcher = {watcher: watcher};
 				watchers.push(wrappedwatcher);
 				return {
 					destroy: () => {
-						let watchers = this[ppVariables][name];
+						let watchers = variables[name];
 						let index = watchers ? watchers.indexOf(wrappedwatcher) : -1;
 						if(index !== -1){
 							watchers.splice(index, 1);
+						}
+						if(!watchers.length){
+							delete variables[name];
 						}
 					}
 				};
@@ -93,11 +154,12 @@ export default function WatchHub(superClass){
 		}
 
 		destroyWatch(name){
-			if(this[ppVariables]){
+			let variables = watcherCatalog.get(this);
+			if(variables){
 				if(name){
-					delete this[ppVariables][name];
+					delete variables[name];
 				}else{
-					delete this[ppVariables];
+					watcherCatalog.delete(this);
 				}
 			}
 		}
@@ -108,7 +170,6 @@ export default function WatchHub(superClass){
 	};
 }
 
-WatchHub.ppVariables = ppVariables;
 WatchHub.Watchable = Watchable;
 
 
