@@ -26,15 +26,17 @@
 	// to run remotely (and therefore, be loaded by smoke on node) and use smoke.defBrowserTestRef to inform smoke about
 	// such tests
 	let tests = [
-		[["element"], "./test/element.es6.js"],
-		[["watchHub"], "./test/watchHub.es6.js"],
-		[["EventHub"], "./test/EventHub.es6.js"],
-		[["component"], "./test/component.es6.js"],
-		[["render"], "./test/render.es6.js"]
+		["Element", "./test/Element.es6.js"],
+		["WatchHub", "./test/WatchHub.es6.js"],
+		["EventHub", "./test/EventHub.es6.js"],
+		["Component", "./test/Component.es6.js"],
+		["post-processing", "./test/post-processing.es6.js"],
+		["render", "./test/render.es6.js"],
+		["log-assert-count", "./test/log-assert-count.js"]
 	];
 
 	if(isNode){
-		tests.map(item => item[0].forEach(testId => smoke.defBrowserTestRef(testId)));
+		tests.map(item => smoke.defBrowserTestRef(item[0]));
 		config.capabilities = isNode ? require("./test/capabilities") : []
 	}else if(isAmd){
 		// TODO
@@ -43,7 +45,23 @@
 		config.load = config.load.concat(tests.map(item => item[1]));
 	}
 
-	smoke.configure(config);
+	smoke.configure(config).then(() => {
+		// order the tests as given in tests above; mainly so we can have log-assert-count last without having to
+		// put order attributes in the actual test definitions.
+		let smokeTests = smoke.tests;
+		let ordered = [];
+		tests.forEach((item, order) => {
+			let id = item[0];
+			smokeTests.some(test => {
+				if(test.id === id){
+					test.order = order;
+					ordered.push(test);
+					return true;
+				}
+			})
+		});
+		ordered.forEach((test, i) => smokeTests[i] = test);
+	})
 }));
 
 

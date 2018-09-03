@@ -3,7 +3,7 @@ import {EventHub} from "../lib.js";
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
 
-smoke.defTest({
+smoke.defBrowserTest({
 	id: "EventHub",
 	tests: [
 		["usage", function(){
