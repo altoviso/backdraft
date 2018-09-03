@@ -15,6 +15,8 @@ Backdraft is extensively documented at [backdraftjs.org](http://backdraftjs.org)
 
 ## Install
 
+Note: master is under dev; if you want a working version, use npm.
+
 With `npm`:
 
 ```
