@@ -1,4 +1,4 @@
-const ppEvents = Symbol("EventHub-ppEvents");
+const catalog = new WeakMap();
 
 export default function EventHub(superClass){
 	if(!superClass){
@@ -8,24 +8,35 @@ export default function EventHub(superClass){
 	return class extends superClass {
 		constructor(){
 			super();
-			Object.defineProperty(this, ppEvents, {value: {}});
 		}
 
 		// protected interface...
-		_applyHandlers(e){
+		bdNotify(e){
+			let events = catalog.get(this);
+			if(!events){
+				return;
+			}
+
 			let handlers;
 			if(e instanceof Event){
-				handlers = this[ppEvents][e.type];
+				handlers = events[e.type];
 			}else{
-				if(!e.name){
-					e = {name: e, target: this};
+				if(e.type){
+					handlers = events[e.type];
+					e.target = this;
+				}else if(!e.name){
+					handlers = events[e];
+					e = {type: e, name: e, target: this};
 				}else{
+					console.warn("event.name is depricated; use event.type");
+					handlers = events[e.name];
+					e.type = e.name;
 					e.target = this;
 				}
-				handlers = this[ppEvents][e.name];
 			}
+
 			if(handlers){
-				handlers.slice().forEach(handler => handler.handler(e));
+				handlers.slice().forEach(handler => handler(e));
 			}
 		}
 
@@ -34,16 +45,17 @@ export default function EventHub(superClass){
 			if(!handler){
 				let hash = eventName;
 				Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
-			}else if(Array.isArray(eventName)){
-				return eventName.map(name => this.advise(name, handler));
 			}else{
-				let handlers = this[ppEvents][eventName] || (this[ppEvents][eventName] = []),
-					wrappedHandler = {handler: handler};
-				handlers.push(wrappedHandler);
+				let events = catalog.get(this);
+				if(!events){
+					catalog.set(this, (events = {}))
+				}
+
+				let handlers = events[eventName] || (events[eventName] = []);
+				handlers.push(handler);
 				return {
-					destroy: () =>{
-						let handlers = this[ppEvents][eventName];
-						let index = handlers ? handlers.indexOf(wrappedHandler) : -1;
+					destroy(){
+						let index = handlers.indexOf(handler);
 						if(index !== -1){
 							handlers.splice(index, 1);
 						}
@@ -53,15 +65,15 @@ export default function EventHub(superClass){
 		}
 
 		destroyAdvise(eventName){
+			let events = catalog.get(this);
+			if(!events){
+				return;
+			}
 			if(eventName){
-				delete this[ppEvents][eventName];
+				delete events[eventName];
 			}else{
-				let events = this[ppEvents];
-				Reflect.ownKeys(events).forEach((key) =>{
-					delete events[key];
-				});
+				catalog.delete(this);
 			}
 		}
 	};
 }
-EventHub.ppEvents = ppEvents;
