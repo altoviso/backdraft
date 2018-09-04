@@ -227,45 +227,6 @@ function postProcess(ppProps, owner, target, targetIsDomNode){
 	});
 }
 
-function renderElements(owner, e){
-	if(Array.isArray(e)){
-		return e.map((e) => renderElements(owner, e));
-	}else if(e instanceof Element){
-		const {type, ctorProps, ppProps, children} = e;
-		let result;
-		if(!e.isComponentType){
-			let domNode = result = Component.createNode(type, ctorProps);
-			if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
-				owner.bdDom.tabIndexNode = domNode;
-			}
-			ppProps && postProcess(ppProps, owner, domNode, true);
-			if(children){
-				let renderedChildren = renderElements(owner, children);
-				if(Array.isArray(renderedChildren)){
-					renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType));
-				}else{
-					addChildToDomNode(owner, domNode, renderedChildren, children.isComponentType);
-				}
-			}
-		}else{
-			let componentInstance = result = new type(ctorProps);
-			componentInstance.render();
-			ppProps && postProcess(ppProps, owner, componentInstance, false);
-			if(children){
-				let renderedChildren = renderElements(owner, children);
-				if(Array.isArray(renderedChildren)){
-					renderedChildren.forEach((child) => result.insChild(child));
-				}else{
-					result.insChild(renderedChildren);
-				}
-			}
-		}
-		return result;
-	}else{
-		// e must be convertible to a string
-		return document.createTextNode(e);
-	}
-}
 
 function pushHandles(dest, ...handles){
 	handles.forEach(h => {
@@ -838,6 +799,46 @@ export default class Component extends EventHub(WatchHub()) {
 	set title(value){
 		if(this.bdMutate("title", pTitle, value)){
 			this.rendered && ((this.bdDom.titleNode || this.bdDom.root).title = value);
+		}
+	}
+
+	static renderElements(owner, e){
+		if(Array.isArray(e)){
+			return e.map((e) => this.renderElements(owner, e));
+		}else if(e instanceof Element){
+			const {type, ctorProps, ppProps, children} = e;
+			let result;
+			if(!e.isComponentType){
+				let domNode = result = Component.createNode(type, ctorProps);
+				if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
+					owner.bdDom.tabIndexNode = domNode;
+				}
+				ppProps && postProcess(ppProps, owner, domNode, true);
+				if(children){
+					let renderedChildren = this.renderElements(owner, children);
+					if(Array.isArray(renderedChildren)){
+						renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType));
+					}else{
+						addChildToDomNode(owner, domNode, renderedChildren, children.isComponentType);
+					}
+				}
+			}else{
+				let componentInstance = result = new type(ctorProps);
+				componentInstance.render();
+				ppProps && postProcess(ppProps, owner, componentInstance, false);
+				if(children){
+					let renderedChildren = this.renderElements(owner, children);
+					if(Array.isArray(renderedChildren)){
+						renderedChildren.forEach((child) => result.insChild(child));
+					}else{
+						result.insChild(renderedChildren);
+					}
+				}
+			}
+			return result;
+		}else{
+			// e must be convertible to a string
+			return document.createTextNode(e);
 		}
 	}
 
