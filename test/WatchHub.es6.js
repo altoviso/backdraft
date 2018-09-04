@@ -183,6 +183,95 @@ smoke.defTest({
 			assert(yHandlerAppliedCount === 3);
 
 		}],
+		["star", function(){
+			class Useless extends WatchHub() {
+				constructor(x){
+					super();
+					this._x = 0;
+					this._y = 0;
+				}
+
+				get x(){
+					return this._x;
+				}
+
+				set x(value){
+					this.bdMutate("x", "_x", value);
+				}
+
+				get y(){
+					return this._y;
+				}
+
+				set y(value){
+					this.bdMutate("y", "_y", value);
+				}
+
+				set(x, y){
+					this.bdMutate("x", "_x", x, "y", "_y", y);
+				}
+			}
+
+			let expectedX = 0;
+			let expectedY = 0;
+
+			let applyCount_x = 0;
+
+			function xWatcher(newValue){
+				applyCount_x++;
+				assert(newValue === expectedX);
+			}
+
+			let applyCount_y = 0;
+
+			function yWatcher(newValue){
+				applyCount_y++;
+				assert(newValue === expectedY);
+			}
+
+			let applyCount_star = 0;
+
+			function starWatcher(src){
+				applyCount_star++;
+				assert(src._x === expectedX);
+				assert(src._y === expectedY);
+			}
+
+			let useless = new Useless();
+			useless.watch("x", xWatcher);
+			useless.watch("y", yWatcher);
+			useless.x = expectedX = 1;
+			assert(applyCount_x === 1);
+			assert(applyCount_y === 0);
+
+			useless.y = expectedY = 2;
+			assert(applyCount_x === 1);
+			assert(applyCount_y === 1);
+
+			expectedX = 3;
+			expectedY = 4;
+			useless.set(3, 4);
+			assert(applyCount_x === 2);
+			assert(applyCount_y === 2);
+
+			useless.watch("*", starWatcher);
+			useless.x = expectedX = 5;
+			assert(applyCount_x === 3);
+			assert(applyCount_y === 2);
+			assert(applyCount_star === 1);
+
+			useless.y = expectedY = 6;
+			assert(applyCount_x === 3);
+			assert(applyCount_y === 3);
+			assert(applyCount_star === 2);
+
+			expectedX = 7;
+			expectedY = 8;
+			useless.set(7, 8);
+			assert(applyCount_x === 4);
+			assert(applyCount_y === 4);
+			assert(applyCount_star === 3);
+		}],
 		["structure", function(){
 			// WatchHubs do not define any instance variables.
 			class Useless extends WatchHub() {

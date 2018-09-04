@@ -88,7 +88,9 @@ export default function WatchHub(superClass){
 				}
 				if(doStar){
 					let watchers = variables["*"];
-					watchers.slice().forEach(w => w(this));
+					if(watchers){
+						watchers.slice().forEach(w => w(this));
+					}
 				}
 			}else{
 				let watchers = variables[name];
@@ -112,12 +114,16 @@ export default function WatchHub(superClass){
 					mutateOccurred = mutateOccurred || mutateResult;
 					results.push(mutateResult);
 				}
-				this.bdMutateNotify(results);
+				if(mutateOccurred){
+					this.bdMutateNotify(results);
+					return results;
+				}
+				return false;
 			}else{
 				let result = mutate(this, name, privateName, newValue);
 				if(result){
 					this.bdMutateNotify(...result);
-					return true;
+					return result;
 				}
 				return false;
 			}
