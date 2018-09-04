@@ -764,9 +764,20 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set enabled(value){
-		if(this.bdMutate("enabled", pEnabled, !!value)){
+		value = !!value;
+		if(this[pEnabled] !== value){
+			this[pEnabled] = value;
+			this.bdMutateNotify([["enabled", value, !value], ["disabled", !value, value]]);
 			this[value ? "removeClassName" : "addClassName"]("bd-disabled");
 		}
+	}
+
+	get disabled(){
+		return !this[pEnabled];
+	}
+
+	set disabled(value){
+		this.enabled = !value;
 	}
 
 	get visible(){
