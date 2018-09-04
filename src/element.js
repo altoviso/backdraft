@@ -83,19 +83,14 @@ export default function element(type, props, ...children){
 
 let postProcessingSet = new Set();
 
-element.insPostProcessingFunction = function(name, prefix, func){
+element.insPostProcessingFunction = function(name, func){
 	if(element[name]){
 		throw Error("duplicate postprocessing function name: " + name);
 	}
 	// ppf => post-processing function
-	let symbol = Symbol("ppf-" + name);
-	let name1 = prefix + name;
-	let name2 = prefix + name.substring(0, 1).toUpperCase() + name.substring(1);
-	Object.defineProperty(element, name, {value: symbol, enumerable: true});
-	Object.defineProperty(element, symbol, {value: func, enumerable: true});
-	Object.defineProperty(element, name1, {value: func, enumerable: true});
-	Object.defineProperty(element, name2, {value: func, enumerable: true});
-	postProcessingSet.add(symbol);
-	postProcessingSet.add(name1);
-	postProcessingSet.add(name2);
+	let lcName = name.toLowerCase();
+	Object.defineProperty(element, name, {value: func, enumerable: true});
+	Object.defineProperty(element, lcName, {value: func, enumerable: true});
+	postProcessingSet.add(name);
+	postProcessingSet.add(lcName);
 };

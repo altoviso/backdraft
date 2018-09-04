@@ -114,13 +114,13 @@ smoke.defBrowserTest({
 				elements: e("div",
 					e(Component2, {
 						bdAttach: "firstComponent2",
-						[e.watch]: {
+						bdWatch: {
 							v1: handle_v11, v2: handle_v12
 						}
 					}),
 					e(Component2, {
 						bdAttach: "secondComponent2",
-						[e.watch]: {
+						bdWatch: {
 							v1: handle_v21, v2: handle_v22
 						}
 					})
@@ -149,7 +149,7 @@ smoke.defBrowserTest({
 
 			let c = new Component({
 				elements: e("div",
-					e(Component3, {bdAttach: "c3", [e.exec]: ["testMethod", [3.14]]})
+					e(Component3, {bdAttach: "c3", bdExec: ["testMethod", [3.14]]})
 				)
 			});
 			assert(!("c3" in c));
@@ -227,7 +227,7 @@ smoke.defBrowserTest({
 
 			c = new Component5({
 				staticClassName: "kwargsStaticClassNameExample",
-				elements: e("div", {[e.staticClassName]: "postProcessStaticClassNameExample"})
+				elements: e("div", {bdStaticClassName: "postProcessStaticClassNameExample"})
 			});
 			assert(c.className === "");
 			c.className = "test";
@@ -254,8 +254,8 @@ smoke.defBrowserTest({
 			c.render();
 
 			let child1 = c.insChild(e(Component, {}));
-			let child2 = c.insChild(e(Component, {[e.parentAttachPoint]: "node1"}));
-			let child3 = c.insChild(e(Component, {[e.parentAttachPoint]: "node2"}));
+			let child2 = c.insChild(e(Component, {bdParentAttachPoint: "node1"}));
+			let child3 = c.insChild(e(Component, {bdParentAttachPoint: "node2"}));
 			assert(child1._dom.root.parentNode === c._dom.root);
 			assert(child2._dom.root.parentNode === c.node1);
 			assert(child3._dom.root.parentNode === c.node2);

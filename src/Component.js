@@ -2,7 +2,7 @@ import {default as element, Element} from "./element.js";
 import EventHub from "./EventHub.js";
 import WatchHub from "./WatchHub.js";
 
-element.insPostProcessingFunction("attach", "bd",
+element.insPostProcessingFunction("bdAttach",
 	function(target, source, resultIsDomNode, name){
 		if(typeof name === "function"){
 			name(source);
@@ -17,7 +17,7 @@ element.insPostProcessingFunction("attach", "bd",
 	}
 );
 
-element.insPostProcessingFunction("watch", "bd",
+element.insPostProcessingFunction("bdWatch",
 	function(target, source, resultIsDomNode, watchers){
 		Reflect.ownKeys(watchers).forEach((name) => {
 			source.ownWhileRendered(source.watch(name, watchers[name]));
@@ -25,7 +25,7 @@ element.insPostProcessingFunction("watch", "bd",
 	}
 );
 
-element.insPostProcessingFunction("exec", "bd",
+element.insPostProcessingFunction("bdExec",
 	function(target, source, resultIsDomNode, ...args){
 		for(let i = 0; i < args.length;){
 			let f = args[i++];
@@ -49,26 +49,26 @@ element.insPostProcessingFunction("exec", "bd",
 	}
 );
 
-element.insPostProcessingFunction("titleNode", "bd",
+element.insPostProcessingFunction("bdTitleNode",
 	function(target, source){
 		target.bdDom.titleNode = source;
 	}
 );
 
-element.insPostProcessingFunction("staticClassName", "bd",
+element.insPostProcessingFunction("bdStaticClassName",
 	function(target, source, resultIsDomNode, className){
 		target[pStaticClassName] = className;
 	}
 );
 
-element.insPostProcessingFunction("parentAttachPoint", "bd",
+element.insPostProcessingFunction("bdParentAttachPoint",
 	function(target, source, resultIsDomNode, propertyName){
 		// source should be a component instance and resultIsDomNode should be false
 		source[pParentAttachPoint] = propertyName;
 	}
 );
 
-element.insPostProcessingFunction("childrenAttachPoint", "bd",
+element.insPostProcessingFunction("bdChildrenAttachPoint",
 	function(target, source, resultIsDomNode, value){
 		// source should be a DOM node and resultIsDomNode should be true
 		if(value){
@@ -77,7 +77,7 @@ element.insPostProcessingFunction("childrenAttachPoint", "bd",
 	}
 );
 
-element.insPostProcessingFunction("reflectClass", "bd",
+element.insPostProcessingFunction("bdReflectClass",
 	function(target, source, resultIsDomNode, ...args){
 		// possibly many of the following sequences....
 		// <string>
@@ -111,7 +111,7 @@ element.insPostProcessingFunction("reflectClass", "bd",
 	}
 );
 
-element.insPostProcessingFunction("reflect", "bd",
+element.insPostProcessingFunction("bdReflect",
 	function(target, source, resultIsDomNode, prop, formatter){
 		// <string>
 		// <string>, <formatter>
@@ -134,7 +134,7 @@ element.insPostProcessingFunction("reflect", "bd",
 	}
 );
 
-element.insPostProcessingFunction("reflectProp", "bd",
+element.insPostProcessingFunction("bdReflectProp",
 	function(target, source, resultIsDomNode, props){
 		// props is a hash from property to one of...
 		//     <string>
@@ -311,7 +311,7 @@ const
 	pAttachedToDoc = ns.get("pAttachedToDoc");
 
 const ownedHandlesCatalog = new WeakMap();
-
+const domNodeToComponent = new Map();
 
 export default class Component extends EventHub(WatchHub()) {
 	constructor(kwargs){
@@ -358,6 +358,11 @@ export default class Component extends EventHub(WatchHub()) {
 			if(saveKwargs) delete kwargs.enabled;
 		}else{
 			this[pEnabled] = true;
+		}
+
+		if(kwargs.disabled !== undefined){
+			this[pEnabled] = !kwargs.disabled;
+			if(saveKwargs) delete kwargs.disabled;
 		}
 
 		if(kwargs.elements){

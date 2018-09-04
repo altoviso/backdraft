@@ -287,7 +287,7 @@ function stopEvent(event){
 	}
 }
 
-element.insPostProcessingFunction("advise", "bd",
+element.insPostProcessingFunction("bdAdvise",
 	function(target, source, resultIsDomNode, listeners){
 		Reflect.ownKeys(listeners).forEach((name) =>{
 			let listener = listeners[name];

@@ -29,9 +29,9 @@ class MultiRootComponent extends Component {
 class Parent extends Component_ {
 	bdElements(){
 		return e("div",
-			e("div", {id: "group-default", [e.childrenAttachPoint]: true}),
-			e("div", {id: "group1", [e.attach]: "group1"}),
-			e("div", {id: "group2", [e.attach]: "group2"}));
+			e("div", {id: "group-default", bdChildrenAttachPoint: true}),
+			e("div", {id: "group1", bdAttach: "group1"}),
+			e("div", {id: "group2", bdAttach: "group2"}));
 	}
 }
 
@@ -221,7 +221,7 @@ smoke.defBrowserTest({
 			c.destroy();
 
 			let elements = e("div",
-				e("div", {title: "title1", [e.titleNode]: true})
+				e("div", {title: "title1", bdTitleNode: true})
 			);
 			c = new Component({elements: elements});
 			assert(c[Component.pTitle] === undefined);
@@ -242,17 +242,17 @@ smoke.defBrowserTest({
 			assert(c.rendered);
 			assert(c.id === "123");
 			assert(c._dom.root.id === "123");
-			assert(c === Component.catalog.get(c._dom.root));
+			assert(c === Component.get(c._dom.root));
 			let node = c._dom.root;
 			c.unrender();
 			assert(!c.rendered);
-			assert(Component.catalog.get(node) === undefined);
+			assert(Component.get(node) === undefined);
 			c.render();
 			assert(c.rendered);
-			assert(c === Component.catalog.get(c._dom.root));
+			assert(c === Component.get(c._dom.root));
 			node = c._dom.root;
 			c.destroy();
-			assert(Component.catalog.get(node) === undefined);
+			assert(Component.get(node) === undefined);
 		}],
 		["render-post-processing", function(){
 			let postRender1Called = false;
@@ -300,14 +300,14 @@ smoke.defBrowserTest({
 			assert(c._dom.root[0].id === "1");
 			assert(c._dom.root[1].id === "2");
 			assert(c._dom.root[2].id === "3");
-			assert(c === Component.catalog.get(c._dom.root[0]));
-			assert(c === Component.catalog.get(c._dom.root[1]));
-			assert(c === Component.catalog.get(c._dom.root[2]));
+			assert(c === Component.get(c._dom.root[0]));
+			assert(c === Component.get(c._dom.root[1]));
+			assert(c === Component.get(c._dom.root[2]));
 			let nodes = [c._dom.root[0], c._dom.root[1], c._dom.root[2]];
 			c.unrender();
-			assert(Component.catalog.get(nodes[0]) === undefined);
-			assert(Component.catalog.get(nodes[1]) === undefined);
-			assert(Component.catalog.get(nodes[2]) === undefined);
+			assert(Component.get(nodes[0]) === undefined);
+			assert(Component.get(nodes[1]) === undefined);
+			assert(Component.get(nodes[2]) === undefined);
 			c.destroy();
 		}],
 		["typical-ins-del-child", function(){
@@ -1368,6 +1368,92 @@ smoke.defBrowserTest({
 			assert(child2.attachedToDoc === true);
 			assert(child11.attachedToDoc === true);
 			c.destroy();
+		}],
+		["static getNamespace", function(){
+			// We're going to define a new Component type, MyComponent, that's a subclass of Component.
+			// Like most classes, it has some private data and methods, so we need to come up with a way to
+			// name those things. There are several requirements:
+			//
+			//  1. The names can't clash with names already-derived in the super class (Component).
+			//
+			//  2. The names don't pollute the class namespace, hindering classes that may want to derive from MyComponent.
+			//
+			//  3. We need to provide access to the names, so classes that derive from MyComponent can access/override the "private" data/methods if required.
+			//
+			// We'll solve this problem by using symbols for names (guaranteed unique) and provide a reference to
+			// each symbol in a way that subclasses can get back at the symbol. We'll use
+			// static Component::getNamespace to solve this problem.
+
+			// Component.getNamespace() creates a new Namespace instance.
+			let myComponentNamespace = Component.getNamespace();
+
+			// The new instance gives access to all names that Component thought were important to publish. In particular
+			// all of the private symbols are available.
+			assert(typeof myComponentNamespace.get("pClassName")=== "symbol");
+			assert(myComponentNamespace.get("pClassName")===Component.pClassName);
+
+			// We can add new private names to get new private symbols.
+			let pX = myComponentNamespace.new("pX");
+			assert(typeof pX ==="symbol");
+			assert(myComponentNamespace.get("pX")===pX);
+
+			// But if we try to get a new name that already exists, an exception is thrown.
+			try{
+				let pClassName = myComponentNamespace.new("pClassName");
+				assert(false);
+			}catch(e){
+				assert(/name already exists in this namespace\:\spClassName/.test(e));
+			}
+
+			// At this point, we have a new symbol, pX. Typically such symbols are used to define
+			// "private" data or methods as described above.
+			class MyComponent extends Component{
+				get x(){
+					return this[pX];
+				}
+				set x(value){
+					this.bdMutate("x", pX, value);
+				}
+			}
+
+			// Although the implementation of MyComponent is completely defined at this point,
+			// notice that MyComponent.pX does not exist, contrasting the fact that, e.g., Component.pClassName does exist.
+			assert(MyComponent.pX===undefined);
+			assert(typeof Component.pClassName==="symbol");
+
+			// Also, as a custom, Component-derived classes publish their watchable variables and event names at the
+			// locations "watchables" and "events" on the class. For example, Component defines the watchable
+			// "rendered", and the name "rendered" exists in Component.watchables.
+			assert(Component.watchables.indexOf("rendered")!==-1);
+
+			// Namespace::publish decorates a class with all of the names the namespace has defined as well as any additional
+			// names provided when publish is applied. If "watchables" and/or "events" are provided, they are treated specially
+			// and combined with the watchables and events from the base class given when the namespace was created.
+
+			myComponentNamespace.publish(MyComponent, {
+				watchables:["x"],
+				pubStaticData:"someData",
+			});
+
+			// Now MyComponent has some new names
+			assert(MyComponent.pX===pX);
+			assert(MyComponent.pubStaticData==="someData");
+
+			// Now MyComponent has all of Component's names too.
+			assert(typeof MyComponent.pClassName==="symbol");
+
+			// The watchable was published.
+			assert(MyComponent.watchables.indexOf("x")!==-1);
+
+			// And all of Component's watchables were published too.
+			assert(MyComponent.watchables.indexOf("rendered")!==-1);
+
+			// If we use MyComponent to get a new namespace, it will provide a new namespace prepopulated with MyComponent's and Component's names.
+			let anotherNamespace = MyComponent.getNamespace();
+			assert(anotherNamespace.get("pX")===pX);
+			assert(anotherNamespace.get("pX")===pX);
+			assert(anotherNamespace.get("watchables").indexOf("x")!==-1);
+			assert(anotherNamespace.get("watchables").indexOf("rendered")!==-1);
 		}]
 	]
 });
