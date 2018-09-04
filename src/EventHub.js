@@ -1,4 +1,4 @@
-const catalog = new WeakMap();
+const listenerCatalog = new WeakMap();
 
 export default function EventHub(superClass){
 	if(!superClass){
@@ -12,7 +12,7 @@ export default function EventHub(superClass){
 
 		// protected interface...
 		bdNotify(e){
-			let events = catalog.get(this);
+			let events = listenerCatalog.get(this);
 			if(!events){
 				return;
 			}
@@ -46,9 +46,9 @@ export default function EventHub(superClass){
 				let hash = eventName;
 				Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
 			}else{
-				let events = catalog.get(this);
+				let events = listenerCatalog.get(this);
 				if(!events){
-					catalog.set(this, (events = {}))
+					listenerCatalog.set(this, (events = {}))
 				}
 
 				let handlers = events[eventName] || (events[eventName] = []);
@@ -65,14 +65,14 @@ export default function EventHub(superClass){
 		}
 
 		destroyAdvise(eventName){
-			let events = catalog.get(this);
+			let events = listenerCatalog.get(this);
 			if(!events){
 				return;
 			}
 			if(eventName){
 				delete events[eventName];
 			}else{
-				catalog.delete(this);
+				listenerCatalog.delete(this);
 			}
 		}
 	};
