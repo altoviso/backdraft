@@ -277,38 +277,76 @@ function pushHandles(dest, ...handles){
 	});
 }
 
-// a tiny little helper class to define names as symbols and keep a list of what's been defined
 class Namespace {
-	get(name){
-		return this[name] || (this[name] = Symbol(name));
+	// a tiny little helper class to define names as symbols in a Component hierarchy and keep a list of what's been defined
+
+	constructor(base){
+		this.base = base || null;
+		let names = this.names = new Map();
+		if(base){
+			for(const [name, value] of base.bdNamespaceCatalog.names.entries()){
+				names.set(name, value);
+			}
+		}
 	}
 
-	publish(dest){
-		Object.keys(this).forEach(name => {
-			if(dest[name]){
+	get(name){
+		let names = this.names;
+		if(!names.has(name)){
+			names.set(name, Symbol(name));
+		}
+		return names.get(name);
+	}
+
+	new(name){
+		let names = this.names;
+		if(names.has(name)){
+			throw new Error("name already exists in this namespace: " + name);
+		}
+		let result = Symbol(name);
+		names.set(name, result);
+		return result;
+	}
+
+	publish(dest, mix){
+		let names = this.names;
+		Reflect.ownKeys(mix).forEach(name => {
+			if(!/watchables|events/.test(name)){
+				names.set(name, mix[name]);
+			}
+		});
+
+		names.set("watchables", (mix.watchables || []).concat((this.base && this.base.watchables) || []));
+		names.set("events", (mix.events || []).concat((this.base && this.base.events) || []));
+
+		for(const [name, value] of names.entries()){
+			if(dest.hasOwnProperty(name)){
 				throw new Error("dest already has name :" + name);
 			}
-			dest[name] = this[name]
-		});
+			// not enumerable or configurable, but writable
+			Object.defineProperty(dest, name, {value: value, writable: true})
+		}
+
+		dest.bdNamespaceCatalog = this;
 	}
 }
 
 // could be done so much better with lisp macros...
 let ns = new Namespace();
 const
-	pClassName = ns.get("pClassName"),
-	pStaticClassName = ns.get("pStaticClassName"),
-	pEnabled = ns.get("pEnabled"),
-	pTabIndex = ns.get("pTabIndex"),
-	pTitle = ns.get("pTitle"),
-	pParent = ns.get("pParent"),
-	pHasFocus = ns.get("pHasFocus"),
-	pOnFocus = ns.get("pOnFocus"),
-	pOnBlur = ns.get("pOnBlur"),
-	pSetClassName = ns.get("pSetClassName"),
-	pParentAttachPoint = ns.get("pParentAttachPoint"),
-	pChildrenAttachPoint = ns.get("pChildrenAttachPoint"),
-	pAttachedToDoc = ns.get("pAttachedToDoc");
+	pClassName = ns.new("pClassName"),
+	pStaticClassName = ns.new("pStaticClassName"),
+	pEnabled = ns.new("pEnabled"),
+	pTabIndex = ns.new("pTabIndex"),
+	pTitle = ns.new("pTitle"),
+	pParent = ns.new("pParent"),
+	pHasFocus = ns.new("pHasFocus"),
+	pOnFocus = ns.new("pOnFocus"),
+	pOnBlur = ns.new("pOnBlur"),
+	pSetClassName = ns.new("pSetClassName"),
+	pParentAttachPoint = ns.new("pParentAttachPoint"),
+	pChildrenAttachPoint = ns.new("pChildrenAttachPoint"),
+	pAttachedToDoc = ns.new("pAttachedToDoc");
 
 const ownedHandlesCatalog = new WeakMap();
 const domNodeToComponent = new Map();
@@ -802,7 +840,16 @@ export default class Component extends EventHub(WatchHub()) {
 			this.rendered && ((this.bdDom.titleNode || this.bdDom.root).title = value);
 		}
 	}
+
+	static getNamespace(){
+		return new Namespace(this);
+	}
 }
+
+ns.publish(Component, {
+	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"]
+});
+
 
 function isComponentDerivedCtor(f){
 	return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
