@@ -272,9 +272,7 @@ class Namespace {
 	publish(dest, mix){
 		let names = this.names;
 		Reflect.ownKeys(mix).forEach(name => {
-			if(!/watchables|events/.test(name)){
-				names.set(name, mix[name]);
-			}
+			names.set(name, mix[name]);
 		});
 
 		names.set("watchables", (mix.watchables || []).concat((this.base && this.base.watchables) || []));
@@ -409,9 +407,9 @@ export default class Component extends EventHub(WatchHub()) {
 			validateElements(elements);
 			let root = dom.root = this.constructor.renderElements(this, elements);
 			if(Array.isArray(root)){
-				root.forEach((node) => Component.catalog.set(node, this));
+				root.forEach((node) => domNodeToComponent.set(node, this));
 			}else{
-				Component.catalog.set(root, this);
+				domNodeToComponent.set(root, this);
 				if(this.id){
 					root.id = this.id;
 				}
@@ -447,7 +445,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	bdElements(){
-		return element("div", {});
+		return new Element("div", {});
 	}
 
 	unrender(){
@@ -466,11 +464,11 @@ export default class Component extends EventHub(WatchHub()) {
 			let root = this.bdDom.root;
 			if(Array.isArray(root)){
 				root.forEach((node) => {
-					Component.catalog.delete(node);
+					domNodeToComponent.delete(node);
 					node.parentNode && node.parentNode.removeChild(node);
 				});
 			}else{
-				Component.catalog.delete(root);
+				domNodeToComponent.delete(root);
 				root.parentNode && root.parentNode.removeChild(root);
 			}
 			if(this.bdDom.handles){
@@ -540,7 +538,7 @@ export default class Component extends EventHub(WatchHub()) {
 			child.render();
 		}else{ // child instanceof Element
 			if(!src.isComponentType){
-				src = element(Component, {elements: src});
+				src = new Element(Component, {elements: src});
 			}
 			child = this.constructor.renderElements(this, src);
 		}
@@ -802,6 +800,10 @@ export default class Component extends EventHub(WatchHub()) {
 		}
 	}
 
+	static get(domNode){
+		return domNodeToComponent.get(domNode);
+	}
+
 	static renderElements(owner, e){
 		if(Array.isArray(e)){
 			return e.map((e) => this.renderElements(owner, e));
@@ -914,16 +916,16 @@ function decodeRender(args){
 		}
 		if(args.length === 1){
 			// [3]
-			return {src: element(arg1)};
+			return {src: new Element(arg1)};
 		}else{
 			// more than one argument; the second argument is either props or not
 			if(Object.getPrototypeOf(arg2) === prototypeOfObject){
 				// [4] or [6]
 				// WARNING: this signature requires kwargs to be a plain Javascript Object (which is should be!)
-				return {src: element(arg1, arg2), attachPoint: arg3, position: arg4};
+				return {src: new Element(arg1, arg2), attachPoint: arg3, position: arg4};
 			}else{
 				// [5]
-				return {src: element(arg1), attachPoint: arg2, position: arg3};
+				return {src: new Element(arg1), attachPoint: arg2, position: arg3};
 			}
 		}
 	}
@@ -931,7 +933,7 @@ function decodeRender(args){
 
 function unrender(node){
 	function unrender_(node){
-		let component = Component.catalog.get(node);
+		let component = domNodeToComponent.get(node);
 		if(component){
 			component.destroy();
 		}
@@ -972,15 +974,6 @@ export function render(...args){
 	return result;
 }
 
-ns.publish(Component);
 
-Object.assign(Component, {
-	renderElements: renderElements,
-	Namespace: Namespace,
-	render: render,
-	catalog: new Map(),
-	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"],
-	events: []
-});
 
 

@@ -16,7 +16,7 @@ function getAttributeValueFromEvent(e, attributeName, stopNode){
 function setAttr(node, name, value){
 	if(arguments.length === 2){
 		let hash = name;
-		Object.keys(hash).forEach(name =>{
+		Object.keys(hash).forEach(name => {
 			setAttr(node, name, hash[name]);
 		});
 	}else{
@@ -54,7 +54,7 @@ function getStyles(node, ...styleNames){
 	}
 
 	let styles = [];
-	styleNames.forEach((p) =>{
+	styleNames.forEach((p) => {
 		if(Array.isArray(p)){
 			styles = styles.concat(p);
 		}else if(typeof p === "string"){
@@ -65,7 +65,7 @@ function getStyles(node, ...styleNames){
 	});
 
 	let result = {};
-	styles.forEach((property) =>{
+	styles.forEach((property) => {
 		let result = lastComputedStyle[property];
 		result[property] = (typeof result === "string" && /px$/.test(result)) ? parseFloat(result) : result;
 	});
@@ -78,7 +78,7 @@ function setStyle(node, property, value){
 			node.style = property;
 		}else{
 			let hash = property;
-			Object.keys(hash).forEach(property =>{
+			Object.keys(hash).forEach(property => {
 				node.style[property] = hash[property];
 			});
 		}
@@ -138,7 +138,7 @@ function insertAfter(node, refNode){
 }
 
 function insert(node, refNode, position){
-	if(position===undefined || position === "last"){
+	if(position === undefined || position === "last"){
 		// short circuit the common case
 		refNode.appendChild(node);
 	}else switch(position){
@@ -197,7 +197,7 @@ function normalizeNodeArg(arg){
 const DATA_BD_HIDE_SAVED_VALUE = "data-bd-hide-saved-value";
 
 function hide(...nodes){
-	nodes.forEach((node) =>{
+	nodes.forEach((node) => {
 		node = normalizeNodeArg(node);
 		if(node){
 			if(!node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)){
@@ -209,7 +209,7 @@ function hide(...nodes){
 }
 
 function show(...nodes){
-	nodes.forEach((node) =>{
+	nodes.forEach((node) => {
 		node = normalizeNodeArg(node);
 		if(node){
 			let displayValue = "";
@@ -289,9 +289,9 @@ function stopEvent(event){
 
 element.insPostProcessingFunction("bdAdvise",
 	function(target, source, resultIsDomNode, listeners){
-		Reflect.ownKeys(listeners).forEach((name) =>{
+		Reflect.ownKeys(listeners).forEach((name) => {
 			let listener = listeners[name];
-			if(typeof listener!=="function"){
+			if(typeof listener !== "function"){
 				listener = target[listener].bind(target);
 			}
 			target.ownWhileRendered(resultIsDomNode ? connect(source, name, listener) : source.advise(name, listener));
@@ -345,11 +345,10 @@ function processNode(node){
 	}
 
 	// find the focused component, if any
-	let catalog = Component.catalog;
-	while(node && (!catalog.has(node))){
+	while(node && (!Component.get(node))){
 		node = node.parentNode;
 	}
-	let focusedComponent_ = node && catalog.get(node),
+	let focusedComponent_ = node && Component.get(node),
 		stack = [];
 	if(focusedComponent_){
 		let p = focusedComponent_;
