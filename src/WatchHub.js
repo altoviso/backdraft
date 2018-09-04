@@ -42,7 +42,7 @@ function mutate(owner, name, privateName, newValue){
 		}else{
 			notEq = newValue !== oldValue;
 		}
-	}else {
+	}else{
 		notEq = true;
 	}
 
@@ -83,21 +83,21 @@ export default function WatchHub(superClass){
 					if(watchers){
 						oldValue = p[1];
 						newValue = p[2];
-						watchers.slice().forEach(w => w.watcher(newValue, oldValue, this));
+						watchers.slice().forEach(w => w(newValue, oldValue, this));
 					}
 				}
 				if(doStar){
 					let watchers = variables["*"];
-					watchers.slice().forEach(w => w.watcher(this));
+					watchers.slice().forEach(w => w(this));
 				}
 			}else{
 				let watchers = variables[name];
 				if(watchers){
-					watchers.slice().forEach(w => w.watcher(newValue, oldValue, this));
+					watchers.slice().forEach(w => w(newValue, oldValue, this));
 				}
 				watchers = variables["*"];
 				if(watchers){
-					watchers.slice().forEach(w => w.watcher(this));
+					watchers.slice().forEach(w => w(this));
 				}
 			}
 		}
@@ -136,17 +136,12 @@ export default function WatchHub(superClass){
 				return name.map((name) => this.watch(name, watcher));
 			}else{
 				let watchers = variables[name] || (variables[name] = []);
-				let wrappedwatcher = {watcher: watcher};
-				watchers.push(wrappedwatcher);
+				watchers.push(watcher);
 				return {
 					destroy: () => {
-						let watchers = variables[name];
-						let index = watchers ? watchers.indexOf(wrappedwatcher) : -1;
+						let index = watchers.indexOf(watcher);
 						if(index !== -1){
 							watchers.splice(index, 1);
-						}
-						if(!watchers.length){
-							delete variables[name];
 						}
 					}
 				};

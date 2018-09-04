@@ -28,7 +28,7 @@ export default function EventHub(superClass){
 					handlers = events[e];
 					e = {type: e, name: e, target: this};
 				}else{
-					console.warn("event.name is depricated; use event.type");
+					console.warn("event.name is deprecated; use event.type");
 					handlers = events[e.name];
 					e.type = e.name;
 					e.target = this;

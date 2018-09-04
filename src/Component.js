@@ -57,14 +57,14 @@ element.insPostProcessingFunction("titleNode", "bd",
 
 element.insPostProcessingFunction("staticClassName", "bd",
 	function(target, source, resultIsDomNode, className){
-		target[ppStaticClassName] = className;
+		target[pStaticClassName] = className;
 	}
 );
 
 element.insPostProcessingFunction("parentAttachPoint", "bd",
 	function(target, source, resultIsDomNode, propertyName){
 		// source should be a component instance and resultIsDomNode should be false
-		source[ppParentAttachPoint] = propertyName;
+		source[pParentAttachPoint] = propertyName;
 	}
 );
 
@@ -72,7 +72,7 @@ element.insPostProcessingFunction("childrenAttachPoint", "bd",
 	function(target, source, resultIsDomNode, value){
 		// source should be a DOM node and resultIsDomNode should be true
 		if(value){
-			target[ppChildrenAttachPoint] = source;
+			target[pChildrenAttachPoint] = source;
 		}
 	}
 );
@@ -185,8 +185,8 @@ function classValueToRegExp(v, args){
 }
 
 function calcDomClassName(component){
-	let rootStaticDomClass = component[ppStaticClassName];
-	let className = component[ppClassName];
+	let rootStaticDomClass = component[pStaticClassName];
+	let className = component[pClassName];
 	if(rootStaticDomClass && className){
 		return rootStaticDomClass + " " + className;
 	}else{
@@ -296,26 +296,28 @@ class Namespace {
 // could be done so much better with lisp macros...
 let ns = new Namespace();
 const
-	ppClassName = ns.get("ppClassName"),
-	ppStaticClassName = ns.get("ppStaticClassName"),
-	ppEnabled = ns.get("ppEnabled"),
-	ppTabIndex = ns.get("ppTabIndex"),
-	ppTitle = ns.get("ppTitle"),
-	ppParent = ns.get("ppParent"),
-	ppHasFocus = ns.get("ppHasFocus"),
-	ppOnFocus = ns.get("ppOnFocus"),
-	ppOnBlur = ns.get("ppOnBlur"),
-	ppSetClassName = ns.get("ppSetClassName"),
-	ppParentAttachPoint = ns.get("ppParentAttachPoint"),
-	ppChildrenAttachPoint = ns.get("ppChildrenAttachPoint"),
-	ppAttachedToDoc = ns.get("ppAttachedToDoc"),
-	ppOwnedHandles = ns.get("ppOwnedHandles");
+	pClassName = ns.get("pClassName"),
+	pStaticClassName = ns.get("pStaticClassName"),
+	pEnabled = ns.get("pEnabled"),
+	pTabIndex = ns.get("pTabIndex"),
+	pTitle = ns.get("pTitle"),
+	pParent = ns.get("pParent"),
+	pHasFocus = ns.get("pHasFocus"),
+	pOnFocus = ns.get("pOnFocus"),
+	pOnBlur = ns.get("pOnBlur"),
+	pSetClassName = ns.get("pSetClassName"),
+	pParentAttachPoint = ns.get("pParentAttachPoint"),
+	pChildrenAttachPoint = ns.get("pChildrenAttachPoint"),
+	pAttachedToDoc = ns.get("pAttachedToDoc");
+
+const ownedHandlesCatalog = new WeakMap();
+
 
 export default class Component extends EventHub(WatchHub()) {
 	constructor(kwargs){
 		super(kwargs);
 
-		this[ppHasFocus] = false;
+		this[pHasFocus] = false;
 
 		let saveKwargs = false;
 		let theConstructor = this.constructor;
@@ -329,33 +331,33 @@ export default class Component extends EventHub(WatchHub()) {
 		saveKwargs && kwargs.id && delete kwargs.id;
 
 		if(kwargs.staticClassName){
-			this[ppStaticClassName] = kwargs.staticClassName + (theConstructor.className ? " " + theConstructor.className : "");
+			this[pStaticClassName] = kwargs.staticClassName + (theConstructor.className ? " " + theConstructor.className : "");
 			if(saveKwargs) delete kwargs.staticClassName;
 		}else if(theConstructor.className){
-			this[ppStaticClassName] = theConstructor.className;
+			this[pStaticClassName] = theConstructor.className;
 		}
 
-		this[ppClassName] = "";
+		this[pClassName] = "";
 		if(kwargs.className){
 			Array.isArray(kwargs.className) ? this.addClassName(...kwargs.className) : this.addClassName(kwargs.className);
 			if(saveKwargs) delete kwargs.className;
 		}
 
 		if(kwargs.tabIndex){
-			this[ppTabIndex] = kwargs.tabIndex;
+			this[pTabIndex] = kwargs.tabIndex;
 			if(saveKwargs) delete kwargs.tabIndex;
 		}
 
 		if(kwargs.title){
-			this[ppTitle] = kwargs.title;
+			this[pTitle] = kwargs.title;
 			if(saveKwargs) delete kwargs.title;
 		}
 
 		if(kwargs.enabled !== undefined){
-			this[ppEnabled] = !!kwargs.enabled;
+			this[pEnabled] = !!kwargs.enabled;
 			if(saveKwargs) delete kwargs.enabled;
 		}else{
-			this[ppEnabled] = true;
+			this[pEnabled] = true;
 		}
 
 		if(kwargs.elements){
@@ -380,7 +382,11 @@ export default class Component extends EventHub(WatchHub()) {
 
 	destroy(){
 		this.unrender();
-		this[ppOwnedHandles] && this[ppOwnedHandles].forEach(handle => handle.destroy());
+		let handles = ownedHandlesCatalog.get(this);
+		if(handles){
+			handles.forEach(handle => handle.destroy());
+			ownedHandlesCatalog.delete(this);
+		}
 		this.destroyWatch();
 		this.destroyAdvise();
 		delete this.kwargs;
@@ -393,7 +399,7 @@ export default class Component extends EventHub(WatchHub()) {
 		if(!this.bdDom){
 			let dom = this.bdDom = this._dom = {};
 			if(this._elements){
-				console.warn("Component::_elements is depricated; it has been renamed to Component::bdElements")
+				console.warn("Component::_elements is deprecated; it has been renamed to Component::bdElements")
 			}
 			let elements = (this._elements && this._elements()) || this.bdElements();
 			validateElements(elements);
@@ -413,19 +419,19 @@ export default class Component extends EventHub(WatchHub()) {
 				}
 
 				if(this.bdDom.tabIndexNode){
-					if(this[ppTabIndex] === undefined){
-						this[ppTabIndex] = this.bdDom.tabIndexNode.tabIndex;
+					if(this[pTabIndex] === undefined){
+						this[pTabIndex] = this.bdDom.tabIndexNode.tabIndex;
 					}else{
-						this.bdDom.tabIndexNode.tabIndex = this[ppTabIndex];
+						this.bdDom.tabIndexNode.tabIndex = this[pTabIndex];
 					}
-				}else if(this[ppTabIndex] !== undefined){
-					(this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = this[ppTabIndex];
+				}else if(this[pTabIndex] !== undefined){
+					(this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = this[pTabIndex];
 				}
-				if(this[ppTitle] !== undefined){
-					(this.bdDom.titleNode || this.bdDom.root).title = this[ppTitle];
+				if(this[pTitle] !== undefined){
+					(this.bdDom.titleNode || this.bdDom.root).title = this[pTitle];
 				}
 
-				this[this[ppEnabled] ? "removeClassName" : "addClassName"]("bd-disabled");
+				this[this[pEnabled] ? "removeClassName" : "addClassName"]("bd-disabled");
 			}
 			if(this.postRender){
 				this.ownWhileRendered(this.postRender());
@@ -442,8 +448,8 @@ export default class Component extends EventHub(WatchHub()) {
 
 	unrender(){
 		if(this.rendered){
-			if(this[ppParent]){
-				this[ppParent].delChild(this, true);
+			if(this[pParent]){
+				this[pParent].delChild(this, true);
 			}
 
 			if(this.children){
@@ -478,7 +484,11 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	own(...handles){
-		pushHandles(this[ppOwnedHandles] || (this[ppOwnedHandles] = []), ...handles);
+		let _handles = ownedHandlesCatalog.get(this);
+		if(!_handles){
+			ownedHandlesCatalog.set(this, (_handles = []));
+		}
+		pushHandles(_handles, ...handles);
 	}
 
 	ownWhileRendered(...handles){
@@ -486,21 +496,21 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get parent(){
-		return this[ppParent];
+		return this[pParent];
 	}
 
 	bdAdopt(child){
-		if(child[ppParent]){
+		if(child[pParent]){
 			throw new Error("unexpected");
 		}
 		(this.children || (this.children = [])).push(child);
 
-		child.bdMutate("parent", ppParent, this);
-		child.bdAttachToDoc(this[ppAttachedToDoc]);
+		child.bdMutate("parent", pParent, this);
+		child.bdAttachToDoc(this[pAttachedToDoc]);
 	}
 
 	bdAttachToDoc(value){
-		if(this.bdMutate("attachedToDoc", ppAttachedToDoc, !!value)){
+		if(this.bdMutate("attachedToDoc", pAttachedToDoc, !!value)){
 			this.children && this.children.forEach(child => child.bdAttachToDoc(value));
 			return true;
 		}else{
@@ -509,7 +519,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get attachedToDoc(){
-		return !!this[ppAttachedToDoc];
+		return !!this[pAttachedToDoc];
 	}
 
 	insChild(...args){
@@ -567,14 +577,15 @@ export default class Component extends EventHub(WatchHub()) {
 				// attachPoint without a position must give a node reference
 				throw new Error("unexpected");
 			}
-		}else if(child[ppParentAttachPoint]){
-			if(child[ppParentAttachPoint] in this){
-				attachPoint = this[child[ppParentAttachPoint]];
+		}else if(child[pParentAttachPoint]){
+			// child is telling the parent where it wants to go; this is more specific than pChildrenAttachPoint
+			if(child[pParentAttachPoint] in this){
+				attachPoint = this[child[pParentAttachPoint]];
 			}else{
 				throw new Error("unexpected");
 			}
 		}else{
-			attachPoint = this[ppChildrenAttachPoint] || this.bdDom.root;
+			attachPoint = this[pChildrenAttachPoint] || this.bdDom.root;
 			if(Array.isArray(attachPoint)){
 				throw new Error("unexpected");
 			}
@@ -604,7 +615,7 @@ export default class Component extends EventHub(WatchHub()) {
 				node.parentNode && node.parentNode.removeChild(node);
 			};
 			Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
-			child.bdMutate("parent", ppParent, null);
+			child.bdMutate("parent", pParent, null);
 			child.bdAttachToDoc(false);
 			this.children.splice(index, 1);
 			if(!preserve){
@@ -639,12 +650,12 @@ export default class Component extends EventHub(WatchHub()) {
 				root = root[0];
 			}
 			let className = root.className;
-			if(this[ppStaticClassName]){
-				this[ppStaticClassName].split(" ").forEach(s => className = className.replace(s, ""));
+			if(this[pStaticClassName]){
+				this[pStaticClassName].split(" ").forEach(s => className = className.replace(s, ""));
 			}
 			return cleanClassName(className);
 		}else{
-			return this[ppClassName];
+			return this[pClassName];
 		}
 	}
 
@@ -655,11 +666,11 @@ export default class Component extends EventHub(WatchHub()) {
 		value = cleanClassName(value);
 
 		if(!value){
-			this[ppSetClassName]("", this[ppClassName]);
-		}else if(!this[ppClassName]){
-			this[ppSetClassName](value, "");
-		}else if(value !== this[ppClassName]){
-			this[ppSetClassName](value, this[ppClassName]);
+			this[pSetClassName]("", this[pClassName]);
+		}else if(!this[pClassName]){
+			this[pSetClassName](value, "");
+		}else if(value !== this[pClassName]){
+			this[pSetClassName](value, this[pClassName]);
 		}
 	}
 
@@ -667,39 +678,39 @@ export default class Component extends EventHub(WatchHub()) {
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 
 		value = cleanClassName(value);
-		return (" " + this[ppClassName] + " ").indexOf(value) !== -1;
+		return (" " + this[pClassName] + " ").indexOf(value) !== -1;
 	}
 
 	addClassName(...values){
-		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
 			return classValueToRegExp(value).test(className) ? className : className + value + " ";
-		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
+		}, " " + this[pClassName] + " ").trim(), this[pClassName]);
 		return this;
 	}
 
 	removeClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
 			return className.replace(classValueToRegExp(value, "g"), " ");
-		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
+		}, " " + this[pClassName] + " ").trim(), this[pClassName]);
 		return this;
 	}
 
 	toggleClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		this[ppSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
 			if(classValueToRegExp(value).test(className)){
 				return className.replace(classValueToRegExp(value, "g"), " ");
 			}else{
 				return className + value + " ";
 			}
-		}, " " + this[ppClassName] + " ").trim(), this[ppClassName]);
+		}, " " + this[pClassName] + " ").trim(), this[pClassName]);
 		return this;
 	}
 
-	[ppSetClassName](newValue, oldValue){
+	[pSetClassName](newValue, oldValue){
 		if(newValue !== oldValue){
-			this[ppClassName] = newValue;
+			this[pClassName] = newValue;
 			if(this.rendered){
 				this.bdDom.root.className = calcDomClassName(this);
 			}
@@ -712,18 +723,18 @@ export default class Component extends EventHub(WatchHub()) {
 		}
 	}
 
-	[ppOnFocus](){
+	[pOnFocus](){
 		this.addClassName("bd-focused");
-		this.bdMutate("hasFocus", ppHasFocus, true);
+		this.bdMutate("hasFocus", pHasFocus, true);
 	}
 
-	[ppOnBlur](){
+	[pOnBlur](){
 		this.removeClassName("bd-focused");
-		this.bdMutate("hasFocus", ppHasFocus, false);
+		this.bdMutate("hasFocus", pHasFocus, false);
 	}
 
 	get hasFocus(){
-		return this[ppHasFocus];
+		return this[pHasFocus];
 	}
 
 	focus(){
@@ -732,26 +743,26 @@ export default class Component extends EventHub(WatchHub()) {
 
 	get tabIndex(){
 		if(this.rendered){
-			// unconditionally make sure this[ppTabIndex] and the dom is synchronized on each get
-			return (this[ppTabIndex] = (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex);
+			// unconditionally make sure this[pTabIndex] and the dom is synchronized on each get
+			return (this[pTabIndex] = (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex);
 		}else{
-			return this[ppTabIndex];
+			return this[pTabIndex];
 		}
 	}
 
 	set tabIndex(value){
-		if(value !== this[ppTabIndex]){
+		if(value !== this[pTabIndex]){
 			this.rendered && ((this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = value);
-			this.bdMutate("tabIndex", ppTabIndex, value);
+			this.bdMutate("tabIndex", pTabIndex, value);
 		}
 	}
 
 	get enabled(){
-		return this[ppEnabled];
+		return this[pEnabled];
 	}
 
 	set enabled(value){
-		if(this.bdMutate("enabled", ppEnabled, !!value)){
+		if(this.bdMutate("enabled", pEnabled, !!value)){
 			this[value ? "removeClassName" : "addClassName"]("bd-disabled");
 		}
 	}
@@ -777,12 +788,12 @@ export default class Component extends EventHub(WatchHub()) {
 		if(this.rendered){
 			return (this.bdDom.titleNode || this.bdDom.root).title;
 		}else{
-			return this[ppTitle];
+			return this[pTitle];
 		}
 	}
 
 	set title(value){
-		if(this.bdMutate("title", ppTitle, value)){
+		if(this.bdMutate("title", pTitle, value)){
 			this.rendered && ((this.bdDom.titleNode || this.bdDom.root).title = value);
 		}
 	}

@@ -329,8 +329,8 @@ class FocusManager extends EventHub() {
 
 let focusManager = new FocusManager();
 let focusWatcher = 0;
-const ppOnFocus = Component.ppOnFocus;
-const ppOnBlur = Component.ppOnBlur;
+const pOnFocus = Component.pOnFocus;
+const pOnBlur = Component.pOnBlur;
 
 function processNode(node){
 	if(focusWatcher){
@@ -373,20 +373,20 @@ function processNode(node){
 	// signal blur from the path end to the first identical component (not including the first identical component)
 	for(j = i; j < oldStackLength; j++){
 		component = focusStack.pop();
-		component[ppOnBlur]();
-		focusManager.bdNotify({name: "blurComponent", component: component});
+		component[pOnBlur]();
+		focusManager.bdNotify({type: "blurComponent", component: component});
 	}
 
 	// signal focus for all new components that just gained the focus
 	for(j = i; j < newStackLength; j++){
 		focusStack.push(component = stack[j]);
-		component[ppOnFocus]();
-		focusManager.bdNotify({name: "focusComponent", component: component});
+		component[pOnFocus]();
+		focusManager.bdNotify({type: "focusComponent", component: component});
 	}
 
 	previousFocusedComponent = focusedComponent;
 	focusedComponent = focusedComponent_;
-	focusManager.bdNotify({name: "focusedComponent", component: focusedComponent_});
+	focusManager.bdNotify({type: "focusedComponent", component: focusedComponent_});
 }
 
 connect(document.body, "focusin", function(e){
@@ -421,7 +421,7 @@ connect(window, "scroll", function(e){
 	}
 	scrollTimeoutHandle = setTimeout(function(){
 		scrollTimeoutHandle = 0;
-		viewportWatcher.bdNotify({name: "scroll"});
+		viewportWatcher.bdNotify({type: "scroll"});
 	}, 10);
 }, true);
 
@@ -435,7 +435,7 @@ connect(window, "resize", function(e){
 	}
 	resizeTimeoutHandle = setTimeout(function(){
 		resizeTimeoutHandle = 0;
-		viewportWatcher.bdNotify({name: "resize"});
+		viewportWatcher.bdNotify({type: "resize"});
 	}, 10);
 }, true);
 
