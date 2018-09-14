@@ -185,12 +185,12 @@ function classValueToRegExp(v, args){
 }
 
 function calcDomClassName(component){
-	let rootStaticDomClass = component[pStaticClassName];
+	let staticClassName = component[pStaticClassName] || component.constructor.className;
 	let className = component[pClassName];
-	if(rootStaticDomClass && className){
-		return rootStaticDomClass + " " + className;
+	if(staticClassName && className){
+		return staticClassName + " " + className;
 	}else{
-		return rootStaticDomClass || className;
+		return staticClassName || className;
 	}
 }
 
@@ -295,7 +295,7 @@ let ns = new Namespace();
 const
 	pClassName = ns.new("pClassName"),
 	pStaticClassName = ns.new("pStaticClassName"),
-	pEnabled = ns.new("pEnabled"),
+	pDisabled = ns.new("pDisabled"),
 	pTabIndex = ns.new("pTabIndex"),
 	pTitle = ns.new("pTitle"),
 	pParent = ns.new("pParent"),
@@ -312,68 +312,43 @@ const domNodeToComponent = new Map();
 
 export default class Component extends EventHub(WatchHub()) {
 	constructor(kwargs){
-		super(kwargs);
+		// notice that this class requires only the per-instance data actually used by its subclass/instance
+		super();
 
-		this[pHasFocus] = false;
-
-		let saveKwargs = false;
-		let theConstructor = this.constructor;
-		if(theConstructor.saveKwargs !== false){
-			kwargs = this.kwargs = Object.assign({}, kwargs);
-			saveKwargs = true;
+		if(!this.constructor.noKwargs){
+			this.kwargs = kwargs;
 		}
 
 		// id, if provided, is read-only
-		Object.defineProperty(this, "id", {value: kwargs.id, enumerable: true});
-		saveKwargs && kwargs.id && delete kwargs.id;
+		kwargs.id && Object.defineProperty(this, "id", {value: kwargs.id, enumerable: true});
 
+		let theConstructor = this.constructor;
 		if(kwargs.staticClassName){
-			this[pStaticClassName] = kwargs.staticClassName + (theConstructor.className ? " " + theConstructor.className : "");
-			if(saveKwargs) delete kwargs.staticClassName;
-		}else if(theConstructor.className){
-			this[pStaticClassName] = theConstructor.className;
+			this[pStaticClassName] = kwargs.staticClassName.trim() + (theConstructor.className ? " " + theConstructor.className : "");
 		}
 
-		this[pClassName] = "";
 		if(kwargs.className){
 			Array.isArray(kwargs.className) ? this.addClassName(...kwargs.className) : this.addClassName(kwargs.className);
-			if(saveKwargs) delete kwargs.className;
 		}
 
-		if(kwargs.tabIndex){
+		if(kwargs.tabIndex !== undefined){
 			this[pTabIndex] = kwargs.tabIndex;
-			if(saveKwargs) delete kwargs.tabIndex;
 		}
 
 		if(kwargs.title){
 			this[pTitle] = kwargs.title;
-			if(saveKwargs) delete kwargs.title;
 		}
 
-		if(kwargs.enabled !== undefined){
-			this[pEnabled] = !!kwargs.enabled;
-			if(saveKwargs) delete kwargs.enabled;
-		}else{
-			this[pEnabled] = true;
-		}
-
-		if(kwargs.disabled !== undefined){
-			this[pEnabled] = !kwargs.disabled;
-			if(saveKwargs) delete kwargs.disabled;
+		if(kwargs.disabled || (kwargs.enabled !== undefined && !kwargs.enabled)){
+			this[pDisabled] = true
 		}
 
 		if(kwargs.elements){
 			if(typeof kwargs.elements === "function"){
-				Object.defineProperty(this, "bdElements", {value: kwargs.elements});
+				this.bdElements = kwargs.elements;
 			}else{
-				let bdElements = (function(elements){
-					return function(){
-						return elements;
-					};
-				})(kwargs.elements);
-				Object.defineProperty(this, "bdElements", {value: bdElements});
+				this.bdElements = () => kwargs.elements;
 			}
-			if(saveKwargs) delete kwargs.elements;
 		}
 
 		if(kwargs.postRender){
@@ -417,7 +392,6 @@ export default class Component extends EventHub(WatchHub()) {
 				let className = calcDomClassName(this);
 				if(className){
 					root.className = className;
-
 				}
 
 				if(this.bdDom.tabIndexNode){
@@ -433,7 +407,7 @@ export default class Component extends EventHub(WatchHub()) {
 					(this.bdDom.titleNode || this.bdDom.root).title = this[pTitle];
 				}
 
-				this[this[pEnabled] ? "removeClassName" : "addClassName"]("bd-disabled");
+				this[this[pDisabled] ? "addClassName" : "removeClassName"]("bd-disabled");
 			}
 			if(this.postRender){
 				this.ownWhileRendered(this.postRender());
@@ -652,12 +626,13 @@ export default class Component extends EventHub(WatchHub()) {
 				root = root[0];
 			}
 			let className = root.className;
-			if(this[pStaticClassName]){
-				this[pStaticClassName].split(" ").forEach(s => className = className.replace(s, ""));
+			let staticClassName = this[pStaticClassName] || this.constructor.className;
+			if(staticClassName){
+				staticClassName.split(" ").forEach(s => className = className.replace(s, ""));
 			}
 			return cleanClassName(className);
 		}else{
-			return this[pClassName];
+			return this[pClassName] || "";
 		}
 	}
 
@@ -666,11 +641,10 @@ export default class Component extends EventHub(WatchHub()) {
 
 		// clean up any space sloppiness, sometimes caused by client-code algorithms that manipulate className
 		value = cleanClassName(value);
-
-		if(!value){
-			this[pSetClassName]("", this[pClassName]);
-		}else if(!this[pClassName]){
+		if(!this[pClassName]){
 			this[pSetClassName](value, "");
+		}else if(!value){
+			this[pSetClassName]("", this[pClassName]);
 		}else if(value !== this[pClassName]){
 			this[pSetClassName](value, this[pClassName]);
 		}
@@ -680,33 +654,36 @@ export default class Component extends EventHub(WatchHub()) {
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 
 		value = cleanClassName(value);
-		return (" " + this[pClassName] + " ").indexOf(value) !== -1;
+		return (" " + (this[pClassName] || "") + " ").indexOf(value) !== -1;
 	}
 
 	addClassName(...values){
+		let current = this[pClassName] || "";
 		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
 			return classValueToRegExp(value).test(className) ? className : className + value + " ";
-		}, " " + this[pClassName] + " ").trim(), this[pClassName]);
+		}, " " + current + " ").trim(), current);
 		return this;
 	}
 
 	removeClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
+		let current = this[pClassName] || "";
 		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
 			return className.replace(classValueToRegExp(value, "g"), " ");
-		}, " " + this[pClassName] + " ").trim(), this[pClassName]);
+		}, " " + current + " ").trim(), current);
 		return this;
 	}
 
 	toggleClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
+		let current = this[pClassName] || "";
 		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
 			if(classValueToRegExp(value).test(className)){
 				return className.replace(classValueToRegExp(value, "g"), " ");
 			}else{
 				return className + value + " ";
 			}
-		}, " " + this[pClassName] + " ").trim(), this[pClassName]);
+		}, " " + current + " ").trim(), current);
 		return this;
 	}
 
@@ -760,24 +737,24 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get enabled(){
-		return this[pEnabled];
+		return !this[pDisabled];
 	}
 
 	set enabled(value){
-		value = !!value;
-		if(this[pEnabled] !== value){
-			this[pEnabled] = value;
-			this.bdMutateNotify([["enabled", value, !value], ["disabled", !value, value]]);
-			this[value ? "removeClassName" : "addClassName"]("bd-disabled");
-		}
+		this.disabled = !value;
 	}
 
 	get disabled(){
-		return !this[pEnabled];
+		return !!this[pDisabled];
 	}
 
 	set disabled(value){
-		this.enabled = !value;
+		value = !!value;
+		if(this[pDisabled] !== value){
+			this[pDisabled] = value;
+			this.bdMutateNotify([["disabled", !value, value], ["enabled", value, !value]]);
+			this[value ? "addClassName" : "removeClassName"]("bd-disabled");
+		}
 	}
 
 	get visible(){
