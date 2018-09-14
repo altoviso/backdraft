@@ -130,6 +130,15 @@ function setPosit(node, posit){
 			case "w":
 				node.style.width = posit.w + "px";
 				break;
+			case "maxH":
+				node.style.maxHeight = posit.maxH + "px";
+				break;
+			case "maxW":
+				node.style.maxWidth = posit.maxW + "px";
+				break;
+			case "z":
+				node.style.zIndex = posit.z;
+				break;
 			default:
 		}
 	}
