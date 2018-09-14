@@ -744,6 +744,9 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set tabIndex(value){
+		if(!value && value!==0){
+			value = "";
+		}
 		if(value !== this[pTabIndex]){
 			this.rendered && ((this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = value);
 			this.bdMutate("tabIndex", pTabIndex, value);
