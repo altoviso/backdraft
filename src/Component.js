@@ -353,7 +353,21 @@ export default class Component extends EventHub(WatchHub()) {
 
 		if(kwargs.postRender){
 			this.postRender = kwargs.postRender;
-			if(saveKwargs) delete kwargs.postRender;
+		}
+
+		if(kwargs.overrides){
+			Object.keys(kwargs.overrides).forEach(p => (this[p] = kwargs.overrides[p]));
+		}
+
+		if(kwargs.callbacks){
+			let events = this.constructor.events;
+			Object.keys(kwargs.callbacks).forEach(key => {
+				if(events.indexOf(key) !== -1){
+					this.advise(key, kwargs.callbacks[key]);
+				}else{
+					this.watch(key, kwargs.callbacks[key]);
+				}
+			});
 		}
 	}
 
