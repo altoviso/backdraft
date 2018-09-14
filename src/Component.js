@@ -727,11 +727,13 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get hasFocus(){
-		return this[pHasFocus];
+		return !!this[pHasFocus];
 	}
 
 	focus(){
-		(this.bdDom.tabIndexNode || this.bdDom.root).focus();
+		if(this.bdDom){
+			(this.bdDom.tabIndexNode || this.bdDom.root).focus()
+		}
 	}
 
 	get tabIndex(){
