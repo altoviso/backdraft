@@ -30,7 +30,7 @@ class Watchable {
 
 
 function mutate(owner, name, privateName, newValue){
-	let oldValue = owner[name];
+	let oldValue = owner[privateName];
 	let notEq;
 	if(!oldValue){
 		notEq = newValue !== oldValue;
@@ -50,6 +50,7 @@ function mutate(owner, name, privateName, newValue){
 		if(privateName in owner){
 			owner[privateName] = newValue;
 		}else{
+			// not enumerable or configurable
 			Object.defineProperty(owner, privateName, {writable: true, value: newValue});
 		}
 		return [name, oldValue, newValue];
@@ -64,10 +65,6 @@ export default function WatchHub(superClass){
 		};
 	}
 	return class extends superClass {
-		constructor(){
-			super();
-		}
-
 		// protected interface...
 		bdMutateNotify(name, oldValue, newValue){
 			let variables = watcherCatalog.get(this);

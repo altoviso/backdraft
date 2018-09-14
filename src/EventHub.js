@@ -6,10 +6,6 @@ export default function EventHub(superClass){
 		};
 	}
 	return class extends superClass {
-		constructor(){
-			super();
-		}
-
 		// protected interface...
 		bdNotify(e){
 			let events = listenerCatalog.get(this);
