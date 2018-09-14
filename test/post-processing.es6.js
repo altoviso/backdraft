@@ -250,7 +250,7 @@ smoke.defBrowserTest({
 				}
 			}
 
-			let c = new Component6();
+			let c = new Component6({});
 			c.render();
 
 			let child1 = c.insChild(e(Component, {}));
@@ -273,7 +273,7 @@ smoke.defBrowserTest({
 				}
 			}
 
-			let c = new Component7();
+			let c = new Component7({});
 			c.render();
 
 			let child = c.insChild(e(Component, {}));

@@ -25,7 +25,7 @@ class C3 extends Component {
 	// tab index on explicit
 	_elements(){
 		return e("div",
-			e("div", {[e.tabIndexNode]: true}, "C3-n1"),
+			e("div", {bdTabIndexNode: true}, "C3-n1"),
 			e("div", "C3-n2"),
 		);
 	}

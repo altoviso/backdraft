@@ -39,21 +39,31 @@ smoke.defBrowserTest({
 	id: "Component",
 	tests: [
 		["constructor-default", function(){
-			let c = new Component();
-			assert(c[Component.pHasFocus] === false);
+			let c = new Component({});
+			let contents = Reflect.ownKeys(c);
+			assert(contents.length===1);
+			assert(contents[0]==="kwargs");
+			assert(c.hasFocus === false);
 			assert(c.kwargs instanceof Object);
 			assert(Reflect.ownKeys(c.kwargs).length === 0);
 			assert(c.id === undefined);
 			assert(c[Component.pStaticClassName] === undefined);
-			assert(c[Component.pClassName] === "");
+			assert(c[Component.pClassName] ===undefined);
 			assert(c[Component.pTabIndex] === undefined);
 			assert(c[Component.pTitle] === undefined);
-			assert(c[Component.pEnabled] === true);
+			assert(c[Component.pDisabled] === undefined);
+			assert(c.disabled === false);
+			assert(c.enabled === true);
 			assert(c.postRender === undefined);
 			assert(!c.rendered);
 			assert(c._dom === undefined);
 			c.destroy();
 			assert(c.kwargs === undefined);
+
+			class NoSpace extends Component{};
+			NoSpace.noKwargs = true;
+			c = new NoSpace({});
+			assert(Reflect.ownKeys(c).length===0);
 		}],
 		["constructor-with-args", function(){
 			let elements = e("div");
@@ -72,17 +82,15 @@ smoke.defBrowserTest({
 				arg2: "test"
 			};
 			let c = new Component(kwargs);
-			assert(c[Component.pHasFocus] === false);
-			assert(c.kwargs instanceof Object);
-			assert(Reflect.ownKeys(c.kwargs).length === 2);
-			assert(c.kwargs.arg1 === kwargs.arg1);
-			assert(c.kwargs.arg2 === kwargs.arg2);
+			assert(c.hasFocus === false);
+			assert(c.kwargs ===kwargs);
 			assert(c.id === "123");
 			assert(c[Component.pStaticClassName] === "staticClass");
 			assert(c[Component.pClassName] === "class");
 			assert(c[Component.pTabIndex] === 2);
 			assert(c[Component.pTitle] === "test title");
-			assert(c[Component.pEnabled] === true);
+			assert(c.enabled===true);
+			assert(c.disabled===false);
 			assert(c.postRender === postRender);
 			assert(c.bdElements() === elements);
 			assert(!c.rendered);
@@ -286,7 +294,7 @@ smoke.defBrowserTest({
 				}
 			}
 
-			c = new C();
+			c = new C({});
 			assert(!c.postRenderCalled);
 			c.render();
 			assert(c.postRenderCalled);
@@ -1339,7 +1347,7 @@ smoke.defBrowserTest({
 
 		}],
 		["attached to document", function(){
-			let c = new Component();
+			let c = new Component({});
 			assert(c.attachedToDoc === false);
 			c.render();
 			assert(c.attachedToDoc === false);
