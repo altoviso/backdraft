@@ -13,7 +13,13 @@ function getAttributeValueFromEvent(e, attributeName, stopNode){
 	return undefined;
 }
 
+
+function normalizeNodeArg(arg){
+	return arg instanceof Component ? arg.bdDom.root : (typeof arg === "string" ? document.getElementById(arg) : arg);
+}
+
 function setAttr(node, name, value){
+	node = normalizeNodeArg(node);
 	if(arguments.length === 2){
 		let hash = name;
 		Object.keys(hash).forEach(name => {
@@ -33,7 +39,8 @@ function setAttr(node, name, value){
 let lastComputedStyleNode = 0;
 let lastComputedStyle = 0;
 
-function getComputedStyle_(node){
+function getComputedStyle(node){
+	node = normalizeNodeArg(node);
 	if(lastComputedStyleNode !== node){
 		lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
 	}
@@ -41,6 +48,7 @@ function getComputedStyle_(node){
 }
 
 function getStyle(node, property){
+	node = normalizeNodeArg(node);
 	if(lastComputedStyleNode !== node){
 		lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
 	}
@@ -49,6 +57,7 @@ function getStyle(node, property){
 }
 
 function getStyles(node, ...styleNames){
+	node = normalizeNodeArg(node);
 	if(lastComputedStyleNode !== node){
 		lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
 	}
@@ -73,6 +82,7 @@ function getStyles(node, ...styleNames){
 }
 
 function setStyle(node, property, value){
+	node = normalizeNodeArg(node);
 	if(arguments.length === 2){
 		if(typeof property === "string"){
 			node.style = property;
@@ -87,8 +97,8 @@ function setStyle(node, property, value){
 	}
 }
 
-function getPosit(target){
-	let result = normalizeNodeArg(target).getBoundingClientRect();
+function getPosit(node){
+	let result = normalizeNodeArg(node).getBoundingClientRect();
 	result.t = result.top;
 	result.b = result.bottom;
 	result.l = result.left;
@@ -99,6 +109,7 @@ function getPosit(target){
 }
 
 function setPosit(node, posit){
+	node = normalizeNodeArg(node);
 	for(let p in posit){
 		switch(p){
 			case "t":
@@ -190,9 +201,6 @@ function create(tag, props){
 	return result;
 }
 
-function normalizeNodeArg(arg){
-	return (arg.bdDom && arg.bdDom.root) || (typeof arg === "string" && document.getElementById(arg)) || arg;
-}
 
 const DATA_BD_HIDE_SAVED_VALUE = "data-bd-hide-saved-value";
 
@@ -226,7 +234,7 @@ function getMaxZIndex(parent){
 	let node, cs, max = 0, children = parent.childNodes, i = 0, end = children.length;
 	while(i < end){
 		node = children[i++];
-		cs = node && node.nodeType === 1 && getComputedStyle_(node);
+		cs = node && node.nodeType === 1 && getComputedStyle(node);
 		max = Math.max(max, (cs && cs.zIndex && Number(cs.zIndex)) || 0);
 	}
 	return max;
@@ -442,6 +450,7 @@ connect(window, "resize", function(e){
 export {
 	getAttributeValueFromEvent,
 	setAttr,
+	getComputedStyle,
 	getStyle,
 	getStyles,
 	setStyle,
@@ -459,4 +468,3 @@ export {
 	focusManager,
 	viewportWatcher
 };
-
