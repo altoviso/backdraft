@@ -61,7 +61,7 @@
 			})
 		});
 		ordered.forEach((test, i) => smokeTests[i] = test);
-	})
+	});
 }));
 
 
