@@ -1,3 +1,5 @@
+import {destroyable} from "./destroyable.js";
+
 const listenerCatalog = new WeakMap();
 
 export default function EventHub(superClass){
@@ -24,6 +26,7 @@ export default function EventHub(superClass){
 					handlers = events[e];
 					e = {type: e, name: e, target: this};
 				}else{
+					// eslint-disable-next-line no-console
 					console.warn("event.name is deprecated; use event.type");
 					handlers = events[e.name];
 					e.type = e.name;
@@ -32,7 +35,7 @@ export default function EventHub(superClass){
 			}
 
 			if(handlers){
-				handlers.slice().forEach(handler => handler(e));
+				handlers.slice().forEach(destroyable => destroyable.proc(e));
 			}
 		}
 
@@ -44,19 +47,9 @@ export default function EventHub(superClass){
 			}else{
 				let events = listenerCatalog.get(this);
 				if(!events){
-					listenerCatalog.set(this, (events = {}))
+					listenerCatalog.set(this, (events = {}));
 				}
-
-				let handlers = events[eventName] || (events[eventName] = []);
-				handlers.push(handler);
-				return {
-					destroy(){
-						let index = handlers.indexOf(handler);
-						if(index !== -1){
-							handlers.splice(index, 1);
-						}
-					}
-				};
+				return destroyable(handler, events[eventName] || (events[eventName] = []));
 			}
 		}
 
@@ -66,8 +59,15 @@ export default function EventHub(superClass){
 				return;
 			}
 			if(eventName){
-				delete events[eventName];
+				let handlers = events[eventName];
+				if(handlers){
+					handlers.forEach(h => h.destroy());
+					delete events[eventName];
+				}
 			}else{
+				Reflect.ownKeys(events).forEach(eventName => {
+					events[eventName].forEach(h => h.destroy());
+				});
 				listenerCatalog.delete(this);
 			}
 		}
