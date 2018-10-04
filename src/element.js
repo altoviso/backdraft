@@ -85,6 +85,26 @@ export default function element(type, props, ...children){
 	return new Element(type, props, children);
 }
 
+export function div(props, ...children){
+	return new Element("div", props, children);
+}
+
+const SVG = Object.create(null, {
+	toString: {
+		value: () => "http://www.w3.org/2000/svg"
+	}
+});
+Object.freeze(SVG);
+
+export function svg(type, props, ...children){
+	if(typeof type !== "string"){
+		children.unshift(props);
+		props = type;
+		type = "svg";
+	}
+	return new Element([SVG, type], props, children);
+}
+
 let postProcessingSet = new Set();
 
 element.insPostProcessingFunction = function(name, func){

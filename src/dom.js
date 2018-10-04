@@ -28,7 +28,7 @@ function setAttr(node, name, value){
 	}else{
 		if(name === "style"){
 			setStyle(node, value);
-		}else if(name in node){
+		}else if(name in node && node instanceof HTMLElement){
 			node[name] = value;
 		}else{
 			node.setAttribute(name, value);
@@ -201,7 +201,7 @@ function insert(node, refNode, position){
 }
 
 function create(tag, props){
-	let result = document.createElement(tag);
+	let result = Array.isArray(tag) ? document.createElementNS(tag[0] + "", tag[1]) : document.createElement(tag);
 	if(props){
 		for(let p in props){
 			setAttr(result, p, props[p]);
