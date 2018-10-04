@@ -1,3 +1,20 @@
+function flattenChildren(children){
+	// single children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
+	let result = [];
+
+	function flatten_(child){
+		if(Array.isArray(child)){
+			child.forEach(flatten_);
+		}else if(child){
+			result.push(child);
+		}
+	}
+
+	flatten_(children);
+	return result;
+}
+
+
 export class Element {
 	constructor(type, props, ...children){
 		if(type instanceof Element){
@@ -14,7 +31,7 @@ export class Element {
 				this.type = type;
 			}else if(type){
 				//this.isComponentType === undefined
-				this.type = type + "";
+				this.type = Array.isArray(type) ? type : type + "";
 			}else{
 				throw new Error("type is required");
 			}
@@ -27,14 +44,12 @@ export class Element {
 				}else if(props instanceof Object){
 					let ctorProps = {};
 					let ppProps = {};
-					let ctorCount = 0;
 					let ppPropCount = 0;
 					Reflect.ownKeys(props).forEach((k) => {
 						if(postProcessingSet.has(k)){
 							ppPropCount++;
 							ppProps[k] = props[k];
 						}else{
-							ctorCount++;
 							ctorProps[k] = props[k];
 						}
 					});
@@ -50,26 +65,14 @@ export class Element {
 				this.ctorProps = {};
 			}
 
-			// single children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
-			let flattenedChildren = [];
 
-			// noinspection JSAnnotator
-			function flatten(child){
-				if(Array.isArray(child)){
-					child.forEach(flatten);
-				}else if(child){
-					flattenedChildren.push(child);
-				}
-			}
-
-			flatten(children);
-
+			let flattenedChildren = flattenChildren(children);
 			if(flattenedChildren.length === 1){
 				let child = flattenedChildren[0];
 				this.children = child instanceof Element ? child : child + "";
 			}else if(flattenedChildren.length){
 				this.children = flattenedChildren.map(child => (child instanceof Element ? child : child + ""));
-				Object.freeze(this.children)
+				Object.freeze(this.children);
 			}// else children.length===0; therefore, no children
 		}
 		Object.freeze(this);
@@ -78,6 +81,7 @@ export class Element {
 
 export default function element(type, props, ...children){
 	// make elements without having to use new
+
 	return new Element(type, props, children);
 }
 
