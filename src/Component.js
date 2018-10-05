@@ -773,21 +773,28 @@ insPostProcessingFunction("bdReflectClass",
 		//
 		// note that <watchable>, <formatter> works, but should not be used and is not guaranteed; instead, ensure
 		// that any required formatter is built into the watchable
+
+		function normalize(value){
+			return !value ? "" : value + "";
+		}
+
 		function install(prop, formatter){
 			let watcher = formatter ?
 				(newValue, oldValue) => {
-					newValue = formatter(newValue);
-					oldValue = formatter(oldValue);
+					newValue = normalize(formatter(newValue));
+					oldValue = normalize(formatter(oldValue));
 					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
 				} :
 				(newValue, oldValue) => {
+					newValue = normalize(newValue);
+					oldValue = normalize(oldValue);
 					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
 				};
 			if(typeof prop === "string"){
-				target.addClassName(formatter ? formatter(target[prop]) : target[prop]);
+				target.addClassName(normalize(formatter ? formatter(target[prop]) : target[prop]));
 				target.ownWhileRendered(target.watch(prop, watcher));
 			}else{
-				target.addClassName(prop.value);
+				target.addClassName(normalize(prop.value));
 				target.ownWhileRendered(prop.watch(watcher));
 			}
 		}
