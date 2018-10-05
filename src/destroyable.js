@@ -18,7 +18,7 @@ function destroyable(proc, container, onEmpty){
 }
 
 function destroyAll(container){
-	for(let i= 0, end = container.length; i<end; i++){
+	for(let i= 0, end = container.length; i<end && container.length; i++){
 		container.pop().destroy();
 	}
 }
