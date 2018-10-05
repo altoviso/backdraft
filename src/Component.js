@@ -240,12 +240,23 @@ function postProcess(ppProps, owner, target, targetIsDomNode){
 	});
 }
 
+function noop(){
+}
 
 function pushHandles(dest, ...handles){
 	handles.forEach(h => {
 		if(Array.isArray(h)){
 			pushHandles(dest, ...h);
 		}else if(h){
+			let destroy = h.destroy.bind(h);
+			h.destroy = function(){
+				destroy();
+				let index = dest.indexOf(h);
+				if(index !== -1){
+					dest.splice(index, 1);
+				}
+				h.destroy = noop;
+			};
 			dest.push(h);
 		}
 	});
@@ -384,7 +395,7 @@ export default class Component extends EventHub(WatchHub()) {
 		this.unrender();
 		let handles = ownedHandlesCatalog.get(this);
 		if(handles){
-			handles.forEach(handle => handle.destroy());
+			while(handles.length) handles.shift().destroy();
 			ownedHandlesCatalog.delete(this);
 		}
 		this.destroyWatch();
