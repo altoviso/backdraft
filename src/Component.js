@@ -443,13 +443,15 @@ export default class Component extends EventHub(WatchHub()) {
 
 				this[this[pDisabled] ? "addClassName" : "removeClassName"]("bd-disabled");
 			}
-			if(this.postRender){
-				this.ownWhileRendered(this.postRender());
-			}
+			this.ownWhileRendered(this.postRender());
 			proc && proc.call(this);
 			this.bdMutateNotify("rendered", false, true);
 		}
 		return this.bdDom.root;
+	}
+
+	postRender(){
+		// no-op
 	}
 
 	bdElements(){
