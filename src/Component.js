@@ -559,7 +559,7 @@ export default class Component extends EventHub(WatchHub()) {
 			if(attachPoint in this){
 				// node reference
 				attachPoint = this[attachPoint];
-			}else if(typeof attachPoint==="string"){
+			}else if(typeof attachPoint === "string"){
 				attachPoint = document.getElementById(attachPoint);
 				if(!attachPoint){
 					throw new Error("unexpected");
@@ -774,7 +774,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	set tabIndex(value){
-		if(!value && value!==0){
+		if(!value && value !== 0){
 			value = "";
 		}
 		if(value !== this[pTabIndex]){
@@ -884,8 +884,63 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 }
 
+function withWatchables(superClass, ...args){
+	let result, prototype;
+	let publicPropNames = [];
+
+	function def(name){
+		let pname;
+		if(Array.isArray(name)){
+			pname = name[1];
+			name = name[0];
+		}else{
+			pname = "_" + name;
+		}
+		publicPropNames.push(name);
+		Object.defineProperty(prototype, name, {
+			enumerable: true,
+			get: function(){
+				return this[pname];
+			},
+			set: function(value){
+				this.bdMutate(name, pname, value);
+			}
+		});
+	}
+
+	function init(owner, kwargs){
+		publicPropNames.forEach(name => {
+			if(kwargs.hasOwnProperty(name)){
+				owner[name] = kwargs[name];
+			}
+		});
+	}
+
+	if(typeof superClass === "function"){
+		result = class extends superClass {
+			constructor(kwargs = {}){
+				super(kwargs);
+				init(this, kwargs);
+			}
+		};
+		prototype = result.prototype;
+	}else{
+		result = class extends Component {
+			constructor(kwargs = {}){
+				super(kwargs);
+				init(this, kwargs);
+			}
+		};
+		prototype = result.prototype;
+		def(superClass);
+	}
+	args.forEach(def);
+	return result;
+}
+
 ns.publish(Component, {
-	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"]
+	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"],
+	withWatchables: withWatchables
 });
 
 
