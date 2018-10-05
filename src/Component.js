@@ -56,12 +56,6 @@ element.insPostProcessingFunction("bdTitleNode",
 	}
 );
 
-element.insPostProcessingFunction("bdStaticClassName",
-	function(target, source, resultIsDomNode, className){
-		target[pStaticClassName] = className;
-	}
-);
-
 element.insPostProcessingFunction("bdParentAttachPoint",
 	function(target, source, resultIsDomNode, propertyName){
 		// source should be a component instance and resultIsDomNode should be false
@@ -203,7 +197,8 @@ function classValueToRegExp(v, args){
 }
 
 function calcDomClassName(component){
-	let staticClassName = component[pStaticClassName] || component.constructor.className;
+	let staticClassName = component.staticClassName;
+
 	let className = component[pClassName];
 	if(staticClassName && className){
 		return staticClassName + " " + className;
@@ -312,7 +307,6 @@ class Namespace {
 let ns = new Namespace();
 const
 	pClassName = ns.new("pClassName"),
-	pStaticClassName = ns.new("pStaticClassName"),
 	pDisabled = ns.new("pDisabled"),
 	pTabIndex = ns.new("pTabIndex"),
 	pTitle = ns.new("pTitle"),
@@ -649,6 +643,10 @@ export default class Component extends EventHub(WatchHub()) {
 		});
 	}
 
+	get staticClassName(){
+		return ((this.kwargs.staticClassName || "") + " " + (this.constructor.className || "")).trim();
+	}
+
 	get className(){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT returned
 		if(this.rendered){
@@ -658,7 +656,7 @@ export default class Component extends EventHub(WatchHub()) {
 				root = root[0];
 			}
 			let className = root.className;
-			let staticClassName = this[pStaticClassName] || this.constructor.className;
+			let staticClassName = this.staticClassName;
 			if(staticClassName){
 				staticClassName.split(" ").forEach(s => className = className.replace(s, ""));
 			}
