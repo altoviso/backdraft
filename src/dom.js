@@ -1,6 +1,6 @@
-import EventHub from "./EventHub.js";
-import Component from "./Component.js";
-import element from "./element.js";
+import {EventHub} from "./EventHub.js";
+import {Component} from "./Component.js";
+import {insPostProcessingFunction} from "./postProcessingCatalog.js";
 
 function getAttributeValueFromEvent(e, attributeName, stopNode){
 	let node = e.target;
@@ -203,9 +203,7 @@ function insert(node, refNode, position){
 function create(tag, props){
 	let result = Array.isArray(tag) ? document.createElementNS(tag[0] + "", tag[1]) : document.createElement(tag);
 	if(props){
-		for(let p in props){
-			setAttr(result, p, props[p]);
-		}
+		Reflect.ownKeys(props).forEach(p => setAttr(result, p, props[p]));
 	}
 	return result;
 }
@@ -304,17 +302,6 @@ function stopEvent(event){
 	}
 }
 
-element.insPostProcessingFunction("bdAdvise",
-	function(target, source, resultIsDomNode, listeners){
-		Reflect.ownKeys(listeners).forEach((name) => {
-			let listener = listeners[name];
-			if(typeof listener !== "function"){
-				listener = target[listener].bind(target);
-			}
-			target.ownWhileRendered(resultIsDomNode ? connect(source, name, listener) : source.advise(name, listener));
-		});
-	}
-);
 
 let focusedComponent = null,
 	focusedNode = null,
@@ -346,8 +333,6 @@ class FocusManager extends EventHub() {
 
 let focusManager = new FocusManager();
 let focusWatcher = 0;
-const pOnFocus = Component.pOnFocus;
-const pOnBlur = Component.pOnBlur;
 
 function processNode(node){
 	if(focusWatcher){
@@ -389,14 +374,14 @@ function processNode(node){
 	// signal blur from the path end to the first identical component (not including the first identical component)
 	for(j = i; j < oldStackLength; j++){
 		component = focusStack.pop();
-		component[pOnBlur]();
+		component.bdOnBlur();
 		focusManager.bdNotify({type: "blurComponent", component: component});
 	}
 
 	// signal focus for all new components that just gained the focus
 	for(j = i; j < newStackLength; j++){
 		focusStack.push(component = stack[j]);
-		component[pOnFocus]();
+		component.bdOnFocus();
 		focusManager.bdNotify({type: "focusComponent", component: component});
 	}
 
@@ -454,6 +439,59 @@ connect(window, "resize", function(e){
 		viewportWatcher.bdNotify({type: "resize"});
 	}, 10);
 }, true);
+
+
+insPostProcessingFunction("bdReflectProp",
+	function(target, source, resultIsDomNode, props){
+		// props is a hash from property to one of...
+		//     <string>
+		//     <string>, <formatter>
+		//     <watchable>
+		Object.keys(props).forEach(destProp => {
+			let srcProp = props[destProp];
+			let formatter = null;
+			if(Array.isArray(srcProp)){
+				formatter = srcProp[1];
+				srcProp = srcProp[0];
+			}
+			if(typeof srcProp === "string"){
+				let cValue;
+				setAttr(source, destProp, (cValue = formatter ? formatter(target[srcProp]) : target[srcProp]));
+				let watcher = formatter ?
+					(newValue) => {
+						newValue = formatter(newValue);
+						if(cValue !== newValue){
+							setAttr(source, destProp, (cValue = newValue));
+						}
+					} :
+					(newValue) => {
+						if(cValue !== newValue){
+							setAttr(source, destProp, (cValue = newValue));
+						}
+					};
+				target.ownWhileRendered(target.watch(srcProp, watcher));
+			}else{
+				// don't need to check for newValue is different than current value since watchers already take care of that
+				setAttr(source, destProp, srcProp.value);
+				target.ownWhileRendered(srcProp.watch(newValue => {
+					setAttr(source, destProp, newValue);
+				}));
+			}
+		});
+	}
+);
+
+insPostProcessingFunction("bdAdvise",
+	function(target, source, resultIsDomNode, listeners){
+		Reflect.ownKeys(listeners).forEach((name) => {
+			let listener = listeners[name];
+			if(typeof listener !== "function"){
+				listener = target[listener].bind(target);
+			}
+			target.ownWhileRendered(resultIsDomNode ? connect(source, name, listener) : source.advise(name, listener));
+		});
+	}
+);
 
 
 export {

@@ -1,3 +1,5 @@
+import {getPostProcessingFunction} from "./postProcessingCatalog.js";
+
 function flattenChildren(children){
 	// single children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
 	let result = [];
@@ -14,13 +16,12 @@ function flattenChildren(children){
 	return result;
 }
 
-
 export class Element {
 	constructor(type, props, ...children){
 		if(type instanceof Element){
 			// copy constructor
 			this.type = type.type;
-			type.isComponentRef && (this.isComponentType = type.isComponentRef);
+			type.isComponentType && (this.isComponentType = type.isComponentType);
 			type.ctorProps && (this.ctorProps = type.ctorProps);
 			type.ppProps && (this.ppProps = type.ppProps);
 			type.children && (this.children = type.children);
@@ -30,7 +31,7 @@ export class Element {
 				this.isComponentType = true;
 				this.type = type;
 			}else if(type){
-				//this.isComponentType === undefined
+				// leave this.isComponentType === undefined
 				this.type = Array.isArray(type) ? type : type + "";
 			}else{
 				throw new Error("type is required");
@@ -46,7 +47,7 @@ export class Element {
 					let ppProps = {};
 					let ppPropCount = 0;
 					Reflect.ownKeys(props).forEach((k) => {
-						if(postProcessingSet.has(k)){
+						if(getPostProcessingFunction(k)){
 							ppPropCount++;
 							ppProps[k] = props[k];
 						}else{
@@ -79,7 +80,7 @@ export class Element {
 	}
 }
 
-export default function element(type, props, ...children){
+export function element(type, props, ...children){
 	// make elements without having to use new
 
 	return new Element(type, props, children);
@@ -104,17 +105,3 @@ export function svg(type, props, ...children){
 	}
 	return new Element([SVG, type], props, children);
 }
-
-let postProcessingSet = new Set();
-
-element.insPostProcessingFunction = function(name, func){
-	if(element[name]){
-		throw Error("duplicate postprocessing function name: " + name);
-	}
-	// ppf => post-processing function
-	let lcName = name.toLowerCase();
-	Object.defineProperty(element, name, {value: func, enumerable: true});
-	Object.defineProperty(element, lcName, {value: func, enumerable: true});
-	postProcessingSet.add(name);
-	postProcessingSet.add(lcName);
-};

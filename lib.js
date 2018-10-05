@@ -1,16 +1,18 @@
 import {create, insert} from  "./src/dom.js";
-import Component from "./src/Component.js";
-Component.createNode = create;
-Component.insertNode = insert;
+import {initialize} from "./src/Component.js";
+initialize(document, create, insert);
 
-export * from "./src/dom.js";
-export {default as e, svg, Element} from "./src/element.js";
-export {default as EventHub} from "./src/EventHub.js";
+import {element} from "./src/element.js";
+export {element as e};
+
+export * from "./src/postProcessingCatalog.js";
+export * from "./src/element.js";
 export * from "./src/destroyable.js";
+export * from "./src/EventHub.js";
 export * from "./src/watchUtils.js";
-export {render} from "./src/Component.js";
-export {Component};
-export {default as Collection} from "./src/Collection.js";
+export * from "./src/Component.js";
+export * from "./src/Collection.js";
+export * from "./src/dom.js";
 
 export function version(){
 	return "2.2.1";

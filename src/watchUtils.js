@@ -21,7 +21,7 @@ class Watchable {
 
 		// if (owner[OWNER] && prop === STAR), then we cValue===newValue===owner...
 		// therefore can't detect internal mutations to owner, so don't try
-		let cannotDetectMutations = prop === STAR && owner[OWNER]
+		let cannotDetectMutations = prop === STAR && owner[OWNER];
 
 		this[pWatchableWatchers] = [];
 
@@ -238,11 +238,7 @@ function mutate(owner, name, privateName, newValue){
 }
 
 function WatchHub(superClass){
-	if(!superClass){
-		superClass = class {
-		};
-	}
-	return class extends superClass {
+	return class extends (superClass || class{}) {
 		// protected interface...
 		bdMutateNotify(name, oldValue, newValue){
 			let variables = watcherCatalog.get(this);

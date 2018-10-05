@@ -2,12 +2,8 @@ import {destroyable} from "./destroyable.js";
 
 const listenerCatalog = new WeakMap();
 
-export default function EventHub(superClass){
-	if(!superClass){
-		superClass = class {
-		};
-	}
-	return class extends superClass {
+export function EventHub(superClass){
+	return class extends (superClass || class {}) {
 		// protected interface...
 		bdNotify(e){
 			let events = listenerCatalog.get(this);

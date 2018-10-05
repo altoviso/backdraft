@@ -611,8 +611,8 @@ smoke.defTest({
 			c.x = 5;
 			assert(handlerApplyCount === 7);
 
-			// Applying Watchable::destroy removes all watchers.
-			x.destroy();
+			// Applying Watchable::destroy(true) removes all watchers, but does not destroy the watcher.
+			x.destroy(true);
 			expectedOldValue = c.x;
 			c.x = 6;
 			// Notice the handler function was never called.

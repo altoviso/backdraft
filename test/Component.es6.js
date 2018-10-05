@@ -41,29 +41,29 @@ smoke.defBrowserTest({
 		["constructor-default", function(){
 			let c = new Component({});
 			let contents = Reflect.ownKeys(c);
-			assert(contents.length===1);
-			assert(contents[0]==="kwargs");
+			assert(contents.length === 1);
+			assert(contents[0] === "kwargs");
 			assert(c.hasFocus === false);
 			assert(c.kwargs instanceof Object);
 			assert(Reflect.ownKeys(c.kwargs).length === 0);
 			assert(c.id === undefined);
-			assert(c[Component.pStaticClassName] === undefined);
-			assert(c[Component.pClassName] ===undefined);
-			assert(c[Component.pTabIndex] === undefined);
-			assert(c[Component.pTitle] === undefined);
-			assert(c[Component.pDisabled] === undefined);
+			assert(c.staticClassName === "");
+			assert(c.bdClassName === undefined);
+			assert(c.bdTabIndex === undefined);
+			assert(c.bdTitle === undefined);
+			assert(c.bdDisabled === undefined);
 			assert(c.disabled === false);
 			assert(c.enabled === true);
-			assert(c.postRender === undefined);
 			assert(!c.rendered);
 			assert(c._dom === undefined);
 			c.destroy();
 			assert(c.kwargs === undefined);
 
-			class NoSpace extends Component{};
+			class NoSpace extends Component {
+			};
 			NoSpace.noKwargs = true;
 			c = new NoSpace({});
-			assert(Reflect.ownKeys(c).length===0);
+			assert(Reflect.ownKeys(c).length === 0);
 		}],
 		["constructor-with-args", function(){
 			let elements = e("div");
@@ -83,14 +83,14 @@ smoke.defBrowserTest({
 			};
 			let c = new Component(kwargs);
 			assert(c.hasFocus === false);
-			assert(c.kwargs ===kwargs);
+			assert(c.kwargs === kwargs);
 			assert(c.id === "123");
-			assert(c[Component.pStaticClassName] === "staticClass");
-			assert(c[Component.pClassName] === "class");
-			assert(c[Component.pTabIndex] === 2);
-			assert(c[Component.pTitle] === "test title");
-			assert(c.enabled===true);
-			assert(c.disabled===false);
+			assert(c.staticClassName === "staticClass");
+			assert(c.bdClassName === "class");
+			assert(c.bdTabIndex === 2);
+			assert(c.bdTitle === "test title");
+			assert(c.enabled === true);
+			assert(c.disabled === false);
 			assert(c.postRender === postRender);
 			assert(c.bdElements() === elements);
 			assert(!c.rendered);
@@ -116,7 +116,7 @@ smoke.defBrowserTest({
 				staticClassName: "test3"
 			});
 			assert(c.className === "test2");
-			assert(c[Component.pStaticClassName] === "test3");
+			assert(c.staticClassName === "test3");
 			c.render();
 			let node = c._dom.root;
 			let list = node.classList;
@@ -197,11 +197,11 @@ smoke.defBrowserTest({
 		}],
 		["tabIndex", function(){
 			let c = new Component({tabIndex: 1});
-			assert(c[Component.pTabIndex] === 1);
+			assert(c.bdTabIndex === 1);
 			c.render();
 			assert(c._dom.root.tabIndex === 1);
 			c.tabIndex = 2;
-			assert(c[Component.pTabIndex] === 2);
+			assert(c.bdTabIndex === 2);
 			assert(c._dom.root.tabIndex === 2);
 			c.destroy();
 
@@ -209,22 +209,22 @@ smoke.defBrowserTest({
 				e("div", {tabIndex: 1})
 			);
 			c = new Component({elements: elements});
-			assert(c[Component.pTabIndex] === undefined);
+			assert(c.bdTabIndex === undefined);
 			c.render();
 			assert(c._dom.root.firstChild.tabIndex === 1);
 			assert(c.tabIndex === 1);
 			c.tabIndex = 2;
-			assert(c[Component.pTabIndex] === 2);
+			assert(c.bdTabIndex === 2);
 			assert(c._dom.root.firstChild.tabIndex === 2);
 			c.destroy();
 		}],
 		["title", function(){
 			let c = new Component({title: "title1"});
-			assert(c[Component.pTitle] === "title1");
+			assert(c.bdTitle === "title1");
 			c.render();
 			assert(c._dom.root.title === "title1");
 			c.title = "title2";
-			assert(c[Component.pTitle] === "title2");
+			assert(c.bdTitle === "title2");
 			assert(c._dom.root.title === "title2");
 			c.destroy();
 
@@ -232,13 +232,13 @@ smoke.defBrowserTest({
 				e("div", {title: "title1", bdTitleNode: true})
 			);
 			c = new Component({elements: elements});
-			assert(c[Component.pTitle] === undefined);
+			assert(c.bdTitle === undefined);
 			c.render();
 			assert(c._dom.root.title === "");
 			assert(c._dom.root.firstChild.title === "title1");
 			assert(c.title === "title1");
 			c.title = "title2";
-			assert(c[Component.pTitle] === "title2");
+			assert(c.bdTitle === "title2");
 			assert(c._dom.root.firstChild.title === "title2");
 			c.destroy();
 		}],
@@ -876,7 +876,7 @@ smoke.defBrowserTest({
 							assert(nodes[1] === child5._dom.root);
 							assert(nodes[2] === child6._dom.root);
 
-							parent.delChild(childx);
+							parent.delChild(childx, true);
 							assert(parent.children.length === 3);
 							assert(parent.children[0] === child4);
 							assert(parent.children[1] === child5);
@@ -921,36 +921,36 @@ smoke.defBrowserTest({
 							let child6 = parent.insChild(Component_, {id: "child6"}, "group1");
 							check();
 
-							let childx = new Component_({id: "child6"});
+							let childx;
 
-							parent.insChild(childx, child1, "replace");
+							childx = parent.insChild(Component_, {id: "childx"}, child1, "replace");
 							assert(childx._dom.root.nextSibling === child2._dom.root);
-							parent.insChild(child1, childx, "replace");
+							child1 = parent.insChild(Component_, {id: "child1"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child2, "replace");
+							childx = parent.insChild(Component_, {id: "childx"}, child2, "replace");
 							assert(childx._dom.root.nextSibling === child3._dom.root);
-							parent.insChild(child2, childx, "replace");
+							child2 = parent.insChild(Component_, {id: "child2"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child3, "replace");
+							childx = parent.insChild(Component_, {id: "childx"}, child3, "replace");
 							assert(childx._dom.root === child2._dom.root.nextSibling);
-							parent.insChild(child3, childx, "replace");
+							child3 = parent.insChild(Component_, {id: "child3"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child4, "replace");
+							childx = parent.insChild(Component_, {id: "childx"}, child4, "replace");
 							assert(childx._dom.root.nextSibling === child5._dom.root);
-							parent.insChild(child4, childx, "replace");
+							child4 = parent.insChild(Component_, {id: "child4"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child5, "replace");
+							childx = parent.insChild(Component_, {id: "childx"}, child5, "replace");
 							assert(childx._dom.root.nextSibling === child6._dom.root);
-							parent.insChild(child5, childx, "replace");
+							child5 = parent.insChild(Component_, {id: "child5"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child6, "replace");
+							childx = parent.insChild(Component_, {id: "childx"}, child6, "replace");
 							assert(childx._dom.root === child5._dom.root.nextSibling);
-							parent.insChild(child6, childx, "replace");
+							child6 = parent.insChild(Component_, {id: "child6"}, childx, "replace");
 							check();
 
 							parent.destroy();
@@ -1305,36 +1305,36 @@ smoke.defBrowserTest({
 							let child6 = parent.insChild(Component_, {id: "child6"}, "group1");
 							check();
 
-							let childx = new MultiRootComponent({id: "child6"});
+							let childx;
 
-							parent.insChild(childx, child1, "replace");
+							childx = parent.insChild(new MultiRootComponent({id: "childx"}), child1, "replace");
 							assert(childx._dom.root[1].nextSibling === child2._dom.root);
-							parent.insChild(child1, childx, "replace");
+							child1 = parent.insChild(Component_, {id: "child1"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child2, "replace");
+							childx = parent.insChild(new MultiRootComponent({id: "childx"}), child2, "replace");
 							assert(childx._dom.root[1].nextSibling === child3._dom.root);
-							parent.insChild(child2, childx, "replace");
+							child2 = parent.insChild(Component_, {id: "child2"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child3, "replace");
+							childx = parent.insChild(new MultiRootComponent({id: "childx"}), child3, "replace");
 							assert(childx._dom.root[0] === child2._dom.root.nextSibling);
-							parent.insChild(child3, childx, "replace");
+							child3 = parent.insChild(Component_, {id: "child3"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child4, "replace");
+							childx = parent.insChild(new MultiRootComponent({id: "childx"}), child4, "replace");
 							assert(childx._dom.root[1].nextSibling === child5._dom.root);
-							parent.insChild(child4, childx, "replace");
+							child4 = parent.insChild(Component_, {id: "child4"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child5, "replace");
+							childx = parent.insChild(new MultiRootComponent({id: "childx"}), child5, "replace");
 							assert(childx._dom.root[1].nextSibling === child6._dom.root);
-							parent.insChild(child5, childx, "replace");
+							child5 = parent.insChild(Component_, {id: "child5"}, childx, "replace");
 							check();
 
-							parent.insChild(childx, child6, "replace");
+							childx = parent.insChild(new MultiRootComponent({id: "childx"}), child6, "replace");
 							assert(childx._dom.root[0] === child5._dom.root.nextSibling);
-							parent.insChild(child6, childx, "replace");
+							child6 = parent.insChild(Component_, {id: "child6"}, childx, "replace");
 							check();
 
 							parent.destroy();
@@ -1376,92 +1376,6 @@ smoke.defBrowserTest({
 			assert(child2.attachedToDoc === true);
 			assert(child11.attachedToDoc === true);
 			c.destroy();
-		}],
-		["static getNamespace", function(){
-			// We're going to define a new Component type, MyComponent, that's a subclass of Component.
-			// Like most classes, it has some private data and methods, so we need to come up with a way to
-			// name those things. There are several requirements:
-			//
-			//  1. The names can't clash with names already-derived in the super class (Component).
-			//
-			//  2. The names don't pollute the class namespace, hindering classes that may want to derive from MyComponent.
-			//
-			//  3. We need to provide access to the names, so classes that derive from MyComponent can access/override the "private" data/methods if required.
-			//
-			// We'll solve this problem by using symbols for names (guaranteed unique) and provide a reference to
-			// each symbol in a way that subclasses can get back at the symbol. We'll use
-			// static Component::getNamespace to solve this problem.
-
-			// Component.getNamespace() creates a new Namespace instance.
-			let myComponentNamespace = Component.getNamespace();
-
-			// The new instance gives access to all names that Component thought were important to publish. In particular
-			// all of the private symbols are available.
-			assert(typeof myComponentNamespace.get("pClassName")=== "symbol");
-			assert(myComponentNamespace.get("pClassName")===Component.pClassName);
-
-			// We can add new private names to get new private symbols.
-			let pX = myComponentNamespace.new("pX");
-			assert(typeof pX ==="symbol");
-			assert(myComponentNamespace.get("pX")===pX);
-
-			// But if we try to get a new name that already exists, an exception is thrown.
-			try{
-				let pClassName = myComponentNamespace.new("pClassName");
-				assert(false);
-			}catch(e){
-				assert(/name already exists in this namespace\:\spClassName/.test(e));
-			}
-
-			// At this point, we have a new symbol, pX. Typically such symbols are used to define
-			// "private" data or methods as described above.
-			class MyComponent extends Component{
-				get x(){
-					return this[pX];
-				}
-				set x(value){
-					this.bdMutate("x", pX, value);
-				}
-			}
-
-			// Although the implementation of MyComponent is completely defined at this point,
-			// notice that MyComponent.pX does not exist, contrasting the fact that, e.g., Component.pClassName does exist.
-			assert(MyComponent.pX===undefined);
-			assert(typeof Component.pClassName==="symbol");
-
-			// Also, as a custom, Component-derived classes publish their watchable variables and event names at the
-			// locations "watchables" and "events" on the class. For example, Component defines the watchable
-			// "rendered", and the name "rendered" exists in Component.watchables.
-			assert(Component.watchables.indexOf("rendered")!==-1);
-
-			// Namespace::publish decorates a class with all of the names the namespace has defined as well as any additional
-			// names provided when publish is applied. If "watchables" and/or "events" are provided, they are treated specially
-			// and combined with the watchables and events from the base class given when the namespace was created.
-
-			myComponentNamespace.publish(MyComponent, {
-				watchables:["x"],
-				pubStaticData:"someData",
-			});
-
-			// Now MyComponent has some new names
-			assert(MyComponent.pX===pX);
-			assert(MyComponent.pubStaticData==="someData");
-
-			// Now MyComponent has all of Component's names too.
-			assert(typeof MyComponent.pClassName==="symbol");
-
-			// The watchable was published.
-			assert(MyComponent.watchables.indexOf("x")!==-1);
-
-			// And all of Component's watchables were published too.
-			assert(MyComponent.watchables.indexOf("rendered")!==-1);
-
-			// If we use MyComponent to get a new namespace, it will provide a new namespace prepopulated with MyComponent's and Component's names.
-			let anotherNamespace = MyComponent.getNamespace();
-			assert(anotherNamespace.get("pX")===pX);
-			assert(anotherNamespace.get("pX")===pX);
-			assert(anotherNamespace.get("watchables").indexOf("x")!==-1);
-			assert(anotherNamespace.get("watchables").indexOf("rendered")!==-1);
 		}]
 	]
 });

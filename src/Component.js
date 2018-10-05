@@ -1,181 +1,17 @@
-import {default as element, Element} from "./element.js";
-import {setAttr} from "./dom.js";
-import EventHub from "./EventHub.js";
+import {getPostProcessingFunction, insPostProcessingFunction} from "./postProcessingCatalog.js";
+import {Element} from "./element.js";
+import {EventHub} from "./EventHub.js";
 import {WatchHub} from "./watchUtils.js";
 
-element.insPostProcessingFunction("bdAttach",
-	function(target, source, resultIsDomNode, name){
-		if(typeof name === "function"){
-			name(source);
-		}else{
-			target[name] = source;
-			target.ownWhileRendered({
-				destroy: function(){
-					delete target[name];
-				}
-			});
-		}
-	}
-);
+let document = 0;
+let createNode = 0;
+let insertNode = 0;
 
-element.insPostProcessingFunction("bdWatch",
-	function(target, source, resultIsDomNode, watchers){
-		Reflect.ownKeys(watchers).forEach((name) => {
-			source.ownWhileRendered(source.watch(name, watchers[name]));
-		});
-	}
-);
-
-element.insPostProcessingFunction("bdExec",
-	function(target, source, resultIsDomNode, ...args){
-		for(let i = 0; i < args.length;){
-			let f = args[i++];
-			if(typeof f === "function"){
-				f(target, source);
-			}else if(typeof f === "string"){
-				if(!(typeof source[f] === "function")){
-					// eslint-disable-next-line no-console
-					console.error("unexpected");
-				}
-				if(i < args.length && Array.isArray(args[i])){
-					source[f](...args[i++], target, source);
-				}else{
-					source[f](target, source);
-				}
-			}else{
-				// eslint-disable-next-line no-console
-				console.error("unexpected");
-			}
-		}
-	}
-);
-
-element.insPostProcessingFunction("bdTitleNode",
-	function(target, source){
-		target.bdDom.titleNode = source;
-	}
-);
-
-element.insPostProcessingFunction("bdParentAttachPoint",
-	function(target, source, resultIsDomNode, propertyName){
-		// source should be a component instance and resultIsDomNode should be false
-		source[pParentAttachPoint] = propertyName;
-	}
-);
-
-element.insPostProcessingFunction("bdChildrenAttachPoint",
-	function(target, source, resultIsDomNode, value){
-		// source should be a DOM node and resultIsDomNode should be true
-		if(value){
-			target[pChildrenAttachPoint] = source;
-		}
-	}
-);
-
-element.insPostProcessingFunction("bdReflectClass",
-	function(target, source, resultIsDomNode, ...args){
-		// possibly many of the following sequences....
-		// <string>
-		// <string>, <formatter>
-		// <watchable>
-		//
-		// note that <watchable>, <formatter> works, but should not be used and is not guaranteed; instead, ensure
-		// that any required formatter is built into the watchable
-		function install(prop, formatter){
-			let watcher = formatter ?
-				(newValue, oldValue) => {
-					newValue = formatter(newValue);
-					oldValue = formatter(oldValue);
-					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
-				} :
-				(newValue, oldValue) => {
-					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
-				};
-			if(typeof prop === "string"){
-				target.addClassName(formatter ? formatter(target[prop]) : target[prop]);
-				target.ownWhileRendered(target.watch(prop, watcher));
-			}else{
-				target.addClassName(prop.value);
-				target.ownWhileRendered(prop.watch(watcher));
-			}
-		}
-
-		while(args.length){
-			install(args.shift(), typeof args[0] === "function" ? args.shift() : null);
-		}
-	}
-);
-
-element.insPostProcessingFunction("bdReflect",
-	function(target, source, resultIsDomNode, prop, formatter){
-		// <string>
-		// <string>, <formatter>
-		// <watchable>
-		let p = source.tagName === "INPUT" ? "value" : "innerHTML";
-		if(typeof prop === "string"){
-			let cValue = source[p] = formatter ? formatter(target[prop]) : target[prop];
-			let watcher = formatter ?
-				newValue => {
-					newValue = formatter(newValue);
-					if(newValue !== cValue){
-						source[p] = cValue = newValue;
-					}
-				} :
-				newValue => {
-					if(newValue !== cValue){
-						source[p] = cValue = newValue;
-					}
-				};
-			target.ownWhileRendered(target.watch(prop, watcher));
-		}else{
-			// don't need to check for newValue is different than current value since watchers already take care of that
-			source[p] = prop.value;
-			target.ownWhileRendered(prop.watch(newValue => {
-				source[p] = newValue;
-			}));
-		}
-	}
-);
-
-element.insPostProcessingFunction("bdReflectProp",
-	function(target, source, resultIsDomNode, props){
-		// props is a hash from property to one of...
-		//     <string>
-		//     <string>, <formatter>
-		//     <watchable>
-		Object.keys(props).forEach(destProp => {
-			let srcProp = props[destProp];
-			let formatter = null;
-			if(Array.isArray(srcProp)){
-				formatter = srcProp[1];
-				srcProp = srcProp[0];
-			}
-			if(typeof srcProp === "string"){
-				let cValue;
-				setAttr(source, destProp, (cValue = formatter ? formatter(target[srcProp]) : target[srcProp]));
-				let watcher = formatter ?
-					(newValue) => {
-						newValue = formatter(newValue);
-						if(cValue !== newValue){
-							setAttr(source, destProp, (cValue = newValue));
-						}
-					} :
-					(newValue) => {
-						if(cValue !== newValue){
-							setAttr(source, destProp, (cValue = newValue));
-						}
-					};
-				target.ownWhileRendered(target.watch(srcProp, watcher));
-			}else{
-				// don't need to check for newValue is different than current value since watchers already take care of that
-				setAttr(source, destProp, srcProp.value);
-				target.ownWhileRendered(srcProp.watch(newValue => {
-					setAttr(source, destProp, newValue);
-				}));
-			}
-		});
-	}
-);
+export function initialize(_document, _createNode, _insertNode){
+	document = _document;
+	createNode = _createNode;
+	insertNode = _insertNode;
+}
 
 function cleanClassName(s){
 	return s.replace(/\s{2,}/g, " ").trim();
@@ -199,7 +35,7 @@ function classValueToRegExp(v, args){
 function calcDomClassName(component){
 	let staticClassName = component.staticClassName;
 
-	let className = component[pClassName];
+	let className = component.bdClassName;
 	if(staticClassName && className){
 		return staticClassName + " " + className;
 	}else{
@@ -211,13 +47,13 @@ function addChildToDomNode(parent, domNode, child, childIsComponent){
 	if(childIsComponent){
 		let childDomRoot = child.bdDom.root;
 		if(Array.isArray(childDomRoot)){
-			childDomRoot.forEach((node) => Component.insertNode(node, domNode));
+			childDomRoot.forEach((node) => insertNode(node, domNode));
 		}else{
-			Component.insertNode(childDomRoot, domNode);
+			insertNode(childDomRoot, domNode);
 		}
 		parent.bdAdopt(child);
 	}else{
-		Component.insertNode(child, domNode);
+		insertNode(child, domNode);
 	}
 }
 
@@ -233,9 +69,9 @@ function postProcess(ppProps, owner, target, targetIsDomNode){
 	Reflect.ownKeys(ppProps).forEach((ppProp) => {
 		let args = ppProps[ppProp];
 		if(Array.isArray(args)){
-			element[ppProp](owner, target, targetIsDomNode, ...args);
+			getPostProcessingFunction(ppProp)(owner, target, targetIsDomNode, ...args);
 		}else{
-			element[ppProp](owner, target, targetIsDomNode, args);
+			getPostProcessingFunction(ppProp)(owner, target, targetIsDomNode, args);
 		}
 	});
 }
@@ -262,78 +98,10 @@ function pushHandles(dest, ...handles){
 	});
 }
 
-class Namespace {
-	// a tiny little helper class to define names as symbols in a Component hierarchy and keep a list of what's been defined
-
-	constructor(base){
-		this.base = base || null;
-		let names = this.names = new Map();
-		if(base){
-			for(const [name, value] of base.bdNamespaceCatalog.names.entries()){
-				names.set(name, value);
-			}
-		}
-	}
-
-	get(name){
-		let names = this.names;
-		if(!names.has(name)){
-			names.set(name, Symbol(name));
-		}
-		return names.get(name);
-	}
-
-	new(name){
-		let names = this.names;
-		if(names.has(name)){
-			throw new Error("name already exists in this namespace: " + name);
-		}
-		let result = Symbol(name);
-		names.set(name, result);
-		return result;
-	}
-
-	publish(dest, mix){
-		let names = this.names;
-		Reflect.ownKeys(mix).forEach(name => {
-			names.set(name, mix[name]);
-		});
-
-		names.set("watchables", (mix.watchables || []).concat((this.base && this.base.watchables) || []));
-		names.set("events", (mix.events || []).concat((this.base && this.base.events) || []));
-
-		for(const [name, value] of names.entries()){
-			if(dest.hasOwnProperty(name)){
-				throw new Error("dest already has name :" + name);
-			}
-			// not enumerable or configurable, but writable
-			Object.defineProperty(dest, name, {value: value, writable: true})
-		}
-
-		dest.bdNamespaceCatalog = this;
-	}
-}
-
-// could be done so much better with lisp macros...
-let ns = new Namespace();
-const
-	pClassName = ns.new("pClassName"),
-	pDisabled = ns.new("pDisabled"),
-	pTabIndex = ns.new("pTabIndex"),
-	pTitle = ns.new("pTitle"),
-	pParent = ns.new("pParent"),
-	pHasFocus = ns.new("pHasFocus"),
-	pOnFocus = ns.new("pOnFocus"),
-	pOnBlur = ns.new("pOnBlur"),
-	pSetClassName = ns.new("pSetClassName"),
-	pParentAttachPoint = ns.new("pParentAttachPoint"),
-	pChildrenAttachPoint = ns.new("pChildrenAttachPoint"),
-	pAttachedToDoc = ns.new("pAttachedToDoc");
-
 const ownedHandlesCatalog = new WeakMap();
 const domNodeToComponent = new Map();
 
-export default class Component extends EventHub(WatchHub()) {
+export class Component extends EventHub(WatchHub()) {
 	constructor(kwargs = {}){
 		// notice that this class requires only the per-instance data actually used by its subclass/instance
 		super();
@@ -426,19 +194,19 @@ export default class Component extends EventHub(WatchHub()) {
 				}
 
 				if(this.bdDom.tabIndexNode){
-					if(this[pTabIndex] === undefined){
-						this[pTabIndex] = this.bdDom.tabIndexNode.tabIndex;
+					if(this.bdTabIndex === undefined){
+						this.bdTabIndex = this.bdDom.tabIndexNode.tabIndex;
 					}else{
-						this.bdDom.tabIndexNode.tabIndex = this[pTabIndex];
+						this.bdDom.tabIndexNode.tabIndex = this.bdTabIndex;
 					}
-				}else if(this[pTabIndex] !== undefined){
-					(this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = this[pTabIndex];
+				}else if(this.bdTabIndex !== undefined){
+					(this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = this.bdTabIndex;
 				}
-				if(this[pTitle] !== undefined){
-					(this.bdDom.titleNode || this.bdDom.root).title = this[pTitle];
+				if(this.bdTitle !== undefined){
+					(this.bdDom.titleNode || this.bdDom.root).title = this.bdTitle;
 				}
 
-				this[this[pDisabled] ? "addClassName" : "removeClassName"]("bd-disabled");
+				this[this.bdDisabled ? "addClassName" : "removeClassName"]("bd-disabled");
 			}
 			this.ownWhileRendered(this.postRender());
 			proc && proc.call(this);
@@ -457,8 +225,8 @@ export default class Component extends EventHub(WatchHub()) {
 
 	unrender(){
 		if(this.rendered){
-			if(this[pParent]){
-				this[pParent].delChild(this, true);
+			if(this.bdParent){
+				this.bdParent.delChild(this, true);
 			}
 
 			if(this.children){
@@ -505,21 +273,21 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get parent(){
-		return this[pParent];
+		return this.bdParent;
 	}
 
 	bdAdopt(child){
-		if(child[pParent]){
+		if(child.bdParent){
 			throw new Error("unexpected");
 		}
 		(this.children || (this.children = [])).push(child);
 
-		child.bdMutate("parent", pParent, this);
-		child.bdAttachToDoc(this[pAttachedToDoc]);
+		child.bdMutate("parent", "bdParent", this);
+		child.bdAttachToDoc(this.bdAttachedToDoc);
 	}
 
 	bdAttachToDoc(value){
-		if(this.bdMutate("attachedToDoc", pAttachedToDoc, !!value)){
+		if(this.bdMutate("attachedToDoc", "bdAttachedToDoc", !!value)){
 			this.children && this.children.forEach(child => child.bdAttachToDoc(value));
 			return true;
 		}else{
@@ -528,7 +296,7 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get attachedToDoc(){
-		return !!this[pAttachedToDoc];
+		return !!this.bdAttachedToDoc;
 	}
 
 	insChild(...args){
@@ -591,15 +359,15 @@ export default class Component extends EventHub(WatchHub()) {
 				// attachPoint without a position must give a node reference
 				throw new Error("unexpected");
 			}
-		}else if(child[pParentAttachPoint]){
+		}else if(child.bdParentAttachPoint){
 			// child is telling the parent where it wants to go; this is more specific than pChildrenAttachPoint
-			if(child[pParentAttachPoint] in this){
-				attachPoint = this[child[pParentAttachPoint]];
+			if(child.bdParentAttachPoint in this){
+				attachPoint = this[child.bdParentAttachPoint];
 			}else{
 				throw new Error("unexpected");
 			}
 		}else{
-			attachPoint = this[pChildrenAttachPoint] || this.bdDom.root;
+			attachPoint = this.bdChildrenAttachPoint || this.bdDom.root;
 			if(Array.isArray(attachPoint)){
 				throw new Error("unexpected");
 			}
@@ -608,13 +376,13 @@ export default class Component extends EventHub(WatchHub()) {
 		let childRoot = child.bdDom.root;
 		if(Array.isArray(childRoot)){
 			let firstChildNode = childRoot[0];
-			unrender(Component.insertNode(firstChildNode, attachPoint, position));
+			unrender(insertNode(firstChildNode, attachPoint, position));
 			childRoot.slice(1).reduce((prevNode, node) => {
-				Component.insertNode(node, prevNode, "after");
+				insertNode(node, prevNode, "after");
 				return node;
 			}, firstChildNode);
 		}else{
-			unrender(Component.insertNode(childRoot, attachPoint, position));
+			unrender(insertNode(childRoot, attachPoint, position));
 		}
 
 		this.bdAdopt(child);
@@ -629,7 +397,7 @@ export default class Component extends EventHub(WatchHub()) {
 				node.parentNode && node.parentNode.removeChild(node);
 			};
 			Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
-			child.bdMutate("parent", pParent, null);
+			child.bdMutate("parent", "bdParent", null);
 			child.bdAttachToDoc(false);
 			this.children.splice(index, 1);
 			if(!preserve){
@@ -674,7 +442,7 @@ export default class Component extends EventHub(WatchHub()) {
 			}
 			return cleanClassName(className);
 		}else{
-			return this[pClassName] || "";
+			return this.bdClassName || "";
 		}
 	}
 
@@ -683,12 +451,12 @@ export default class Component extends EventHub(WatchHub()) {
 
 		// clean up any space sloppiness, sometimes caused by client-code algorithms that manipulate className
 		value = cleanClassName(value);
-		if(!this[pClassName]){
-			this[pSetClassName](value, "");
+		if(!this.bdClassName){
+			this.bdSetClassName(value, "");
 		}else if(!value){
-			this[pSetClassName]("", this[pClassName]);
-		}else if(value !== this[pClassName]){
-			this[pSetClassName](value, this[pClassName]);
+			this.bdSetClassName("", this.bdClassName);
+		}else if(value !== this.bdClassName){
+			this.bdSetClassName(value, this.bdClassName);
 		}
 	}
 
@@ -696,12 +464,12 @@ export default class Component extends EventHub(WatchHub()) {
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 
 		value = cleanClassName(value);
-		return (" " + (this[pClassName] || "") + " ").indexOf(value) !== -1;
+		return (" " + (this.bdClassName || "") + " ").indexOf(value) !== -1;
 	}
 
 	addClassName(...values){
-		let current = this[pClassName] || "";
-		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+		let current = this.bdClassName || "";
+		this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
 			return classValueToRegExp(value).test(className) ? className : className + value + " ";
 		}, " " + current + " ").trim(), current);
 		return this;
@@ -709,8 +477,8 @@ export default class Component extends EventHub(WatchHub()) {
 
 	removeClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		let current = this[pClassName] || "";
-		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+		let current = this.bdClassName || "";
+		this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
 			return className.replace(classValueToRegExp(value, "g"), " ");
 		}, " " + current + " ").trim(), current);
 		return this;
@@ -718,8 +486,8 @@ export default class Component extends EventHub(WatchHub()) {
 
 	toggleClassName(...values){
 		// WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-		let current = this[pClassName] || "";
-		this[pSetClassName](conditionClassNameArgs(values).reduce((className, value) => {
+		let current = this.bdClassName || "";
+		this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
 			if(classValueToRegExp(value).test(className)){
 				return className.replace(classValueToRegExp(value, "g"), " ");
 			}else{
@@ -729,9 +497,9 @@ export default class Component extends EventHub(WatchHub()) {
 		return this;
 	}
 
-	[pSetClassName](newValue, oldValue){
+	bdSetClassName(newValue, oldValue){
 		if(newValue !== oldValue){
-			this[pClassName] = newValue;
+			this.bdClassName = newValue;
 			if(this.rendered){
 				this.bdDom.root.setAttribute("class", calcDomClassName(this));
 			}
@@ -744,18 +512,18 @@ export default class Component extends EventHub(WatchHub()) {
 		}
 	}
 
-	[pOnFocus](){
+	bdOnFocus(){
 		this.addClassName("bd-focused");
-		this.bdMutate("hasFocus", pHasFocus, true);
+		this.bdMutate("hasFocus", "bdHadFocus", true);
 	}
 
-	[pOnBlur](){
+	bdOnBlur(){
 		this.removeClassName("bd-focused");
-		this.bdMutate("hasFocus", pHasFocus, false);
+		this.bdMutate("hasFocus", "bdHadFocus", false);
 	}
 
 	get hasFocus(){
-		return !!this[pHasFocus];
+		return !!this.bdHasFocus;
 	}
 
 	focus(){
@@ -766,10 +534,10 @@ export default class Component extends EventHub(WatchHub()) {
 
 	get tabIndex(){
 		if(this.rendered){
-			// unconditionally make sure this[pTabIndex] and the dom is synchronized on each get
-			return (this[pTabIndex] = (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex);
+			// unconditionally make sure this.bdTabIndex and the dom is synchronized on each get
+			return (this.bdTabIndex = (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex);
 		}else{
-			return this[pTabIndex];
+			return this.bdTabIndex;
 		}
 	}
 
@@ -777,14 +545,14 @@ export default class Component extends EventHub(WatchHub()) {
 		if(!value && value !== 0){
 			value = "";
 		}
-		if(value !== this[pTabIndex]){
+		if(value !== this.bdTabIndex){
 			this.rendered && ((this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = value);
-			this.bdMutate("tabIndex", pTabIndex, value);
+			this.bdMutate("tabIndex", "bdTabIndex", value);
 		}
 	}
 
 	get enabled(){
-		return !this[pDisabled];
+		return !this.bdDisabled;
 	}
 
 	set enabled(value){
@@ -792,13 +560,13 @@ export default class Component extends EventHub(WatchHub()) {
 	}
 
 	get disabled(){
-		return !!this[pDisabled];
+		return !!this.bdDisabled;
 	}
 
 	set disabled(value){
 		value = !!value;
-		if(this[pDisabled] !== value){
-			this[pDisabled] = value;
+		if(this.bdDisabled !== value){
+			this.bdDisabled = value;
 			this.bdMutateNotify([["disabled", !value, value], ["enabled", value, !value]]);
 			this[value ? "addClassName" : "removeClassName"]("bd-disabled");
 		}
@@ -825,12 +593,12 @@ export default class Component extends EventHub(WatchHub()) {
 		if(this.rendered){
 			return (this.bdDom.titleNode || this.bdDom.root).title;
 		}else{
-			return this[pTitle];
+			return this.bdTitle;
 		}
 	}
 
 	set title(value){
-		if(this.bdMutate("title", pTitle, value)){
+		if(this.bdMutate("title", "bdTitle", value)){
 			this.rendered && ((this.bdDom.titleNode || this.bdDom.root).title = value);
 		}
 	}
@@ -858,7 +626,7 @@ export default class Component extends EventHub(WatchHub()) {
 					}
 				}
 			}else{
-				let domNode = result = Component.createNode(type, ctorProps);
+				let domNode = result = createNode(type, ctorProps);
 				if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
 					owner.bdDom.tabIndexNode = domNode;
 				}
@@ -878,14 +646,10 @@ export default class Component extends EventHub(WatchHub()) {
 			return document.createTextNode(e);
 		}
 	}
-
-	static getNamespace(){
-		return new Namespace(this);
-	}
 }
 
-function withWatchables(superClass, ...args){
-	let result, prototype;
+export function withWatchables(superClass, ...args){
+	let prototype;
 	let publicPropNames = [];
 
 	function def(name){
@@ -916,33 +680,154 @@ function withWatchables(superClass, ...args){
 		});
 	}
 
-	if(typeof superClass === "function"){
-		result = class extends superClass {
-			constructor(kwargs = {}){
-				super(kwargs);
-				init(this, kwargs);
-			}
-		};
-		prototype = result.prototype;
-	}else{
-		result = class extends Component {
-			constructor(kwargs = {}){
-				super(kwargs);
-				init(this, kwargs);
-			}
-		};
-		prototype = result.prototype;
-		def(superClass);
-	}
+	let result = class extends superClass {
+		constructor(kwargs){
+			super(kwargs || {});
+			init(this, kwargs);
+		}
+	};
+	prototype = result.prototype;
 	args.forEach(def);
 	return result;
 }
 
-ns.publish(Component, {
-	watchables: ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"],
-	withWatchables: withWatchables
-});
+Component.watchables = ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"];
+Component.events = [];
+Component.withWatchables = (...args) => withWatchables(Component, ...args);
 
+insPostProcessingFunction("bdAttach",
+	function(target, source, resultIsDomNode, name){
+		if(typeof name === "function"){
+			name(source);
+		}else{
+			target[name] = source;
+			target.ownWhileRendered({
+				destroy: function(){
+					delete target[name];
+				}
+			});
+		}
+	}
+);
+
+insPostProcessingFunction("bdWatch",
+	function(target, source, resultIsDomNode, watchers){
+		Reflect.ownKeys(watchers).forEach((name) => {
+			source.ownWhileRendered(source.watch(name, watchers[name]));
+		});
+	}
+);
+
+insPostProcessingFunction("bdExec",
+	function(target, source, resultIsDomNode, ...args){
+		for(let i = 0; i < args.length;){
+			let f = args[i++];
+			if(typeof f === "function"){
+				f(target, source);
+			}else if(typeof f === "string"){
+				if(!(typeof source[f] === "function")){
+					// eslint-disable-next-line no-console
+					console.error("unexpected");
+				}
+				if(i < args.length && Array.isArray(args[i])){
+					source[f](...args[i++], target, source);
+				}else{
+					source[f](target, source);
+				}
+			}else{
+				// eslint-disable-next-line no-console
+				console.error("unexpected");
+			}
+		}
+	}
+);
+
+insPostProcessingFunction("bdTitleNode",
+	function(target, source){
+		target.bdDom.titleNode = source;
+	}
+);
+
+insPostProcessingFunction("bdParentAttachPoint",
+	function(target, source, resultIsDomNode, propertyName){
+		// source should be a component instance and resultIsDomNode should be false
+		source.bdParentAttachPoint = propertyName;
+	}
+);
+
+insPostProcessingFunction("bdChildrenAttachPoint",
+	function(target, source, resultIsDomNode, value){
+		// source should be a DOM node and resultIsDomNode should be true
+		if(value){
+			target.bdChildrenAttachPoint = source;
+		}
+	}
+);
+
+insPostProcessingFunction("bdReflectClass",
+	function(target, source, resultIsDomNode, ...args){
+		// possibly many of the following sequences....
+		// <string>
+		// <string>, <formatter>
+		// <watchable>
+		//
+		// note that <watchable>, <formatter> works, but should not be used and is not guaranteed; instead, ensure
+		// that any required formatter is built into the watchable
+		function install(prop, formatter){
+			let watcher = formatter ?
+				(newValue, oldValue) => {
+					newValue = formatter(newValue);
+					oldValue = formatter(oldValue);
+					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
+				} :
+				(newValue, oldValue) => {
+					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
+				};
+			if(typeof prop === "string"){
+				target.addClassName(formatter ? formatter(target[prop]) : target[prop]);
+				target.ownWhileRendered(target.watch(prop, watcher));
+			}else{
+				target.addClassName(prop.value);
+				target.ownWhileRendered(prop.watch(watcher));
+			}
+		}
+
+		while(args.length){
+			install(args.shift(), typeof args[0] === "function" ? args.shift() : null);
+		}
+	}
+);
+
+insPostProcessingFunction("bdReflect",
+	function(target, source, resultIsDomNode, prop, formatter){
+		// <string>
+		// <string>, <formatter>
+		// <watchable>
+		let p = source.tagName === "INPUT" ? "value" : "innerHTML";
+		if(typeof prop === "string"){
+			let cValue = source[p] = formatter ? formatter(target[prop]) : target[prop];
+			let watcher = formatter ?
+				newValue => {
+					newValue = formatter(newValue);
+					if(newValue !== cValue){
+						source[p] = cValue = newValue;
+					}
+				} :
+				newValue => {
+					if(newValue !== cValue){
+						source[p] = cValue = newValue;
+					}
+				};
+			target.ownWhileRendered(target.watch(prop, watcher));
+		}else{
+			// don't need to check for newValue is different than current value since watchers already take care of that
+			source[p] = prop.value;
+			target.ownWhileRendered(prop.watch(newValue => {
+				source[p] = newValue;
+			}));
+		}
+	}
+);
 
 function isComponentDerivedCtor(f){
 	return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
@@ -1055,13 +940,13 @@ export function render(...args){
 		let root = result.bdDom.root;
 		if(Array.isArray(root)){
 			let firstChildNode = root[0];
-			unrender(Component.insertNode(firstChildNode, attachPoint, position));
+			unrender(insertNode(firstChildNode, attachPoint, position));
 			root.slice(1).reduce((prevNode, node) => {
-				Component.insertNode(node, prevNode, "after");
+				insertNode(node, prevNode, "after");
 				return node;
 			}, firstChildNode);
 		}else{
-			unrender(Component.insertNode(root, attachPoint, position));
+			unrender(insertNode(root, attachPoint, position));
 		}
 		result.bdAttachToDoc(document.body.contains(attachPoint));
 	}
