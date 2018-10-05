@@ -1,6 +1,7 @@
 import {default as element, Element} from "./element.js";
+import {setAttr} from "./dom.js";
 import EventHub from "./EventHub.js";
-import WatchHub from "./WatchHub.js";
+import {WatchHub} from "./watchUtils.js";
 
 element.insPostProcessingFunction("bdAttach",
 	function(target, source, resultIsDomNode, name){
@@ -118,18 +119,26 @@ element.insPostProcessingFunction("bdReflect",
 		// <watchable>
 		let p = source.tagName === "INPUT" ? "value" : "innerHTML";
 		if(typeof prop === "string"){
-			source[p] = formatter ? formatter(target[prop]) : target[prop];
+			let cValue = source[p] = formatter ? formatter(target[prop]) : target[prop];
 			let watcher = formatter ?
 				newValue => {
-					source[p] = formatter(newValue);
+					newValue = formatter(newValue);
+					if(newValue !== cValue){
+						source[p] = cValue = newValue;
+					}
 				} :
 				newValue => {
-					source[p] = newValue;
+					if(newValue !== cValue){
+						source[p] = cValue = newValue;
+					}
 				};
 			target.ownWhileRendered(target.watch(prop, watcher));
 		}else{
+			// don't need to check for newValue is different than current value since watchers already take care of that
 			source[p] = prop.value;
-			target.ownWhileRendered(prop.watch(newValue => (source[p] = newValue)));
+			target.ownWhileRendered(prop.watch(newValue => {
+				source[p] = newValue;
+			}));
 		}
 	}
 );
@@ -148,18 +157,27 @@ element.insPostProcessingFunction("bdReflectProp",
 				srcProp = srcProp[0];
 			}
 			if(typeof srcProp === "string"){
-				source[destProp] = formatter ? formatter(target[srcProp]) : target[srcProp];
+				let cValue;
+				setAttr(source, destProp, (cValue = formatter ? formatter(target[srcProp]) : target[srcProp]));
 				let watcher = formatter ?
 					(newValue) => {
-						source[destProp] = formatter(newValue);
+						newValue = formatter(newValue);
+						if(cValue !== newValue){
+							setAttr(source, destProp, (cValue = newValue));
+						}
 					} :
 					(newValue) => {
-						source[destProp] = newValue;
+						if(cValue !== newValue){
+							setAttr(source, destProp, (cValue = newValue));
+						}
 					};
 				target.ownWhileRendered(target.watch(srcProp, watcher));
 			}else{
-				source[destProp] = srcProp.value;
-				target.ownWhileRendered(srcProp.watch(newValue => (source[destProp] = newValue)));
+				// don't need to check for newValue is different than current value since watchers already take care of that
+				setAttr(source, destProp, srcProp.value);
+				target.ownWhileRendered(srcProp.watch(newValue => {
+					setAttr(source, destProp, newValue);
+				}));
 			}
 		});
 	}
@@ -402,10 +420,10 @@ export default class Component extends EventHub(WatchHub()) {
 				if(this.id){
 					root.id = this.id;
 				}
-				this.addClassName(root.className);
+				this.addClassName(root.getAttribute("class") || "");
 				let className = calcDomClassName(this);
 				if(className){
-					root.className = className;
+					root.setAttribute("class", className);
 				}
 
 				if(this.bdDom.tabIndexNode){
@@ -705,7 +723,7 @@ export default class Component extends EventHub(WatchHub()) {
 		if(newValue !== oldValue){
 			this[pClassName] = newValue;
 			if(this.rendered){
-				this.bdDom.root.className = calcDomClassName(this);
+				this.bdDom.root.setAttribute("class", calcDomClassName(this));
 			}
 			this.bdMutateNotify("className", oldValue, newValue);
 			let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
