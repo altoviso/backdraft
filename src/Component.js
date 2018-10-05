@@ -223,7 +223,7 @@ function addChildToDomNode(parent, domNode, child, childIsComponent){
 
 function validateElements(elements){
 	if(Array.isArray(elements)){
-		elements.forEach(e => validateElements);
+		elements.forEach(validateElements);
 	}else if(elements.isComponentType){
 		throw new Error("Illegal: root element(s) for a Component cannot be Components");
 	}
@@ -409,10 +409,7 @@ export default class Component extends EventHub(WatchHub()) {
 	){
 		if(!this.bdDom){
 			let dom = this.bdDom = this._dom = {};
-			if(this._elements){
-				console.warn("Component::_elements is deprecated; it has been renamed to Component::bdElements")
-			}
-			let elements = (this._elements && this._elements()) || this.bdElements();
+			let elements = this.bdElements();
 			validateElements(elements);
 			let root = dom.root = this.constructor.renderElements(this, elements);
 			if(Array.isArray(root)){
@@ -763,7 +760,7 @@ export default class Component extends EventHub(WatchHub()) {
 
 	focus(){
 		if(this.bdDom){
-			(this.bdDom.tabIndexNode || this.bdDom.root).focus()
+			(this.bdDom.tabIndexNode || this.bdDom.root).focus();
 		}
 	}
 
@@ -909,7 +906,7 @@ function decodeRender(args){
 	//     an instance property that holds the node
 	//
 	//     1. render(e:Element)
-	//     => isComponentDerivedCtor(e.type), then render e.type(e.props); render Component({elements:e})
+	//     => isComponentDerivedCtor(e.type), then render e.type(e.props); otherwise, render Component({elements:e})
 	//
 	//     2. render(e:Element, node:domNode[, position:Position="last"])
 	// 	   => [1] with attach information
