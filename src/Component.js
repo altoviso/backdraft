@@ -562,6 +562,11 @@ export default class Component extends EventHub(WatchHub()) {
 			if(attachPoint in this){
 				// node reference
 				attachPoint = this[attachPoint];
+			}else if(typeof attachPoint==="string"){
+				attachPoint = document.getElementById(attachPoint);
+				if(!attachPoint){
+					throw new Error("unexpected");
+				}
 			}else if(position !== undefined){
 				// attachPoint must be a child Component
 				let index = this.children ? this.children.indexOf(attachPoint) : -1;
@@ -988,6 +993,10 @@ export function render(...args){
 	}else{ // src instanceof Component
 		result = src;
 		result.render();
+	}
+
+	if(typeof attachPoint === "string"){
+		attachPoint = document.getElementById(attachPoint);
 	}
 
 	if(attachPoint){
