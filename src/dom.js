@@ -447,6 +447,15 @@ insPostProcessingFunction("bdReflectProp",
 		//     <string>
 		//     <string>, <formatter>
 		//     <watchable>
+
+		function set(prop, value){
+			if(source instanceof Component){
+				source[prop] = value;
+			}else{
+				setAttr(source, prop, value);
+			}
+		}
+
 		Object.keys(props).forEach(destProp => {
 			let srcProp = props[destProp];
 			let formatter = null;
@@ -456,25 +465,25 @@ insPostProcessingFunction("bdReflectProp",
 			}
 			if(typeof srcProp === "string"){
 				let cValue;
-				setAttr(source, destProp, (cValue = formatter ? formatter(target[srcProp]) : target[srcProp]));
+				set(destProp, (cValue = formatter ? formatter(target[srcProp]) : target[srcProp]));
 				let watcher = formatter ?
 					(newValue) => {
 						newValue = formatter(newValue);
 						if(cValue !== newValue){
-							setAttr(source, destProp, (cValue = newValue));
+							set(destProp, (cValue = newValue));
 						}
 					} :
 					(newValue) => {
 						if(cValue !== newValue){
-							setAttr(source, destProp, (cValue = newValue));
+							set(destProp, (cValue = newValue));
 						}
 					};
 				target.ownWhileRendered(target.watch(srcProp, watcher));
 			}else{
 				// don't need to check for newValue is different than current value since watchers already take care of that
-				setAttr(source, destProp, srcProp.value);
+				set(destProp, srcProp.value);
 				target.ownWhileRendered(srcProp.watch(newValue => {
-					setAttr(source, destProp, newValue);
+					set(destProp, newValue);
 				}));
 			}
 		});
