@@ -36,6 +36,16 @@ function setAttr(node, name, value){
 	}
 }
 
+
+function getAttr(node, name){
+	node = normalizeNodeArg(node);
+	if(name in node && node instanceof HTMLElement){
+		return node[name];
+	}else{
+		return node.getAttribute(name);
+	}
+}
+
 let lastComputedStyleNode = 0;
 let lastComputedStyle = 0;
 
