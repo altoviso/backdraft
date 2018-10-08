@@ -224,15 +224,16 @@ function mutate(owner, name, privateName, newValue){
 	if(eq){
 		return false;
 	}else{
-		let onMutate = owner[name + "OnMutate"];
-		onMutate && onMutate.call(owner, newValue, oldValue, true);
+		let onMutateBefore = owner[name + "OnMutateBefore"];
+		onMutateBefore && onMutateBefore.call(owner, newValue, oldValue);
 		if(owner.hasOwnProperty(privateName)){
 			owner[privateName] = newValue;
 		}else{
 			// not enumerable or configurable
 			Object.defineProperty(owner, privateName, {writable: true, value: newValue});
 		}
-		onMutate && onMutate.call(owner, newValue, oldValue, true);
+		let onMutate = owner[name + "OnMutate"];
+		onMutate && onMutate.call(owner, newValue, oldValue);
 		return [name, oldValue, newValue];
 	}
 }
