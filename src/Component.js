@@ -648,7 +648,6 @@ export class Component extends EventHub(WatchHub()) {
 	}
 }
 
-
 Component.watchables = ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"];
 Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
@@ -668,7 +667,7 @@ insPostProcessingFunction("bdAttach",
 	}
 );
 
-insPostProcessingFunction("bdWatch",
+insPostProcessingFunction("bdWatch", true,
 	function(target, source, resultIsDomNode, watchers){
 		Reflect.ownKeys(watchers).forEach((name) => {
 			source.ownWhileRendered(source.watch(name, watchers[name]));
@@ -885,7 +884,4 @@ export function render(...args){
 	}
 	return result;
 }
-
-
-
 

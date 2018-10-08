@@ -501,7 +501,8 @@ insPostProcessingFunction("bdReflect",
 	}
 );
 
-insPostProcessingFunction("bdAdvise",
+insPostProcessingFunction("bdAdvise", true,
+	// RCG: TODO, resultIsDomNode?
 	function(target, source, resultIsDomNode, listeners){
 		Reflect.ownKeys(listeners).forEach((name) => {
 			let listener = listeners[name];
@@ -512,7 +513,7 @@ insPostProcessingFunction("bdAdvise",
 		});
 	}
 );
-
+insPostProcessingFunction("bdAdvise", "bdOn");
 
 export {
 	getAttributeValueFromEvent,
