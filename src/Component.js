@@ -9,8 +9,8 @@ let insertNode = 0;
 
 export function initialize(_document, _createNode, _insertNode){
 	document = _document;
-	createNode = _createNode;
-	insertNode = _insertNode;
+	Component.createNode = createNode = _createNode;
+	Component.insertNode = insertNode = _insertNode;
 }
 
 function cleanClassName(s){
