@@ -46,10 +46,24 @@ export class Element {
 					let ctorProps = {};
 					let ppProps = {};
 					let ppPropCount = 0;
-					Reflect.ownKeys(props).forEach((k) => {
-						if(getPostProcessingFunction(k)){
+					let match, ppf;
+					let setPpProps = (ppKey, value)=>{
+						if(ppProps[ppKey]){
+							let dest = ppProps[ppKey];
+							Reflect.ownKeys(value).forEach(k => dest[k] = value[k]);
+						}else{
 							ppPropCount++;
-							ppProps[k] = props[k];
+							ppProps[ppKey] = value;
+						}
+					};
+					Reflect.ownKeys(props).forEach((k) => {
+						if((ppf = getPostProcessingFunction(k))){
+							let value = ppf.bdTransform(null, props[k]);
+							setPpProps(k, value);
+						}else if((match = k.match(/^([A-Za-z0-9$]+)_(.+)$/)) && (ppf = getPostProcessingFunction(match[1]))){
+							let ppKey = match[1];
+							let value = ppf.bdTransform(match[2], props[k]);
+							setPpProps(ppKey, value);
 						}else{
 							ctorProps[k] = props[k];
 						}
