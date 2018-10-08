@@ -5,7 +5,7 @@ const STAR = Symbol("star");
 const OWNER = Symbol("owner");
 const OWNER_NULL = Symbol("owner-null");
 const PROP = Symbol("prop");
-const UNKNOWN = Symbol("unknown");
+const UNKNOWN_OLD_VALUE = Symbol("unknown-old-value");
 
 const pWatchableWatchers = Symbol("pWatchableWatchers");
 const pWatchableHandles = Symbol("pWatchableHandles");
@@ -13,10 +13,21 @@ const pWatchableSetup = Symbol("pWatchableSetup");
 
 class Watchable {
 	constructor(owner, prop, formatter){
-		let getter = owner[OWNER] && prop === STAR ? () => owner : () => owner[prop];
 		Object.defineProperty(this, "value", {
 			enumerable: true,
-			get: formatter ? (() => formatter(getter())) : getter
+			get: (function(){
+				if(formatter){
+					if(prop === STAR){
+						return () => formatter(owner);
+					}else{
+						return () => formatter(owner[prop]);
+					}
+				}else if(prop === STAR){
+					return () => owner;
+				}else{
+					return () => owner[prop];
+				}
+			})()
 		});
 
 		// if (owner[OWNER] && prop === STAR), then we cValue===newValue===owner...
@@ -28,10 +39,10 @@ class Watchable {
 		let cValue;
 		let callback = (newValue, oldValue, target, prop) => {
 			if(formatter){
-				oldValue = oldValue === UNKNOWN ? oldValue : formatter(oldValue);
+				oldValue = oldValue === UNKNOWN_OLD_VALUE ? oldValue : formatter(oldValue);
 				newValue = formatter(newValue);
 			}
-			if(cannotDetectMutations || oldValue === UNKNOWN || newValue !== cValue){
+			if(cannotDetectMutations || oldValue === UNKNOWN_OLD_VALUE || newValue !== cValue){
 				this[pWatchableWatchers].slice().forEach(destroyable => destroyable.proc((cValue = newValue), oldValue, target, prop));
 			}
 		};
@@ -41,7 +52,7 @@ class Watchable {
 			if(owner[OWNER]){
 				this[pWatchableHandles] = [watch(owner, prop, (newValue, oldValue, receiver, _prop) => {
 					if(prop === STAR){
-						callback(owner, UNKNOWN, owner, _prop);
+						callback(owner, UNKNOWN_OLD_VALUE, owner, _prop);
 					}else{
 						callback(newValue, oldValue, owner, _prop);
 					}
@@ -56,7 +67,7 @@ class Watchable {
 						if(newValue[OWNER]){
 							// value is a watchable
 							this[pWatchableHandles].push(watch(newValue, (newValue, oldValue, receiver, prop) => {
-								callback(receiver, UNKNOWN, owner, prop);
+								callback(receiver, UNKNOWN_OLD_VALUE, owner, prop);
 							}));
 						}
 					})
@@ -65,7 +76,7 @@ class Watchable {
 				if(value && value[OWNER]){
 					// value is a watchable
 					this[pWatchableHandles].push(watch(value, (newValue, oldValue, receiver, prop) => {
-						callback(receiver, UNKNOWN, owner, prop);
+						callback(receiver, UNKNOWN_OLD_VALUE, owner, prop);
 					}));
 				}
 				owner.own && owner.own(this);
@@ -91,18 +102,20 @@ class Watchable {
 Watchable.pWatchableWatchers = pWatchableWatchers;
 Watchable.pWatchableHandles = pWatchableHandles;
 Watchable.pWatchableSetup = pWatchableSetup;
-Watchable.UNKNOWN = UNKNOWN;
+Watchable.UNKNOWN_OLD_VALUE = UNKNOWN_OLD_VALUE;
 
-function watchable(owner, prop, formatter){
+function getWatchable(owner, prop, formatter){
+	// (owner, prop, formatter)
+	// (owner, prop)
+	// (owner, formatter) => (owner, STAR, formatter)
+	// (owner) => (owner, STAR)
 	if(typeof prop === "function"){
 		// no prop,...star watcher
 		formatter = prop;
 		prop = STAR;
 	}
-	return new Watchable(owner, prop, formatter);
+	return new Watchable(owner, prop || STAR, formatter);
 }
-
-watchable.UNKNOWN = UNKNOWN;
 
 function watch(watchable, name, watcher){
 	if(typeof name === "function"){
@@ -137,7 +150,7 @@ function applyWatchers(newValue, oldValue, receiver, name){
 			(watchers = catalog[STAR]) && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, prop));
 		}else{
 			let watchers = catalog[STAR];
-			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, UNKNOWN, receiver, name));
+			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, UNKNOWN_OLD_VALUE, receiver, name));
 		}
 	}
 	if(watch.log){
@@ -239,7 +252,8 @@ function mutate(owner, name, privateName, newValue){
 }
 
 function WatchHub(superClass){
-	return class extends (superClass || class{}) {
+	return class extends (superClass || class {
+	}) {
 		// protected interface...
 		bdMutateNotify(name, oldValue, newValue){
 			let variables = watcherCatalog.get(this);
@@ -398,8 +412,16 @@ function withWatchables(superClass, ...args){
 	return result;
 }
 
+function bind(src1, prop1, src2, prop2){
+	src1.watch(prop1, newValue => src2[prop2] = newValue);
+}
 
-export {UNKNOWN, Watchable, watchable, watch, toWatchable, WatchHub, isWatchable, withWatchables};
+function biBind(src1, prop1, src2, prop2){
+	src1.watch(prop1, newValue => src2[prop2] = newValue);
+	src2.watch(prop2, newValue => src1[prop1] = newValue);
+}
+
+export {UNKNOWN_OLD_VALUE, Watchable, getWatchable, watch, toWatchable, WatchHub, isWatchable, withWatchables, bind, biBind};
 
 
 
