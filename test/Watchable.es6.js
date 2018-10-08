@@ -1,4 +1,4 @@
-import {watchable, watch, toWatchable} from "../lib.js";
+import {watch, toWatchable} from "../lib.js";
 
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;

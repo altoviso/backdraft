@@ -119,7 +119,7 @@ smoke.defTest({
 			// if props doesn't have any ctorProps, then ctorProps isn't defined
 			props = {bdReflectClass: "label"};
 			e = new Element("div", props);
-			assert(e.hasOwnProperty("ctorProps"));;
+			assert(e.hasOwnProperty("ctorProps"));
 			assert(e.ppProps.bdReflectClass === "label");
 
 			// and no ctorProps nor ppProps on props, then neither is defined
