@@ -32,6 +32,7 @@
 		["Component", "./test/Component.es6.js"],
 		["post-processing", "./test/post-processing.es6.js"],
 		["render", "./test/render.es6.js"],
+		["watchable", "./test/watchable.es6.js"],
 		["log-assert-count", "./test/log-assert-count.js"]
 	];
 
