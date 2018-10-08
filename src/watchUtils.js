@@ -353,7 +353,52 @@ function isWatchable(target){
 	return target && target[OWNER] || target.watch;
 }
 
-export {Watchable, watchable, watch, toWatchable, WatchHub, isWatchable, UNKNOWN};
+
+function withWatchables(superClass, ...args){
+	let prototype;
+	let publicPropNames = [];
+
+	function def(name){
+		let pname;
+		if(Array.isArray(name)){
+			pname = name[1];
+			name = name[0];
+		}else{
+			pname = "_" + name;
+		}
+		publicPropNames.push(name);
+		Object.defineProperty(prototype, name, {
+			enumerable: true,
+			get: function(){
+				return this[pname];
+			},
+			set: function(value){
+				this.bdMutate(name, pname, value);
+			}
+		});
+	}
+
+	function init(owner, kwargs){
+		publicPropNames.forEach(name => {
+			if(kwargs.hasOwnProperty(name)){
+				owner[name] = kwargs[name];
+			}
+		});
+	}
+
+	let result = class extends superClass {
+		constructor(kwargs){
+			super(kwargs || {});
+			init(this, kwargs);
+		}
+	};
+	prototype = result.prototype;
+	args.forEach(def);
+	return result;
+}
+
+
+export {UNKNOWN, Watchable, watchable, watch, toWatchable, WatchHub, isWatchable, withWatchables};
 
 
 

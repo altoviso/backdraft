@@ -1,7 +1,7 @@
 import {getPostProcessingFunction, insPostProcessingFunction} from "./postProcessingCatalog.js";
 import {Element} from "./element.js";
 import {EventHub} from "./EventHub.js";
-import {WatchHub} from "./watchUtils.js";
+import {WatchHub, withWatchables} from "./watchUtils.js";
 
 let document = 0;
 let createNode = 0;
@@ -648,48 +648,6 @@ export class Component extends EventHub(WatchHub()) {
 	}
 }
 
-export function withWatchables(superClass, ...args){
-	let prototype;
-	let publicPropNames = [];
-
-	function def(name){
-		let pname;
-		if(Array.isArray(name)){
-			pname = name[1];
-			name = name[0];
-		}else{
-			pname = "_" + name;
-		}
-		publicPropNames.push(name);
-		Object.defineProperty(prototype, name, {
-			enumerable: true,
-			get: function(){
-				return this[pname];
-			},
-			set: function(value){
-				this.bdMutate(name, pname, value);
-			}
-		});
-	}
-
-	function init(owner, kwargs){
-		publicPropNames.forEach(name => {
-			if(kwargs.hasOwnProperty(name)){
-				owner[name] = kwargs[name];
-			}
-		});
-	}
-
-	let result = class extends superClass {
-		constructor(kwargs){
-			super(kwargs || {});
-			init(this, kwargs);
-		}
-	};
-	prototype = result.prototype;
-	args.forEach(def);
-	return result;
-}
 
 Component.watchables = ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"];
 Component.events = [];
