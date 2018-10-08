@@ -1,7 +1,7 @@
 import {getPostProcessingFunction, insPostProcessingFunction} from "./postProcessingCatalog.js";
 import {Element} from "./element.js";
 import {EventHub} from "./EventHub.js";
-import {WatchHub, withWatchables} from "./watchUtils.js";
+import {WatchHub, withWatchables, getWatchable} from "./watchUtils.js";
 
 let document = 0;
 let createNode = 0;
@@ -724,72 +724,40 @@ insPostProcessingFunction("bdChildrenAttachPoint",
 
 insPostProcessingFunction("bdReflectClass",
 	function(target, source, resultIsDomNode, ...args){
-		// possibly many of the following sequences....
-		// <string>
-		// <string>, <formatter>
-		// <watchable>
-		//
-		// note that <watchable>, <formatter> works, but should not be used and is not guaranteed; instead, ensure
-		// that any required formatter is built into the watchable
+		// args is a list of ([owner, ] property, [, formatter])...
+		// very much like bdReflect, except we're adding/removing components (words) from this.classname
 
 		function normalize(value){
 			return !value ? "" : value + "";
 		}
 
-		function install(prop, formatter){
-			let watcher = formatter ?
-				(newValue, oldValue) => {
-					newValue = normalize(formatter(newValue));
-					oldValue = normalize(formatter(oldValue));
-					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
-				} :
-				(newValue, oldValue) => {
-					newValue = normalize(newValue);
-					oldValue = normalize(oldValue);
-					newValue !== oldValue && target.removeClassName(oldValue).addClassName(newValue);
-				};
-			if(typeof prop === "string"){
-				target.addClassName(normalize(formatter ? formatter(target[prop]) : target[prop]));
-				target.ownWhileRendered(target.watch(prop, watcher));
-			}else{
-				target.addClassName(normalize(prop.value));
-				target.ownWhileRendered(prop.watch(watcher));
-			}
-		}
+		function install(owner, prop, formatter){
+			let watchable = getWatchable(owner, prop, formatter);
+			target.ownWhileRendered(watchable);
+			let value = normalize(watchable.value);
+			value && target.addClassName(value);
+			target.ownWhileRendered(watchable.watch((newValue, oldValue) => {
+				newValue = normalize(newValue);
+				oldValue = normalize(oldValue);
+				if(newValue !== oldValue){
+					oldValue && target.removeClassName(oldValue);
+					newValue && target.addClassName(newValue);
 
-		while(args.length){
-			install(args.shift(), typeof args[0] === "function" ? args.shift() : null);
-		}
-	}
-);
-
-insPostProcessingFunction("bdReflect",
-	function(target, source, resultIsDomNode, prop, formatter){
-		// <string>
-		// <string>, <formatter>
-		// <watchable>
-		let p = source.tagName === "INPUT" ? "value" : "innerHTML";
-		if(typeof prop === "string"){
-			let cValue = source[p] = formatter ? formatter(target[prop]) : target[prop];
-			let watcher = formatter ?
-				newValue => {
-					newValue = formatter(newValue);
-					if(newValue !== cValue){
-						source[p] = cValue = newValue;
-					}
-				} :
-				newValue => {
-					if(newValue !== cValue){
-						source[p] = cValue = newValue;
-					}
-				};
-			target.ownWhileRendered(target.watch(prop, watcher));
-		}else{
-			// don't need to check for newValue is different than current value since watchers already take care of that
-			source[p] = prop.value;
-			target.ownWhileRendered(prop.watch(newValue => {
-				source[p] = newValue;
+				}
 			}));
+		}
+
+		args = args.slice();
+		let owner, prop;
+		while(args.length){
+			owner = args.shift();
+			if(typeof owner === "string" || typeof owner === "symbol"){
+				prop = owner;
+				owner = target;
+			}else{
+				prop = args.shift();
+			}
+			install(owner, prop, typeof args[0] === "function" ? args.shift() : null);
 		}
 	}
 );

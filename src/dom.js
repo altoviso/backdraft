@@ -1,4 +1,5 @@
 import {EventHub} from "./EventHub.js";
+import {getWatchable} from "./watchUtils.js";
 import {Component} from "./Component.js";
 import {insPostProcessingFunction} from "./postProcessingCatalog.js";
 
@@ -28,7 +29,7 @@ function setAttr(node, name, value){
 	}else{
 		if(name === "style"){
 			setStyle(node, value);
-		}else if(name in node && node instanceof HTMLElement){
+		}else if(name==="innerHTML" || (name in node && node instanceof HTMLElement)){
 			node[name] = value;
 		}else{
 			node.setAttribute(name, value);
@@ -451,50 +452,50 @@ connect(window, "resize", function(e){
 }, true);
 
 
-insPostProcessingFunction("bdReflectProp",
+insPostProcessingFunction("bdReflect",
+	function(prop, value){
+		if(prop===null && value instanceof Object && !Array.isArray(value)){
+			// e.g., bdReflect:{p1:"someProp", p2:[owner, "someOtherProp", someFormatter]}
+			return value;
+		}else{
+			// e.g., if(prop) => bdReflect_someProp: ...
+			// if(!prop) bdReflect: ...
+			return prop ? {[prop]: value} : {innerHTML: value};
+		}
+	},
 	function(target, source, resultIsDomNode, props){
-		// props is a hash from property to one of...
-		//     <string>
-		//     <string>, <formatter>
-		//     <watchable>
-
-		function set(prop, value){
-			if(source instanceof Component){
-				source[prop] = value;
-			}else{
-				setAttr(source, prop, value);
-			}
+		// props is a hash from property in source to a list of ([owner, ] property, [, formatter])...
+		let install, watchable;
+		if(source instanceof Component){
+			install = function(destProp, owner, prop, formatter){
+				target.ownWhileRendered((watchable = getWatchable(owner, prop, formatter)));
+				source[destProp] = watchable.value;
+				target.ownWhileRendered(watchable.watch(newValue => {
+					source[destProp] = newValue;
+				}));
+			};
+		}else{
+			install = function(destProp, owner, prop, formatter){
+				target.ownWhileRendered((watchable = getWatchable(owner, prop, formatter)));
+				setAttr(source, destProp, watchable.value);
+				target.ownWhileRendered(watchable.watch(newValue => {
+					setAttr(source, destProp, newValue);
+				}));
+			};
 		}
 
 		Object.keys(props).forEach(destProp => {
-			let srcProp = props[destProp];
-			let formatter = null;
-			if(Array.isArray(srcProp)){
-				formatter = srcProp[1];
-				srcProp = srcProp[0];
-			}
-			if(typeof srcProp === "string"){
-				let cValue;
-				set(destProp, (cValue = formatter ? formatter(target[srcProp]) : target[srcProp]));
-				let watcher = formatter ?
-					(newValue) => {
-						newValue = formatter(newValue);
-						if(cValue !== newValue){
-							set(destProp, (cValue = newValue));
-						}
-					} :
-					(newValue) => {
-						if(cValue !== newValue){
-							set(destProp, (cValue = newValue));
-						}
-					};
-				target.ownWhileRendered(target.watch(srcProp, watcher));
-			}else{
-				// don't need to check for newValue is different than current value since watchers already take care of that
-				set(destProp, srcProp.value);
-				target.ownWhileRendered(srcProp.watch(newValue => {
-					set(destProp, newValue);
-				}));
+			let args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
+			let owner, prop;
+			while(args.length){
+				owner = args.shift();
+				if(typeof owner === "string" || typeof owner === "symbol"){
+					prop = owner;
+					owner = target;
+				}else{
+					prop = args.shift();
+				}
+				install(destProp, owner, prop, typeof args[0] === "function" ? args.shift() : null);
 			}
 		});
 	}
@@ -516,6 +517,7 @@ insPostProcessingFunction("bdAdvise",
 export {
 	getAttributeValueFromEvent,
 	setAttr,
+	getAttr,
 	getComputedStyle,
 	getStyle,
 	getStyles,
