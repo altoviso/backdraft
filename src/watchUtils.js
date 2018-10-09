@@ -182,7 +182,6 @@ const watcher = {
 					pauseWatchers = holdPauseWatchers;
 					throw e;
 				}
-
 			}
 			// we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
 			// even though we haven't seen the mutation before, e.g., length in an Array instance

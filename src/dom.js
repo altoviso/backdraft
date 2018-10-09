@@ -410,7 +410,7 @@ connect(document.body, "focusin", function(e){
 });
 
 // eslint-disable-next-line no-unused-vars
-connect(document.body, "focusout", function(e){
+connect(document.body, "focusout", function(){
 	// If the blur event isn't followed by a focus event, it means the user clicked on something unfocusable,
 	// so clear focus.
 	if(focusWatcher){
@@ -427,7 +427,7 @@ let viewportWatcher = new (EventHub());
 let scrollTimeoutHandle = 0;
 
 // eslint-disable-next-line no-unused-vars
-connect(window, "scroll", function(e){
+connect(window, "scroll", function(){
 	if(scrollTimeoutHandle){
 		clearTimeout(scrollTimeoutHandle);
 	}
@@ -441,7 +441,7 @@ connect(window, "scroll", function(e){
 let resizeTimeoutHandle = 0;
 
 // eslint-disable-next-line no-unused-vars
-connect(window, "resize", function(e){
+connect(window, "resize", function(){
 	if(resizeTimeoutHandle){
 		clearTimeout(resizeTimeoutHandle);
 	}
