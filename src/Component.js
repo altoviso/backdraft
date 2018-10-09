@@ -65,13 +65,13 @@ function validateElements(elements){
 	}
 }
 
-function postProcess(ppProps, owner, target, targetIsDomNode){
+function postProcess(ppProps, owner, target){
 	Reflect.ownKeys(ppProps).forEach((ppProp) => {
 		let args = ppProps[ppProp];
 		if(Array.isArray(args)){
-			getPostProcessingFunction(ppProp)(owner, target, targetIsDomNode, ...args);
+			getPostProcessingFunction(ppProp)(owner, target, ...args);
 		}else{
-			getPostProcessingFunction(ppProp)(owner, target, targetIsDomNode, args);
+			getPostProcessingFunction(ppProp)(owner, target, args);
 		}
 	});
 }
@@ -616,7 +616,7 @@ export class Component extends EventHub(WatchHub()) {
 			if(e.isComponentType){
 				let componentInstance = result = new type(ctorProps);
 				componentInstance.render();
-				ppProps && postProcess(ppProps, owner, componentInstance, false);
+				ppProps && postProcess(ppProps, owner, componentInstance);
 				if(children){
 					let renderedChildren = Component.renderElements(owner, children);
 					if(Array.isArray(renderedChildren)){
@@ -630,7 +630,7 @@ export class Component extends EventHub(WatchHub()) {
 				if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
 					owner.bdDom.tabIndexNode = domNode;
 				}
-				ppProps && postProcess(ppProps, owner, domNode, true);
+				ppProps && postProcess(ppProps, owner, domNode);
 				if(children){
 					let renderedChildren = Component.renderElements(owner, children);
 					if(Array.isArray(renderedChildren)){
@@ -653,7 +653,7 @@ Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
 
 insPostProcessingFunction("bdAttach",
-	function(target, source, resultIsDomNode, name){
+	function(target, source, name){
 		if(typeof name === "function"){
 			name(source);
 		}else{
@@ -668,7 +668,7 @@ insPostProcessingFunction("bdAttach",
 );
 
 insPostProcessingFunction("bdWatch", true,
-	function(target, source, resultIsDomNode, watchers){
+	function(target, source, watchers){
 		Reflect.ownKeys(watchers).forEach((name) => {
 			source.ownWhileRendered(source.watch(name, watchers[name]));
 		});
@@ -676,7 +676,7 @@ insPostProcessingFunction("bdWatch", true,
 );
 
 insPostProcessingFunction("bdExec",
-	function(target, source, resultIsDomNode, ...args){
+	function(target, source, ...args){
 		for(let i = 0; i < args.length;){
 			let f = args[i++];
 			if(typeof f === "function"){
@@ -706,15 +706,13 @@ insPostProcessingFunction("bdTitleNode",
 );
 
 insPostProcessingFunction("bdParentAttachPoint",
-	function(target, source, resultIsDomNode, propertyName){
-		// source should be a component instance and resultIsDomNode should be false
+	function(target, source, propertyName){
 		source.bdParentAttachPoint = propertyName;
 	}
 );
 
 insPostProcessingFunction("bdChildrenAttachPoint",
-	function(target, source, resultIsDomNode, value){
-		// source should be a DOM node and resultIsDomNode should be true
+	function(target, source, value){
 		if(value){
 			target.bdChildrenAttachPoint = source;
 		}
@@ -722,7 +720,7 @@ insPostProcessingFunction("bdChildrenAttachPoint",
 );
 
 insPostProcessingFunction("bdReflectClass",
-	function(target, source, resultIsDomNode, ...args){
+	function(target, source, ...args){
 		// args is a list of ([owner, ] property, [, formatter])...
 		// very much like bdReflect, except we're adding/removing components (words) from this.classname
 

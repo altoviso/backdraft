@@ -29,7 +29,7 @@ function setAttr(node, name, value){
 	}else{
 		if(name === "style"){
 			setStyle(node, value);
-		}else if(name==="innerHTML" || (name in node && node instanceof HTMLElement)){
+		}else if(name === "innerHTML" || (name in node && node instanceof HTMLElement)){
 			node[name] = value;
 		}else{
 			node.setAttribute(name, value);
@@ -454,7 +454,7 @@ connect(window, "resize", function(e){
 
 insPostProcessingFunction("bdReflect",
 	function(prop, value){
-		if(prop===null && value instanceof Object && !Array.isArray(value)){
+		if(prop === null && value instanceof Object && !Array.isArray(value)){
 			// e.g., bdReflect:{p1:"someProp", p2:[owner, "someOtherProp", someFormatter]}
 			return value;
 		}else{
@@ -463,7 +463,7 @@ insPostProcessingFunction("bdReflect",
 			return prop ? {[prop]: value} : {innerHTML: value};
 		}
 	},
-	function(target, source, resultIsDomNode, props){
+	function(target, source, props){
 		// props is a hash from property in source to a list of ([owner, ] property, [, formatter])...
 		let install, watchable;
 		if(source instanceof Component){
@@ -502,14 +502,13 @@ insPostProcessingFunction("bdReflect",
 );
 
 insPostProcessingFunction("bdAdvise", true,
-	// RCG: TODO, resultIsDomNode?
-	function(target, source, resultIsDomNode, listeners){
+	function(target, source, listeners){
 		Reflect.ownKeys(listeners).forEach((name) => {
 			let listener = listeners[name];
 			if(typeof listener !== "function"){
 				listener = target[listener].bind(target);
 			}
-			target.ownWhileRendered(resultIsDomNode ? connect(source, name, listener) : source.advise(name, listener));
+			target.ownWhileRendered(source instanceof Component ? source.advise(name, listener) : connect(source, name, listener));
 		});
 	}
 );
