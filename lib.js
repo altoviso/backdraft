@@ -15,5 +15,5 @@ export * from "./src/Collection.js";
 export * from "./src/dom.js";
 
 export function version(){
-	return "2.2.1";
+	return "2.3.0";
 }

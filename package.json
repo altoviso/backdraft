@@ -20,7 +20,7 @@
 	"license": "BSD-3-Clause",
 	"dependencies": {},
 	"devDependencies": {
-		"bd-smoke": "^0.4.0",
+		"bd-smoke": "^1.0.0",
 		"eslint": "^5.5.0",
 		"js-yaml": "^3.12.0",
 		"rollup": "^0.65.0"
