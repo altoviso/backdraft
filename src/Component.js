@@ -514,12 +514,12 @@ export class Component extends EventHub(WatchHub()) {
 
 	bdOnFocus(){
 		this.addClassName("bd-focused");
-		this.bdMutate("hasFocus", "bdHadFocus", true);
+		this.bdMutate("hasFocus", "bdHasFocus", true);
 	}
 
 	bdOnBlur(){
 		this.removeClassName("bd-focused");
-		this.bdMutate("hasFocus", "bdHadFocus", false);
+		this.bdMutate("hasFocus", "bdHasFocus", false);
 	}
 
 	get hasFocus(){
