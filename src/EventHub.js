@@ -39,13 +39,17 @@ export function EventHub(superClass){
 		advise(eventName, handler){
 			if(!handler){
 				let hash = eventName;
-				Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
+				return Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
+			}else if(Array.isArray(eventName)){
+				return eventName.map(name => this.advise(name, handler));
 			}else{
 				let events = listenerCatalog.get(this);
 				if(!events){
 					listenerCatalog.set(this, (events = {}));
 				}
-				return destroyable(handler, events[eventName] || (events[eventName] = []));
+				let result= destroyable(handler, events[eventName] || (events[eventName] = []));
+				this.own && this.own(result);
+				return result;
 			}
 		}
 
