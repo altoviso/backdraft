@@ -195,6 +195,54 @@ smoke.defBrowserTest({
 			assert(node.className === "foofoo");
 			c.destroy();
 		}],
+
+		["static className", function(){
+			class Component1 extends Component {
+			}
+
+			Component1.className = "";
+
+			let c = new Component1({});
+			assert(c.className === "");
+			c.className = "test";
+			assert(c.className === "test");
+			c.render();
+			assert(c.className === "test");
+			assert(c._dom.root.className === "test");
+			c.className = "test2";
+			assert(c.className === "test2");
+			assert(c._dom.root.className === "test2");
+			c.destroy();
+
+			class Component2 extends Component {
+			}
+
+			Component2.className = "ctorStaticClassNameExample";
+
+			c = new Component2({});
+			assert(c.className === "");
+			c.className = "test";
+			assert(c.className === "test");
+			c.render();
+			assert(c.className === "test");
+			assert(c._dom.root.className === "ctorStaticClassNameExample test");
+			c.className = "test2";
+			assert(c.className === "test2");
+			assert(c._dom.root.className === "ctorStaticClassNameExample test2");
+			c.destroy();
+
+			c = new Component2({staticClassName: "kwargsStaticClassNameExample"});
+			assert(c.className === "");
+			c.className = "test";
+			assert(c.className === "test");
+			c.render();
+			assert(c.className === "test");
+			assert(c._dom.root.className === "kwargsStaticClassNameExample test");
+			c.className = "test2";
+			assert(c.className === "test2");
+			assert(c._dom.root.className === "kwargsStaticClassNameExample test2");
+			c.destroy();
+		}],
 		["tabIndex", function(){
 			let c = new Component({tabIndex: 1});
 			assert(c.bdTabIndex === 1);

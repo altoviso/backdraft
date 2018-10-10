@@ -287,36 +287,6 @@ smoke.defBrowserTest({
 			c.destroy();
 		}],
 
-		["static classname", function(){
-			class Component5 extends Component {
-			}
-
-			Component5.className = "ctorStaticClassNameExample";
-
-			let c = new Component5({});
-			assert(c.className === "");
-			c.className = "test";
-			assert(c.className === "test");
-			c.render();
-			assert(c.className === "test");
-			assert(c._dom.root.className === "ctorStaticClassNameExample test");
-			c.className = "test2";
-			assert(c.className === "test2");
-			assert(c._dom.root.className === "ctorStaticClassNameExample test2");
-			c.destroy();
-
-			c = new Component5({staticClassName: "kwargsStaticClassNameExample"});
-			assert(c.className === "");
-			c.className = "test";
-			assert(c.className === "test");
-			c.render();
-			assert(c.className === "test");
-			assert(c._dom.root.className === "kwargsStaticClassNameExample ctorStaticClassNameExample test");
-			c.className = "test2";
-			assert(c.className === "test2");
-			assert(c._dom.root.className === "kwargsStaticClassNameExample ctorStaticClassNameExample test2");
-			c.destroy();
-		}],
 		["parent attach point", function(){
 			class Component6 extends Component {
 				bdElements(){

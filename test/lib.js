@@ -1,6 +1,6 @@
-import {Component, e, render} from "../lib.js"
+import {Component, e} from "../lib.js";
 
-const smoke = window ? window.smoke : require('bd-smoke');
+const smoke = window ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
 
 function delay(ms, resolve, value){
@@ -130,7 +130,7 @@ class TestContainer extends Component {
 			let h = component.advise(eventName, (e) => {
 				h.destroy();
 				delay(this._throttle, resolve);
-			})
+			});
 		});
 	}
 
