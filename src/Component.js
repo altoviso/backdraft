@@ -34,13 +34,8 @@ function classValueToRegExp(v, args){
 
 function calcDomClassName(component){
 	let staticClassName = component.staticClassName;
-
 	let className = component.bdClassName;
-	if(staticClassName && className){
-		return staticClassName + " " + className;
-	}else{
-		return staticClassName || className;
-	}
+	return staticClassName && className ? (staticClassName + " " + className) : (staticClassName || className);
 }
 
 function addChildToDomNode(parent, domNode, child, childIsComponent){
@@ -424,7 +419,8 @@ export class Component extends EventHub(WatchHub()) {
 	}
 
 	get staticClassName(){
-		return ((this.kwargs.staticClassName || "") + " " + (this.constructor.className || "")).trim();
+		return this.kwargs.hasOwnProperty("staticClassName") ?
+			this.kwargs.staticClassName : (this.constructor.className || "");
 	}
 
 	get className(){
