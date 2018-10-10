@@ -315,24 +315,39 @@ function WatchHub(superClass){
 		}
 
 		// public interface...
-		watch(name, watcher){
+		watch(...args){
+			// possible sigs:
+			// 1: name, watcher
+			// 2: [name], watcher
+			// 3: hash: name -> watcher
+			// 4: watchable, name, watcher
+			// 5: watchable, [names], watcher
+			// 6: watchable, hash: name -> watcher
+
+			if(arguments.length === 1){
+				// sig 3
+				let hash = args[0];
+				return Reflect.ownKeys(hash).map(name => this.watch(name, hash[name]));
+			}
+			if(args[0][OWNER]){
+				// sig 4-6
+				let result = watch(...args);
+				this.own && this.own(result);
+				return result;
+			}
+			if(Array.isArray(args[0])){
+				// sig 2
+				return args[0].map(name => this.watch(name, watcher));
+			}
+			// sig 1
+			let [name, watcher] = args;
 			let variables = watcherCatalog.get(this);
 			if(!variables){
 				watcherCatalog.set(this, (variables = {}));
 			}
-			if(!watcher){
-				let hash = name;
-				return Reflect.ownKeys(hash).map((name) => this.watch(name, hash[name]));
-			}else{
-				if(typeof watcher !== "function"){
-					watcher = this[watcher];
-				}
-				if(Array.isArray(name)){
-					return name.map(name => this.watch(name, watcher));
-				}else{
-					return destroyable(watcher, variables[name] || (variables[name] = []));
-				}
-			}
+			let result = destroyable(watcher, variables[name] || (variables[name] = []));
+			this.own && this.own(result);
+			return result;
 		}
 
 		destroyWatch(name){
@@ -420,7 +435,18 @@ function biBind(src1, prop1, src2, prop2){
 	src2.watch(prop2, newValue => src1[prop1] = newValue);
 }
 
-export {UNKNOWN_OLD_VALUE, Watchable, getWatchable, watch, toWatchable, WatchHub, isWatchable, withWatchables, bind, biBind};
+export {
+	UNKNOWN_OLD_VALUE,
+	Watchable,
+	getWatchable,
+	watch,
+	toWatchable,
+	WatchHub,
+	isWatchable,
+	withWatchables,
+	bind,
+	biBind
+};
 
 
 
