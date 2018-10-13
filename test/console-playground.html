@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Backdraft Console Playground</title>
+</head>
+<body>
+<h2>Backdraft Console Playground</h2>
+<p>All Backdraft symbols have been published to the global environment.</p>
+<script src="../dist/lib-umd.js"></script>
+<script>
+	if(0){
+		let data = toWatchable([{a: 1, b: 2}, {c: 3, d: 4}]);
+		let ref = new WatchableRef(data, value => {
+			console.log("in formatter", value === data);
+			return JSON.stringify(data);
+		});
+
+		// ref.value returns the formatted reference object
+		console.log(ref.value);
+		// => in formatter true
+		// => "[{"a":1,"b":2},{"c":3,"d":4}]"
+		data[0].b = 3.14;
+		console.log(ref.value);
+		// => in formatter true
+		// => "[{"a":1,"b":3.14},{"c":3,"d":4}]"
+
+
+		ref.watch((newValue, oldValue, referenceObject, prop) => {
+			console.log("newValue: ", newValue);
+			console.log(oldValue === WatchableRef.UNKNOWN_OLD_VALUE);
+			console.log(referenceObject === data);
+			console.log(prop);
+		});
+
+		data[1].c = "test";
+		// => in formatter true
+		// => "[{"a":1,"b":3.14},{"c":"test","d":4}]"
+		// true
+		// true
+		// [1, "c"]
+	}
+
+	if(1){
+		let target = toWatchable([{fname: "John", lname: "Doe"}]);
+
+		// connect to fname
+		let h1 = watch(target[0], "fname", (newValue, oldValue, target, property) => {
+			console.log(`fname watcher: new value=${newValue}, old value=${oldValue}, property:`, property);
+		});
+
+		// connect to the entire target
+		let h2 = watch(target, (newValue, oldValue, object, prop) => {
+			console.log("object watcher:",
+				"new value=", newValue,
+				"old value=", oldValue === UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : "?",
+				"prop=", prop);
+		});
+
+		target[0].fname = "Joe";
+		// => fname watcher: new value=Joe, old value=John, property: fname
+		// => object watcher: new value= Joe old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "fname"]
+
+		target[0].lname = "Smith";
+		// => object watcher: new value= Smith old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "lname"]
+
+		h1.destroy();
+
+		target[0].fname = "Adam";
+		// since we destroyed the first watcher, we don't see it's output; the second watcher is still connected...
+		// = > object watcher: new value= Adam old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "fname"]
+	}
+
+	if(0){
+		let target = toWatchable([
+			{
+				branch: "San Francisco", departments: {
+					engineering: {
+						staff: {
+							programmers: {
+								fellows: ["Gill"]
+							}
+						}
+					}
+				}
+			}
+		]);
+
+		// watch the whole thing...
+		watch(target, (newValue, oldValue, object, prop) => {
+			console.log("new value:", newValue);
+			console.log("old value:", oldValue === UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : oldValue);
+			console.log("prop:", prop);
+			console.log("object:", JSON.stringify(object, "\t"));
+		});
+
+		// change an item deep in the hierarchy...
+		target[0].departments.engineering.staff.programmers.fellows.push("Russel");
+	}
+</script>
+</body>
+</html>

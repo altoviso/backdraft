@@ -1,18 +1,18 @@
-import {WatchHub} from "../lib.js";
+import {watchHub} from "../lib.js";
 
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
 
 smoke.defTest({
-	id: "WatchHub",
+	id: "watchHub",
 	tests: [
 		["usage", function(){
-			// Typically, WatchHub is used to provide watchers on member data of some other class.
+			// Typically, watchHub is used to provide watchers on member data of some other class.
 			// In this example, we define the class Coord which models an (x, y) coordinate and
-			// uses WatchHub to provide machinery that allows the x, y, and coordinate value can be watched.
+			// uses watchHub to provide machinery that allows the x, y, and coordinate value can be watched.
 			//
-			// Notice that WatchHub is _not_ a class, but rather a function that returns a class.
-			class Coord extends WatchHub() {
+			// Notice that watchHub is _not_ a class, but rather a function that returns a class.
+			class Coord extends watchHub() {
 				constructor(x, y){
 					super();
 					Object.defineProperties(this, {
@@ -26,7 +26,7 @@ smoke.defTest({
 				}
 
 				set x(value){
-					// Normally matations are signaled on watchable data by applying WatchHub::bdMutate which _both_
+					// Normally matations are signaled on watchable data by applying watchHub::bdMutate which _both_
 					// updates the private data _and_ applies any watchers. bdMutate returns true if a mutation actually
 					// occured; otherwise, it returns false. This example wraps to application of bdMutate so we can
 					// see this behavior below.
@@ -67,6 +67,7 @@ smoke.defTest({
 			let c = new Coord();
 			assert(c.x === 0);
 			assert(c.y === 0);
+			assert(c.isBdWatchHub);
 
 			// Declare some variables that we'll use demonstrate watchers.
 			let watched_x;
@@ -184,7 +185,7 @@ smoke.defTest({
 
 		}],
 		["star", function(){
-			class Useless extends WatchHub() {
+			class Useless extends watchHub() {
 				constructor(x){
 					super();
 					this._x = 0;
@@ -273,8 +274,8 @@ smoke.defTest({
 			assert(applyCount_star === 3);
 		}],
 		["structure", function(){
-			// WatchHubs do not define any instance variables.
-			class Useless extends WatchHub() {
+			// watchHubs do not define any instance variables.
+			class Useless extends watchHub() {
 				constructor(x){
 					super();
 					Object.defineProperty(this, "_x", {value: x || 0, writable: true});
@@ -301,7 +302,7 @@ smoke.defTest({
 				}
 			}
 
-			class Useless2 extends WatchHub(Base) {
+			class Useless2 extends watchHub(Base) {
 				constructor(x){
 					super();
 					Object.defineProperty(this, "_x", {value: x || 0, writable: true});
@@ -316,14 +317,14 @@ smoke.defTest({
 				}
 			}
 
-			// Useless2 instances have both Base and WatchHub machinery.
+			// Useless2 instances have both Base and watchHub machinery.
 			let instance = new Useless2();
 			assert(instance.base === "BASE");
 			assert(typeof instance.watch === "function");
 			assert(typeof instance.bdMutateNotify === "function");
 			assert(typeof instance.bdMutate === "function");
 			assert(typeof instance.destroyWatch === "function");
-			assert(typeof instance.getWatchable === "function");
+			assert(typeof instance.getWatchableRef === "function");
 
 			// EventHubs can be at the start of a derivation chain.
 			class IncompleteUseless3 {
@@ -336,7 +337,7 @@ smoke.defTest({
 				}
 
 				set x(value){
-					// This won't work unless a WatchHub is mixed in.
+					// This won't work unless a watchHub is mixed in.
 					this.bdMutate("x", "_x", value);
 				}
 			}
@@ -349,8 +350,8 @@ smoke.defTest({
 			}catch(e){
 			}
 
-			// Mix in a WatchHub, and it works.
-			class CompleteUseless3 extends WatchHub(IncompleteUseless3) {
+			// Mix in a watchHub, and it works.
+			class CompleteUseless3 extends watchHub(IncompleteUseless3) {
 			}
 
 			instance = new CompleteUseless3();
@@ -378,7 +379,7 @@ smoke.defTest({
 			}
 
 			// To see this work, here's a little class that makes _x watchable at x.
-			class Example extends WatchHub() {
+			class Example extends watchHub() {
 				get x(){
 					return this._x;
 				}
@@ -511,11 +512,11 @@ smoke.defTest({
 			assert(test._x === 3);
 		}],
 		["watchable", function(){
-			// WatchHub allows pulling out a Watchable from instances of classes derived from WatchHub
+			// watchHub allows pulling out a Watchable from instances of classes derived from watchHub
 			// which implement a watchable member variable.
 
 			// We'll use the Coord class again.
-			class Coord extends WatchHub() {
+			class Coord extends watchHub() {
 				constructor(x, y){
 					super();
 					Object.defineProperties(this, {

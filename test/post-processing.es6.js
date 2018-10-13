@@ -1,4 +1,4 @@
-import {e, render, Component, destroyDomChildren, withWatchables, WatchHub, getAttr} from "../lib.js"
+import {e, render, Component, destroyDomChildren, withWatchables, watchHub, getAttr} from "../lib.js"
 
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
@@ -329,7 +329,7 @@ smoke.defBrowserTest({
 			c.destroy();
 		}],
 		['reflect', function(){
-			class SomeClass extends withWatchables(WatchHub(), "value") {
+			class SomeClass extends withWatchables(watchHub(), "value") {
 			}
 
 			let someClass = new SomeClass({value: 1});
@@ -406,7 +406,7 @@ smoke.defBrowserTest({
 			c.destroy();
 		}],
 		['reflect-class-part', function(){
-			class SomeClass extends withWatchables(WatchHub(), "value") {
+			class SomeClass extends withWatchables(watchHub(), "value") {
 			}
 
 			let instanceOfSomeClass = new SomeClass({value: "test1"});

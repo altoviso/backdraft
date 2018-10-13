@@ -1,17 +1,17 @@
-import {EventHub} from "../lib.js";
+import {eventHub} from "../lib.js";
 
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
 
 smoke.defBrowserTest({
-	id: "EventHub",
+	id: "eventHub",
 	tests: [
 		["usage", function(){
-			// EventHub is used to signal events. Notice that EventHub
+			// eventHub is used to signal events. Notice that eventHub
 			// is _not_ a class, but rather a function that returns a class.
-			class SomeClass extends EventHub() {
+			class SomeClass extends eventHub() {
 				method1(){
-					// If EventHub::bdNotify is applied to a string, then the even object is implied; in this example
+					// If eventHub::bdNotify is applied to a string, then the even object is implied; in this example
 					// the event object is === {type:"someEvent-1"}
 					this.bdNotify("someEvent-1")
 				}
@@ -46,6 +46,7 @@ smoke.defBrowserTest({
 			// Create a new instance of SomeClass and hook up some handlers. We'll remember the connection handles
 			// so we can demostrate destroying them later.
 			let instance = new SomeClass();
+			assert(c.isBdEventHub);
 			let h1 = instance.advise("someEvent-1", handler);
 			let h2 = instance.advise("someEvent-2", handler);
 			let h3 = instance.advise("click", handler);
@@ -110,8 +111,8 @@ smoke.defBrowserTest({
 			assert(handlerApplyCount === 10);
 		}],
 		["structure", function(){
-			// EventHubs do not define any instance variables.
-			class Useless extends EventHub() {
+			// eventHubs do not define any instance variables.
+			class Useless extends eventHub() {
 				constructor(){
 					super();
 					this.pi = 3.14;
@@ -123,14 +124,14 @@ smoke.defBrowserTest({
 			assert(ownKeys.length === 1);
 			assert(ownKeys[0] === "pi");
 
-			// EventHubs can be in the middle of a derivation chain.
+			// eventHubs can be in the middle of a derivation chain.
 			class Base {
 				constructor(){
 					this.base = "BASE";
 				}
 			}
 
-			class SubClass extends EventHub(Base) {
+			class SubClass extends eventHub(Base) {
 				method1(){
 					this.bdNotify("event1");
 				}
@@ -151,10 +152,10 @@ smoke.defBrowserTest({
 			sub.method1();
 			assert(appliedCount === 1);
 
-			// EventHubs can be at the start of a derivation chain.
+			// eventHubs can be at the start of a derivation chain.
 			class Incomplete {
 				method1(){
-					// This won't work unless a EventHubs is mixed in.
+					// This won't work unless a eventHubs is mixed in.
 					this.bdNotify("event1");
 				}
 			}
@@ -167,8 +168,8 @@ smoke.defBrowserTest({
 			}catch(e){
 			}
 
-			// Mix in a EventHub, and it works.
-			class Complete extends EventHub(Incomplete){}
+			// Mix in a eventHub, and it works.
+			class Complete extends eventHub(Incomplete){}
 			instance = new Complete();
 			instance.method1();
 		}]

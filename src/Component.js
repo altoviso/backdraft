@@ -1,6 +1,6 @@
 import {getPostProcessingFunction, insPostProcessingFunction} from "./postProcessingCatalog.js";
 import {Element} from "./element.js";
-import {EventHub} from "./EventHub.js";
+import {eventHub} from "./EventHub.js";
 import {WatchHub, withWatchables, getWatchableRef} from "./watchUtils.js";
 
 let document = 0;
@@ -96,7 +96,7 @@ function pushHandles(dest, ...handles){
 const ownedHandlesCatalog = new WeakMap();
 const domNodeToComponent = new Map();
 
-export class Component extends EventHub(WatchHub()) {
+export class Component extends eventHub(WatchHub) {
 	constructor(kwargs = {}){
 		// notice that this class requires only the per-instance data actually used by its subclass/instance
 		super();

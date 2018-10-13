@@ -320,7 +320,7 @@ let focusedComponent = null,
 	previousFocusedComponent = null,
 	previousFocusedNode = null;
 
-class FocusManager extends EventHub() {
+class FocusManager extends EventHub {
 	get focusedComponent(){
 		return focusedComponent;
 	}
@@ -422,7 +422,7 @@ connect(document.body, "focusout", function(){
 	}, 5);
 });
 
-let viewportWatcher = new (EventHub());
+let viewportWatcher = new EventHub;
 
 let scrollTimeoutHandle = 0;
 

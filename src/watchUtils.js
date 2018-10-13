@@ -257,7 +257,7 @@ function mutate(owner, name, privateName, newValue){
 	}
 }
 
-function WatchHub(superClass){
+function watchHub(superClass){
 	return class extends (superClass || class {
 	}) {
 		// protected interface...
@@ -322,6 +322,10 @@ function WatchHub(superClass){
 		}
 
 		// public interface...
+		get isBdWatchHub(){
+			return true;
+		}
+
 		watch(...args){
 			// possible sigs:
 			// 1: name, watcher
@@ -385,8 +389,10 @@ function WatchHub(superClass){
 	};
 }
 
+const WatchHub = watchHub();
+
 function isWatchable(target){
-	return target && target[OWNER] || target.watch;
+	return target && (target[OWNER] || target.bdIsWatchHub);
 }
 
 function withWatchables(superClass, ...args){
@@ -423,7 +429,8 @@ function withWatchables(superClass, ...args){
 
 	let result = class extends superClass {
 		constructor(kwargs){
-			super(kwargs || {});
+			kwargs = kwargs || {};
+			super(kwargs);
 			init(this, kwargs);
 		}
 	};
@@ -458,6 +465,7 @@ export {
 	getWatchableRef,
 	watch,
 	toWatchable,
+	watchHub,
 	WatchHub,
 	isWatchable,
 	withWatchables,

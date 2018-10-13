@@ -2,12 +2,8 @@ import {destroyable} from "./destroyable.js";
 
 const listenerCatalog = new WeakMap();
 
-export function EventHub(superClass){
+export function eventHub(superClass){
 	return class extends (superClass || class {}) {
-		get isBdWatchHub(){
-			return true;
-		}
-
 		// protected interface...
 		bdNotify(e){
 			let events = listenerCatalog.get(this);
@@ -40,6 +36,10 @@ export function EventHub(superClass){
 		}
 
 		// public interface...
+		get isBdEventHub(){
+			return true;
+		}
+
 		advise(eventName, handler){
 			if(!handler){
 				let hash = eventName;
@@ -77,3 +77,5 @@ export function EventHub(superClass){
 		}
 	};
 }
+
+export const EventHub = eventHub();
