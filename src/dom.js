@@ -1,5 +1,5 @@
 import {EventHub} from "./EventHub.js";
-import {getWatchable} from "./watchUtils.js";
+import {getWatchableRef} from "./watchUtils.js";
 import {Component} from "./Component.js";
 import {insPostProcessingFunction} from "./postProcessingCatalog.js";
 
@@ -468,7 +468,7 @@ insPostProcessingFunction("bdReflect",
 		let install, watchable;
 		if(source instanceof Component){
 			install = function(destProp, owner, prop, formatter){
-				target.ownWhileRendered((watchable = getWatchable(owner, prop, formatter)));
+				target.ownWhileRendered((watchable = getWatchableRef(owner, prop, formatter)));
 				source[destProp] = watchable.value;
 				target.ownWhileRendered(watchable.watch(newValue => {
 					source[destProp] = newValue;
@@ -476,7 +476,7 @@ insPostProcessingFunction("bdReflect",
 			};
 		}else{
 			install = function(destProp, owner, prop, formatter){
-				target.ownWhileRendered((watchable = getWatchable(owner, prop, formatter)));
+				target.ownWhileRendered((watchable = getWatchableRef(owner, prop, formatter)));
 				setAttr(source, destProp, watchable.value);
 				target.ownWhileRendered(watchable.watch(newValue => {
 					setAttr(source, destProp, newValue);

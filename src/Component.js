@@ -1,7 +1,7 @@
 import {getPostProcessingFunction, insPostProcessingFunction} from "./postProcessingCatalog.js";
 import {Element} from "./element.js";
 import {EventHub} from "./EventHub.js";
-import {WatchHub, withWatchables, getWatchable} from "./watchUtils.js";
+import {WatchHub, withWatchables, getWatchableRef} from "./watchUtils.js";
 
 let document = 0;
 let createNode = 0;
@@ -725,7 +725,7 @@ insPostProcessingFunction("bdReflectClass",
 		}
 
 		function install(owner, prop, formatter){
-			let watchable = getWatchable(owner, prop, formatter);
+			let watchable = getWatchableRef(owner, prop, formatter);
 			target.ownWhileRendered(watchable);
 			let value = normalize(watchable.value);
 			value && target.addClassName(value);

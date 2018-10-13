@@ -1,87 +1,93 @@
 import {destroyable, destroyAll} from "./destroyable.js";
 
 const watcherCatalog = new WeakMap();
-const STAR = Symbol("star");
-const OWNER = Symbol("owner");
-const OWNER_NULL = Symbol("owner-null");
-const PROP = Symbol("prop");
-const UNKNOWN_OLD_VALUE = Symbol("unknown-old-value");
+const STAR = Symbol("bd-star");
+const OWNER = Symbol("bd-owner");
+const OWNER_NULL = Symbol("bd-owner-null");
+const PROP = Symbol("bd-prop");
+const UNKNOWN_OLD_VALUE = Symbol("bd-unknown-old-value");
 
-const pWatchableWatchers = Symbol("pWatchableWatchers");
-const pWatchableHandles = Symbol("pWatchableHandles");
-const pWatchableSetup = Symbol("pWatchableSetup");
+const pWatchableWatchers = Symbol("bd-pWatchableWatchers");
+const pWatchableHandles = Symbol("bd-pWatchableHandles");
+const pWatchableSetup = Symbol("bd-pWatchableSetup");
 
-class Watchable {
-	constructor(owner, prop, formatter){
+class WatchableRef {
+	constructor(referenceObject, referenceProp, formatter){
+		if(typeof referenceProp === "function"){
+			// no referenceProp,...star watcher
+			formatter = referenceProp;
+			referenceProp = STAR;
+		}
+
 		Object.defineProperty(this, "value", {
 			enumerable: true,
 			get: (function(){
 				if(formatter){
-					if(prop === STAR){
-						return () => formatter(owner);
+					if(referenceProp === STAR){
+						return () => formatter(referenceObject);
 					}else{
-						return () => formatter(owner[prop]);
+						return () => formatter(referenceObject[referenceProp]);
 					}
-				}else if(prop === STAR){
-					return () => owner;
+				}else if(referenceProp === STAR){
+					return () => referenceObject;
 				}else{
-					return () => owner[prop];
+					return () => referenceObject[referenceProp];
 				}
 			})()
 		});
 
-		// if (owner[OWNER] && prop === STAR), then we cValue===newValue===owner...
-		// therefore can't detect internal mutations to owner, so don't try
-		let cannotDetectMutations = prop === STAR && owner[OWNER];
+		// if (referenceObject[OWNER] && referenceProp === STAR), then we cValue===newValue===referenceObject...
+		// therefore can't detect internal mutations to referenceObject, so don't try
+		let cannotDetectMutations = referenceProp === STAR && referenceObject[OWNER];
 
 		this[pWatchableWatchers] = [];
 
 		let cValue;
-		let callback = (newValue, oldValue, target, prop) => {
+		let callback = (newValue, oldValue, target, referenceProp) => {
 			if(formatter){
 				oldValue = oldValue === UNKNOWN_OLD_VALUE ? oldValue : formatter(oldValue);
 				newValue = formatter(newValue);
 			}
 			if(cannotDetectMutations || oldValue === UNKNOWN_OLD_VALUE || newValue !== cValue){
-				this[pWatchableWatchers].slice().forEach(destroyable => destroyable.proc((cValue = newValue), oldValue, target, prop));
+				this[pWatchableWatchers].slice().forEach(destroyable => destroyable.proc((cValue = newValue), oldValue, target, referenceProp));
 			}
 		};
 
 		this[pWatchableSetup] = function(){
 			cValue = this.value;
-			if(owner[OWNER]){
-				this[pWatchableHandles] = [watch(owner, prop, (newValue, oldValue, receiver, _prop) => {
-					if(prop === STAR){
-						callback(owner, UNKNOWN_OLD_VALUE, owner, _prop);
+			if(referenceObject[OWNER]){
+				this[pWatchableHandles] = [watch(referenceObject, referenceProp, (newValue, oldValue, receiver, _prop) => {
+					if(referenceProp === STAR){
+						callback(referenceObject, UNKNOWN_OLD_VALUE, referenceObject, _prop);
 					}else{
-						callback(newValue, oldValue, owner, _prop);
+						callback(newValue, oldValue, referenceObject, _prop);
 					}
 				})];
-			}else if(owner.watch){
+			}else if(referenceObject.watch){
 				this[pWatchableHandles] = [
-					owner.watch(prop, (newValue, oldValue, target) => {
-						callback(newValue, oldValue, target, prop);
+					referenceObject.watch(referenceProp, (newValue, oldValue, target) => {
+						callback(newValue, oldValue, target, referenceProp);
 						if(this[pWatchableHandles].length === 2){
 							this[pWatchableHandles].pop().destroy();
 						}
 						if(newValue[OWNER]){
 							// value is a watchable
-							this[pWatchableHandles].push(watch(newValue, (newValue, oldValue, receiver, prop) => {
-								callback(receiver, UNKNOWN_OLD_VALUE, owner, prop);
+							this[pWatchableHandles].push(watch(newValue, (newValue, oldValue, receiver, referenceProp) => {
+								callback(receiver, UNKNOWN_OLD_VALUE, referenceObject, referenceProp);
 							}));
 						}
 					})
 				];
-				let value = owner[prop];
+				let value = referenceObject[referenceProp];
 				if(value && value[OWNER]){
 					// value is a watchable
-					this[pWatchableHandles].push(watch(value, (newValue, oldValue, receiver, prop) => {
-						callback(receiver, UNKNOWN_OLD_VALUE, owner, prop);
+					this[pWatchableHandles].push(watch(value, (newValue, oldValue, receiver, referenceProp) => {
+						callback(receiver, UNKNOWN_OLD_VALUE, referenceObject, referenceProp);
 					}));
 				}
-				owner.own && owner.own(this);
+				referenceObject.own && referenceObject.own(this);
 			}else{
-				throw new Error("don't know how to watch owner");
+				throw new Error("don't know how to watch referenceObject");
 			}
 		};
 	}
@@ -99,22 +105,23 @@ class Watchable {
 	}
 }
 
-Watchable.pWatchableWatchers = pWatchableWatchers;
-Watchable.pWatchableHandles = pWatchableHandles;
-Watchable.pWatchableSetup = pWatchableSetup;
-Watchable.UNKNOWN_OLD_VALUE = UNKNOWN_OLD_VALUE;
+WatchableRef.pWatchableWatchers = pWatchableWatchers;
+WatchableRef.pWatchableHandles = pWatchableHandles;
+WatchableRef.pWatchableSetup = pWatchableSetup;
+WatchableRef.UNKNOWN_OLD_VALUE = UNKNOWN_OLD_VALUE;
+WatchableRef.STAR = STAR;
 
-function getWatchable(owner, prop, formatter){
-	// (owner, prop, formatter)
-	// (owner, prop)
-	// (owner, formatter) => (owner, STAR, formatter)
-	// (owner) => (owner, STAR)
-	if(typeof prop === "function"){
-		// no prop,...star watcher
-		formatter = prop;
-		prop = STAR;
+function getWatchableRef(referenceObject, referenceProp, formatter){
+	// (referenceObject, referenceProp, formatter)
+	// (referenceObject, referenceProp)
+	// (referenceObject, formatter) => (referenceObject, STAR, formatter)
+	// (referenceObject) => (referenceObject, STAR)
+	if(typeof referenceProp === "function"){
+		// no referenceProp,...star watcher
+		formatter = referenceProp;
+		referenceProp = STAR;
 	}
-	return new Watchable(owner, prop || STAR, formatter);
+	return new WatchableRef(referenceObject, referenceProp || STAR, formatter);
 }
 
 function watch(watchable, name, watcher){
@@ -370,8 +377,8 @@ function WatchHub(superClass){
 			}
 		}
 
-		getWatchable(name, formatter){
-			let result = new Watchable(this, name, formatter);
+		getWatchableRef(name, formatter){
+			let result = new WatchableRef(this, name, formatter);
 			this.own && this.own(result);
 			return result;
 		}
@@ -381,7 +388,6 @@ function WatchHub(superClass){
 function isWatchable(target){
 	return target && target[OWNER] || target.watch;
 }
-
 
 function withWatchables(superClass, ...args){
 	let prototype;
@@ -426,19 +432,30 @@ function withWatchables(superClass, ...args){
 	return result;
 }
 
-function bind(src1, prop1, src2, prop2){
-	src1.watch(prop1, newValue => src2[prop2] = newValue);
+function bind(src, srcProp, dest, destProp){
+	dest[destProp] = src[srcProp];
+	if(src.bdIsWatchHub){
+		return src.watch(srcProp, newValue => dest[destProp] = newValue);
+	}else if(src[OWNER]){
+		return watch(srcProp, newValue => dest[destProp] = newValue);
+	}else{
+		throw new Error("src is not watchable");
+	}
 }
 
 function biBind(src1, prop1, src2, prop2){
-	src1.watch(prop1, newValue => src2[prop2] = newValue);
-	src2.watch(prop2, newValue => src1[prop1] = newValue);
+	src2[prop2] = src1[prop1];
+	return [bind(src1, prop1, src2, prop2), bind(src2, prop2, src1, prop1)];
 }
 
 export {
 	UNKNOWN_OLD_VALUE,
-	Watchable,
-	getWatchable,
+	STAR,
+	OWNER,
+	OWNER_NULL,
+	PROP,
+	WatchableRef,
+	getWatchableRef,
 	watch,
 	toWatchable,
 	WatchHub,

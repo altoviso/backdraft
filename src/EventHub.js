@@ -4,6 +4,10 @@ const listenerCatalog = new WeakMap();
 
 export function EventHub(superClass){
 	return class extends (superClass || class {}) {
+		get isBdWatchHub(){
+			return true;
+		}
+
 		// protected interface...
 		bdNotify(e){
 			let events = listenerCatalog.get(this);
