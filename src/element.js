@@ -47,7 +47,7 @@ export class Element {
 					let ppProps = {};
 					let ppPropCount = 0;
 					let match, ppf;
-					let setPpProps = (ppKey, value)=>{
+					let setPpProps = (ppKey, value) => {
 						if(ppProps[ppKey]){
 							let dest = ppProps[ppKey];
 							Reflect.ownKeys(value).forEach(k => dest[k] = value[k]);
@@ -96,9 +96,14 @@ export class Element {
 
 export function element(type, props, ...children){
 	// make elements without having to use new
-
 	return new Element(type, props, children);
 }
+
+"a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr".split(".").forEach(tag => {
+	element[tag] = function div(props, ...children){
+		return new Element(tag, props, children);
+	};
+});
 
 export function div(props, ...children){
 	return new Element("div", props, children);
