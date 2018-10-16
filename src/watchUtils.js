@@ -1,5 +1,21 @@
 import {destroyable, destroyAll} from "./destroyable.js";
 
+let eqlComparators = new Map();
+
+function eql(refValue, otherValue){
+	if(!refValue){
+		return otherValue === refValue;
+	}else{
+		let comparator = eqlComparators.get(refValue.constructor);
+		if(comparator){
+			return comparator(otherValue, refValue);
+		}else{
+			return otherValue === refValue;
+		}
+	}
+}
+
+
 const watcherCatalog = new WeakMap();
 const STAR = Symbol("bd-star");
 const OWNER = Symbol("bd-owner");
@@ -48,7 +64,7 @@ class WatchableRef {
 				oldValue = oldValue === UNKNOWN_OLD_VALUE ? oldValue : formatter(oldValue);
 				newValue = formatter(newValue);
 			}
-			if(cannotDetectMutations || oldValue === UNKNOWN_OLD_VALUE || newValue !== cValue){
+			if(cannotDetectMutations || oldValue === UNKNOWN_OLD_VALUE || !eql(cValue, newValue)){
 				this[pWatchableWatchers].slice().forEach(destroyable => destroyable.proc((cValue = newValue), oldValue, target, referenceProp));
 			}
 		};
@@ -225,22 +241,7 @@ function toWatchable(data){
 
 function mutate(owner, name, privateName, newValue){
 	let oldValue = owner[privateName];
-	let eq;
-	if(!oldValue){
-		eq = newValue === oldValue;
-	}else if(newValue){
-		if(newValue.eq){
-			eq = newValue.eq(oldValue);
-		}else if(oldValue.eq){
-			eq = oldValue.eq(newValue);
-		}else{
-			eq = newValue === oldValue;
-		}
-	}else{
-		eq = false;
-	}
-
-	if(eq){
+	if(eql(oldValue, newValue)){
 		return false;
 	}else{
 		let onMutateBefore = owner[name + "OnMutateBefore"];
@@ -456,6 +457,8 @@ function biBind(src1, prop1, src2, prop2){
 }
 
 export {
+	eqlComparators,
+	eql,
 	UNKNOWN_OLD_VALUE,
 	STAR,
 	OWNER,
