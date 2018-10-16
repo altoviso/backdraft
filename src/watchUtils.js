@@ -15,7 +15,6 @@ function eql(refValue, otherValue){
 	}
 }
 
-
 const watcherCatalog = new WeakMap();
 const STAR = Symbol("bd-star");
 const OWNER = Symbol("bd-owner");

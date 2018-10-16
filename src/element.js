@@ -23,7 +23,7 @@ export class Element {
 			this.type = type.type;
 			type.isComponentType && (this.isComponentType = type.isComponentType);
 			type.ctorProps && (this.ctorProps = type.ctorProps);
-			type.ppProps && (this.ppProps = type.ppProps);
+			type.ppFuncs && (this.ppFuncs = type.ppFuncs);
 			type.children && (this.children = type.children);
 		}else{
 			// type must either be a constructor (a function) or a string; guarantee that as follows...
@@ -44,33 +44,33 @@ export class Element {
 					this.ctorProps = {};
 				}else if(props instanceof Object){
 					let ctorProps = {};
-					let ppProps = {};
-					let ppPropCount = 0;
+					let ppFuncs = {};
+					let ppFuncCount = 0;
 					let match, ppf;
-					let setPpProps = (ppKey, value) => {
-						if(ppProps[ppKey]){
-							let dest = ppProps[ppKey];
+					let setPpFuncs = (ppKey, value) => {
+						if(ppFuncs[ppKey]){
+							let dest = ppFuncs[ppKey];
 							Reflect.ownKeys(value).forEach(k => dest[k] = value[k]);
 						}else{
-							ppPropCount++;
-							ppProps[ppKey] = value;
+							ppFuncCount++;
+							ppFuncs[ppKey] = value;
 						}
 					};
 					Reflect.ownKeys(props).forEach((k) => {
 						if((ppf = getPostProcessingFunction(k))){
 							let value = ppf.bdTransform(null, props[k]);
-							setPpProps(k, value);
+							setPpFuncs(k, value);
 						}else if((match = k.match(/^([A-Za-z0-9$]+)_(.+)$/)) && (ppf = getPostProcessingFunction(match[1]))){
 							let ppKey = match[1];
 							let value = ppf.bdTransform(match[2], props[k]);
-							setPpProps(ppKey, value);
+							setPpFuncs(ppKey, value);
 						}else{
 							ctorProps[k] = props[k];
 						}
 					});
 					this.ctorProps = Object.freeze(ctorProps);
-					if(ppPropCount){
-						this.ppProps = Object.freeze(ppProps);
+					if(ppFuncCount){
+						this.ppFuncs = Object.freeze(ppFuncs);
 					}
 				}else{
 					children.unshift(props);

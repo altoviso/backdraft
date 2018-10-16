@@ -60,13 +60,13 @@ function validateElements(elements){
 	}
 }
 
-function postProcess(ppProps, owner, target){
-	Reflect.ownKeys(ppProps).forEach((ppProp) => {
-		let args = ppProps[ppProp];
+function postProcess(ppFuncs, owner, target){
+	Reflect.ownKeys(ppFuncs).forEach(ppf => {
+		let args = ppFuncs[ppf];
 		if(Array.isArray(args)){
-			getPostProcessingFunction(ppProp)(owner, target, ...args);
+			getPostProcessingFunction(ppf)(owner, target, ...args);
 		}else{
-			getPostProcessingFunction(ppProp)(owner, target, args);
+			getPostProcessingFunction(ppf)(owner, target, args);
 		}
 	});
 }
@@ -607,12 +607,12 @@ export class Component extends eventHub(WatchHub) {
 		if(Array.isArray(e)){
 			return e.map((e) => Component.renderElements(owner, e));
 		}else if(e instanceof Element){
-			const {type, ctorProps, ppProps, children} = e;
+			const {type, ctorProps, ppFuncs, children} = e;
 			let result;
 			if(e.isComponentType){
 				let componentInstance = result = new type(ctorProps);
 				componentInstance.render();
-				ppProps && postProcess(ppProps, owner, componentInstance);
+				ppFuncs && postProcess(ppFuncs, owner, componentInstance);
 				if(children){
 					let renderedChildren = Component.renderElements(owner, children);
 					if(Array.isArray(renderedChildren)){
@@ -626,7 +626,7 @@ export class Component extends eventHub(WatchHub) {
 				if("tabIndex" in ctorProps && ctorProps.tabIndex !== false){
 					owner.bdDom.tabIndexNode = domNode;
 				}
-				ppProps && postProcess(ppProps, owner, domNode);
+				ppFuncs && postProcess(ppFuncs, owner, domNode);
 				if(children){
 					let renderedChildren = Component.renderElements(owner, children);
 					if(Array.isArray(renderedChildren)){
