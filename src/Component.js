@@ -649,14 +649,14 @@ Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
 
 insPostProcessingFunction("bdAttach",
-	function(target, source, name){
+	function(ppfOwner, ppfTarget, name){
 		if(typeof name === "function"){
-			name(source);
+			name(ppfTarget);
 		}else{
-			target[name] = source;
-			target.ownWhileRendered({
+			ppfOwner[name] = ppfTarget;
+			ppfOwner.ownWhileRendered({
 				destroy: function(){
-					delete target[name];
+					delete ppfOwner[name];
 				}
 			});
 		}
@@ -664,28 +664,32 @@ insPostProcessingFunction("bdAttach",
 );
 
 insPostProcessingFunction("bdWatch", true,
-	function(target, source, watchers){
-		Reflect.ownKeys(watchers).forEach((name) => {
-			source.ownWhileRendered(source.watch(name, watchers[name]));
+	function(ppfOwner, ppfTarget, watchers){
+		Reflect.ownKeys(watchers).forEach(eventType => {
+			let watcher = watchers[eventType];
+			if(typeof watcher !== "function"){
+				watcher = ppfOwner[eventType].bind(ppfOwner);
+			}
+			ppfTarget.ownWhileRendered(ppfTarget.watch(eventType, watcher));
 		});
 	}
 );
 
 insPostProcessingFunction("bdExec",
-	function(target, source, ...args){
+	function(ppfOwner, ppfTarget, ...args){
 		for(let i = 0; i < args.length;){
 			let f = args[i++];
 			if(typeof f === "function"){
-				f(target, source);
+				f(ppfOwner, ppfTarget);
 			}else if(typeof f === "string"){
-				if(!(typeof source[f] === "function")){
+				if(!(typeof ppfTarget[f] === "function")){
 					// eslint-disable-next-line no-console
 					console.error("unexpected");
 				}
 				if(i < args.length && Array.isArray(args[i])){
-					source[f](...args[i++], target, source);
+					ppfTarget[f](...args[i++], ppfOwner, ppfTarget);
 				}else{
-					source[f](target, source);
+					ppfTarget[f](ppfOwner, ppfTarget);
 				}
 			}else{
 				// eslint-disable-next-line no-console
@@ -696,27 +700,25 @@ insPostProcessingFunction("bdExec",
 );
 
 insPostProcessingFunction("bdTitleNode",
-	function(target, source){
-		target.bdDom.titleNode = source;
+	function(ppfOwner, ppfTarget){
+		ppfOwner.bdDom.titleNode = ppfTarget;
 	}
 );
 
 insPostProcessingFunction("bdParentAttachPoint",
-	function(target, source, propertyName){
-		source.bdParentAttachPoint = propertyName;
+	function(ppfOwner, ppfTarget, propertyName){
+		ppfTarget.bdParentAttachPoint = propertyName;
 	}
 );
 
 insPostProcessingFunction("bdChildrenAttachPoint",
-	function(target, source, value){
-		if(value){
-			target.bdChildrenAttachPoint = source;
-		}
+	function(ppfOwner, ppfTarget){
+		ppfOwner.bdChildrenAttachPoint = ppfTarget;
 	}
 );
 
 insPostProcessingFunction("bdReflectClass",
-	function(target, source, ...args){
+	function(ppfOwner, ppfTarget, ...args){
 		// args is a list of ([owner, ] property, [, formatter])...
 		// very much like bdReflect, except we're adding/removing components (words) from this.classname
 
@@ -726,15 +728,15 @@ insPostProcessingFunction("bdReflectClass",
 
 		function install(owner, prop, formatter){
 			let watchable = getWatchableRef(owner, prop, formatter);
-			target.ownWhileRendered(watchable);
+			ppfOwner.ownWhileRendered(watchable);
 			let value = normalize(watchable.value);
-			value && target.addClassName(value);
-			target.ownWhileRendered(watchable.watch((newValue, oldValue) => {
+			value && ppfOwner.addClassName(value);
+			ppfOwner.ownWhileRendered(watchable.watch((newValue, oldValue) => {
 				newValue = normalize(newValue);
 				oldValue = normalize(oldValue);
 				if(newValue !== oldValue){
-					oldValue && target.removeClassName(oldValue);
-					newValue && target.addClassName(newValue);
+					oldValue && ppfOwner.removeClassName(oldValue);
+					newValue && ppfOwner.addClassName(newValue);
 
 				}
 			}));
@@ -746,7 +748,7 @@ insPostProcessingFunction("bdReflectClass",
 			owner = args.shift();
 			if(typeof owner === "string" || typeof owner === "symbol"){
 				prop = owner;
-				owner = target;
+				owner = ppfOwner;
 			}else{
 				prop = args.shift();
 			}

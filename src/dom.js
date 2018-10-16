@@ -455,60 +455,62 @@ connect(window, "resize", function(){
 insPostProcessingFunction("bdReflect",
 	function(prop, value){
 		if(prop === null && value instanceof Object && !Array.isArray(value)){
-			// e.g., bdReflect:{p1:"someProp", p2:[owner, "someOtherProp", someFormatter]}
+			// e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
 			return value;
+		}else if (prop){
+			// e.g., bdReflect_someProp: [refObject, ] prop [, someFormatter]
+			return {[prop]: value};
 		}else{
-			// e.g., if(prop) => bdReflect_someProp: ...
-			// if(!prop) bdReflect: ...
-			return prop ? {[prop]: value} : {innerHTML: value};
+			// e.g., bdReflect: [refObject, ] prop [, someFormatter]
+			return {innerHTML: value};
 		}
 	},
-	function(target, source, props){
-		// props is a hash from property in source to a list of ([owner, ] property, [, formatter])...
+	function(ppfOwner, ppfTarget, props){
+		// props is a hash from property in ppfTarget to a list of ([refObject, ] property, [, formatter])...
 		let install, watchable;
-		if(source instanceof Component){
-			install = function(destProp, owner, prop, formatter){
-				target.ownWhileRendered((watchable = getWatchableRef(owner, prop, formatter)));
-				source[destProp] = watchable.value;
-				target.ownWhileRendered(watchable.watch(newValue => {
-					source[destProp] = newValue;
+		if(ppfTarget instanceof Component){
+			install = function(destProp, refObject, prop, formatter){
+				ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
+				ppfTarget[destProp] = watchable.value;
+				ppfOwner.ownWhileRendered(watchable.watch(newValue => {
+					ppfTarget[destProp] = newValue;
 				}));
 			};
 		}else{
-			install = function(destProp, owner, prop, formatter){
-				target.ownWhileRendered((watchable = getWatchableRef(owner, prop, formatter)));
-				setAttr(source, destProp, watchable.value);
-				target.ownWhileRendered(watchable.watch(newValue => {
-					setAttr(source, destProp, newValue);
+			install = function(destProp, refObject, prop, formatter){
+				ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
+				setAttr(ppfTarget, destProp, watchable.value);
+				ppfOwner.ownWhileRendered(watchable.watch(newValue => {
+					setAttr(ppfTarget, destProp, newValue);
 				}));
 			};
 		}
 
-		Object.keys(props).forEach(destProp => {
+		Reflect.ownKeys(props).forEach(destProp => {
 			let args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
-			let owner, prop;
+			let refObject, prop;
 			while(args.length){
-				owner = args.shift();
-				if(typeof owner === "string" || typeof owner === "symbol"){
-					prop = owner;
-					owner = target;
+				refObject = args.shift();
+				if(typeof refObject === "string" || typeof refObject === "symbol"){
+					prop = refObject;
+					refObject = ppfOwner;
 				}else{
 					prop = args.shift();
 				}
-				install(destProp, owner, prop, typeof args[0] === "function" ? args.shift() : null);
+				install(destProp, refObject, prop, typeof args[0] === "function" ? args.shift() : null);
 			}
 		});
 	}
 );
 
 insPostProcessingFunction("bdAdvise", true,
-	function(target, source, listeners){
-		Reflect.ownKeys(listeners).forEach((name) => {
-			let listener = listeners[name];
+	function(ppfOwner, ppfTarget, listeners){
+		Reflect.ownKeys(listeners).forEach(eventType => {
+			let listener = listeners[eventType];
 			if(typeof listener !== "function"){
-				listener = target[listener].bind(target);
+				listener = ppfOwner[listener].bind(ppfOwner);
 			}
-			target.ownWhileRendered(source instanceof Component ? source.advise(name, listener) : connect(source, name, listener));
+			ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener));
 		});
 	}
 );
