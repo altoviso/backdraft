@@ -392,7 +392,7 @@ function watchHub(superClass){
 const WatchHub = watchHub();
 
 function isWatchable(target){
-	return target && (target[OWNER] || target.bdIsWatchHub);
+	return target && (target[OWNER] || target.isBdWatchHub);
 }
 
 function withWatchables(superClass, ...args){
@@ -441,7 +441,7 @@ function withWatchables(superClass, ...args){
 
 function bind(src, srcProp, dest, destProp){
 	dest[destProp] = src[srcProp];
-	if(src.bdIsWatchHub){
+	if(src.isBdWatchHub){
 		return src.watch(srcProp, newValue => dest[destProp] = newValue);
 	}else if(src[OWNER]){
 		return watch(srcProp, newValue => dest[destProp] = newValue);
