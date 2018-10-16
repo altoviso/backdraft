@@ -31,10 +31,6 @@ export class Collection extends Component {
 		return this.bdCollection;
 	}
 
-	bdElements(){
-		return this.kwargs.root || div();
-	}
-
 	render(proc){
 		if(!this.bdDom){
 			super.render(proc);
