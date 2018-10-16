@@ -14,7 +14,7 @@ smoke.defTest({
 			assert(!e.isComponentType);
 			assert(e.ctorProps.className === "status");
 			assert(e.ctorProps.tabIndex === -1);
-			assert(e.ppProps.bdReflectClass === "label");
+			assert(e.ppFuncs.bdReflectClass === "label");
 			assert(e.children === "status:");
 		}],
 		["immutable", function(){
@@ -41,12 +41,12 @@ smoke.defTest({
 			}catch(e){
 			}
 			try{
-				e.ppProps = {};
+				e.ppFuncs = {};
 				assert(false);
 			}catch(e){
 			}
 			try{
-				e.ppProps.bdReflectClass = "somethingElse";
+				e.ppFuncs.bdReflectClass = "somethingElse";
 				assert(false);
 			}catch(e){
 			}
@@ -62,7 +62,7 @@ smoke.defTest({
 			assert(e.type === "div");
 			assert(!e.isComponentType);
 			assert(e.hasOwnProperty("ctorProps"));
-			assert(!e.hasOwnProperty("ppProps"));
+			assert(!e.hasOwnProperty("ppFuncs"));
 			assert(!e.hasOwnProperty("children"));
 			try{
 				e = new Element();
@@ -107,26 +107,26 @@ smoke.defTest({
 			let props = {tabIndex: -1, bdReflectClass: "label"};
 			let e = new Element("div", props);
 			assert(e.ctorProps.tabIndex === -1);
-			assert(e.ppProps.bdReflectClass === "label");
+			assert(e.ppFuncs.bdReflectClass === "label");
 			assert(!e.hasOwnProperty("children"));
 
-			// if props doesn't have any ppProps, then ppProps isn't defined
+			// if props doesn't have any ppFuncs, then ppFuncs isn't defined
 			props = {tabIndex: -1};
 			e = new Element("div", props);
 			assert(e.ctorProps.tabIndex === -1);
-			assert(!e.hasOwnProperty("ppProps"));
+			assert(!e.hasOwnProperty("ppFuncs"));
 
 			// if props doesn't have any ctorProps, then ctorProps isn't defined
 			props = {bdReflectClass: "label"};
 			e = new Element("div", props);
 			assert(e.hasOwnProperty("ctorProps"));
-			assert(e.ppProps.bdReflectClass === "label");
+			assert(e.ppFuncs.bdReflectClass === "label");
 
-			// and no ctorProps nor ppProps on props, then neither is defined
+			// and no ctorProps nor ppFuncs on props, then neither is defined
 			props = {bdReflectClass: "label"};
 			e = new Element("div", {});
 			assert(e.hasOwnProperty("ctorProps"));;
-			assert(!e.hasOwnProperty("ppProps"));
+			assert(!e.hasOwnProperty("ppFuncs"));
 
 			// recall props must be an object, children can only be Elements or convertible to string
 			// if the second arg is an object, then it is assumed to be props
@@ -143,13 +143,13 @@ smoke.defTest({
 			// children can be provided with props
 			let e = new Element("div", "OK");
 			assert(e.hasOwnProperty("ctorProps"));;
-			assert(!e.hasOwnProperty("ppProps"));
+			assert(!e.hasOwnProperty("ppFuncs"));
 			assert(e.children === "OK");
 
 			let person = "Joe";
 			e = new Element("div", "hello, ", person);
 			assert(e.hasOwnProperty("ctorProps"));;
-			assert(!e.hasOwnProperty("ppProps"));
+			assert(!e.hasOwnProperty("ppFuncs"));
 			assert(e.children[0] === "hello, ");
 			assert(e.children[1] === "Joe");
 
@@ -157,7 +157,7 @@ smoke.defTest({
 			person = new Element("div", "Joe");
 			e = new Element("div", greeting, person);
 			assert(e.hasOwnProperty("ctorProps"));
-			assert(!e.hasOwnProperty("ppProps"));
+			assert(!e.hasOwnProperty("ppFuncs"));
 			assert(e.children[0] instanceof Element);
 			assert(e.children[1] instanceof Element);
 			assert(e.children[0].children === "hello, ");
@@ -259,7 +259,7 @@ smoke.defTest({
 					assert(!result.isComponentType);
 					assert(result.ctorProps.className === "status");
 					assert(result.ctorProps.tabIndex === -1);
-					assert(result.ppProps.bdReflectClass === "label");
+					assert(result.ppFuncs.bdReflectClass === "label");
 					assert(result.children === "status:");
 				}],
 				["immutable", function(){
@@ -286,12 +286,12 @@ smoke.defTest({
 					}catch(e){
 					}
 					try{
-						result.ppProps = {};
+						result.ppFuncs = {};
 						assert(false);
 					}catch(e){
 					}
 					try{
-						result.ppProps.bdReflectClass = "somethingElse";
+						result.ppFuncs.bdReflectClass = "somethingElse";
 						assert(false);
 					}catch(e){
 					}
@@ -308,7 +308,7 @@ smoke.defTest({
 					assert(!result.isComponentType);
 					assert(result.hasOwnProperty("ctorProps"));
 					assert(!Reflect.ownKeys(result.ctorProps).length);
-					assert(!result.hasOwnProperty("ppProps"));
+					assert(!result.hasOwnProperty("ppFuncs"));
 					assert(!result.hasOwnProperty("children"));
 					try{
 						result = e();
@@ -353,25 +353,25 @@ smoke.defTest({
 					let props = {tabIndex: -1, bdReflectClass: "label"};
 					let result = e("div", props);
 					assert(result.ctorProps.tabIndex === -1);
-					assert(result.ppProps.bdReflectClass === "label");
+					assert(result.ppFuncs.bdReflectClass === "label");
 					assert(!result.hasOwnProperty("children"));
 
-					// if props doesn't have any ppProps, then ppProps isn't defined
+					// if props doesn't have any ppFuncs, then ppFuncs isn't defined
 					props = {tabIndex: -1};
 					result = e("div", props);
 					assert(result.ctorProps.tabIndex === -1);
-					assert(!result.hasOwnProperty("ppProps"));
+					assert(!result.hasOwnProperty("ppFuncs"));
 
 					// if props doesn't have any ctorProps, then ctorProps defaults to {}
 					props = {bdReflectClass: "label"};
 					result = e("div", props);
 					assert(!Reflect.ownKeys(result.ctorProps).length);
-					assert(result.ppProps.bdReflectClass === "label");
+					assert(result.ppFuncs.bdReflectClass === "label");
 
-					// And no ctorProps nor ppProps on props.
+					// And no ctorProps nor ppFuncs on props.
 					result = e("div");
 					assert(!Reflect.ownKeys(result.ctorProps).length);
-					assert(!result.hasOwnProperty("ppProps"));
+					assert(!result.hasOwnProperty("ppFuncs"));
 
 					// recall props must be an object, children can only be Elements or convertible to string
 					// if the second arg is an object, then it is assumed to be props
@@ -389,14 +389,14 @@ smoke.defTest({
 					let result = e("div", "OK");
 					assert(result.hasOwnProperty("ctorProps"));
 					assert(!Reflect.ownKeys(result.ctorProps).length);
-					assert(!result.hasOwnProperty("ppProps"));
+					assert(!result.hasOwnProperty("ppFuncs"));
 					assert(result.children === "OK");
 
 					let person = "Joe";
 					result = e("div", "hello, ", person);
 					assert(result.hasOwnProperty("ctorProps"));
 					assert(!Reflect.ownKeys(result.ctorProps).length);
-					assert(!result.hasOwnProperty("ppProps"));
+					assert(!result.hasOwnProperty("ppFuncs"));
 					assert(result.children[0] === "hello, ");
 					assert(result.children[1] === "Joe");
 
@@ -405,7 +405,7 @@ smoke.defTest({
 					result = e("div", greeting, person);
 					assert(result.hasOwnProperty("ctorProps"));
 					assert(!Reflect.ownKeys(result.ctorProps).length);
-					assert(!result.hasOwnProperty("ppProps"));
+					assert(!result.hasOwnProperty("ppFuncs"));
 					assert(result.children[0] instanceof Element);
 					assert(result.children[1] instanceof Element);
 					assert(result.children[0].children === "hello, ");
