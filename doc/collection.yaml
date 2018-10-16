@@ -1,0 +1,128 @@
+name: Collection
+owner: bd-core.classes
+type: class
+supers: [../Component]
+sum: >
+  manages a homogeneous collection of children
+d:
+- >
+  `Collection` defines the property ./collection (an array). When rendered, `Collection` manages a collection of homogeneous child components to ensure there is a 1-to-1, onto mapping between each item in ./collection and each child component. If the ./collection is watchable, then if/when the array changes size, the rendered children components are automatically adjusted (inserted/deleted) to maintain the 1-to-1, onto mapping.
+
+  The example [[Polygraph]http://TODO/TODO] demonstrates Collection.
+
+namespaces:
+- name: protected
+  sum: protected properties and methods
+  d:
+  - >
+    These properties and methods should only be used within the implementations of subclasses derived from `Collection`.
+  n:
+  - The Backdraft Library reserves all names that begin with "bd".
+#
+#- name: static
+#  sum: static properties and methods defined on Component
+#
+#- name: types
+#  sum: types used in Component machinery
+
+
+
+methods:
+- name: constructor
+  sum: instance initializer
+  order: 1,
+  sig: (kwargs)
+  params:
+  - name: kwargs
+    type: ./ConstructorKeywordArgs
+    d: >
+      Collection defines the keywords `collection`, `root`, and `childType`. See ../Component.constructor for other keywords.
+  d:
+  - >
+    Creates a new Collection instance.
+
+    Keyword argument `collection` initializes the ./collection property; see ./collection.
+
+    Keyword argument `root`, an ../Element instance, describes the tree, typically a single node, to which to append the children. See ./protected.bdElements.
+
+    Keyword argument `childType` gives the constructor (class) for a component type that is used to create children. See ./insChild.
+
+- name: insChild
+  sum: >
+    creates and inserts a child component into the children collection
+  sig:
+  - (i) => Component
+  params:
+  - name: i
+    type: integer
+    d: >
+      The index into ./collection that is associated with the new child.
+
+  d:
+  - >
+    `insChild` creates a new component of type `kwargs.childType`. The constructor arguments
+
+    `{index: i, mix: {collection: this.collection}}`
+
+    are provided, where `this.collection` is the value of ./collection. Children component types should be designed so they synchronize their presentation/semantics with `collection[i]`. `Collection` guarantees that a particular child instance is always associated with the same item in ./collection.
+
+  - i:
+    - >
+      It is the responsibility of the child to watch for mutations on the particular `collection` item to which it is associated. If the items in `collection` mutate during the lifetime of a `Collection` instance, then it is important the `collection` be set to a .../types.watchable type.
+
+  - w:
+    - >
+      This is a complete override to ./Component/insChild; signatures and semantics of ./Component/insChild are invalid for `Collection`.
+
+- name: render
+  sum: >
+    creates the component root, then creates one each child for each item in ./collection
+  order: 1
+  sig: (callback) => void
+  params:
+  - name: callback
+    type: ?, () => (../Destroyable | ../Destroyable[] | void)
+    d: >
+      if provided, applied after the instance is rendered. Any ../Destroyable instances returned are applied to ./ownWhileRendered.
+  d:
+  - >
+    If the instance is already in the rendered state, then no-op; otherwise, apply ../Component.render, then apply ./insChild for each item in ./collection.
+
+props:
+- name: collection
+  jstype: rww, array
+  sum: the data that is associated with each child component
+  d:
+  - >
+    Each child component is associated with a single item in `collection`. See ./insChild for details.
+
+    If the array is watchable, then `Collection` will ensure that its children are inserted/deleted if/when `collection` changes size.
+
+pMethods:
+- name: bdElements
+  sum: generate the Element tree that describes the component's DOM
+  sig: () => ../Element
+  d:
+  - >
+    The Element tree is given by `kwargs.root` if provided at construction; otherwise, the element tree is given by `element("div")`.
+
+    It is perfectly legal to describe a non-trivial element tree; however, in this case ensure that ./Component.bdChildrenAttachPoint is defined to inform `Collection` where to attach its children.
+
+- name: bdSynchChildren
+  sum: insert/delete children to match ./collection
+  sig: () => void
+  d:
+  - >
+    When rendered and if ./collection is watchable, inserts or deletes children as required so there is a 1-to-1, onto map between the items in ./collection and children components.
+
+pProps:
+- name: bdCollection
+  jstype: rw, array
+  sum: >
+    the protected property that holds the actual ./collection value
+  d:
+  - >
+    `bdCollection` is reflected and mutated by ./collection.
+  - w:
+    - This is a protected property and is not intended to be accessed by client code.
+

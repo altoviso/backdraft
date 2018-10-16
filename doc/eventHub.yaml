@@ -1,0 +1,143 @@
+name: eventHub
+owner: bd-core.mixins
+type: mixin
+sum: >
+  provides machinery to signal events
+
+namespaces:
+- name: protected
+  sum: protected properties and methods
+  d:
+  - >
+    These properties and methods should only be used by within the implementations of subclasses derived from `eventHub`.
+  n:
+  - The Backdraft Library reserves all names that begin with "bd".
+
+#- name: static
+#  sum: static properties and methods defined on Component
+#
+#- name: types
+#  sum: types used in Component machinery
+
+d:
+- >
+  `eventHub` is a mixin class (see .../mixins) that provides machinery to signal events and further to allow clients to register handlers to receive such signals. The method ./advise allows clients to register a handler, and the method ./protected.bdNotify applies all handlers registered to a particular event type. For example:
+
+- c: |
+    class SuperClass {
+        superclassMethod(){
+            console.log("in superclass method");
+        }
+    }
+    class MyClass extends eventHub(SuperClass){
+        stimulate(number){
+            if(number % 2){
+                this.bdNotify({type: "odd", number: number});
+            }else{
+                this.bdNotify({type: "even", number: number});
+            }
+    }
+
+    let test = new MyClass();
+
+    // SuperClass is a superclass of MyClass...
+    test.superclassMethod(); // => in superclass method
+
+    // only print out "odd" events...
+    test.advise("odd", (e) => console.log(e));
+
+    test.stimulate(100); // no output, "even" event was notified
+    test.stimulate(101); // => {type: "odd", number: 101}
+
+props:
+- name: isBdEventHub
+  jstype: ro, true
+  sum: returns `true` to indicate the instance contains the eventHub interface
+  d:
+  - >
+    Since ../eventHub is a mixin class (see .../mixins), `instanceof` does not function as expected. Instead, `isBdEventHub` can be used to test if a particular instance defines the `eventHub` interface. For example:
+
+  - c: |
+      class SuperClass {};
+
+      class MyClass extends eventHub(SuperClass) {}
+
+      let test = new MyClass();
+      test instanceof MyClass;    // true;
+      test instanceof SuperClass; // true;
+      test instanceof eventHub;   // false;
+      test instanceof EventHub;   // false;
+      test.isBdEventHub;          // true
+
+methods:
+- name: advise
+  sum: register a handler for an event
+  sig:
+  - (eventType, handler) => Destroyable
+  - (eventTypes, handler) => Destroyable[]
+  - (hash) => Destroyable[]
+  params:
+  - name: event
+    type: string | symbol
+    d: >
+      the event to advise
+
+  - name: events
+    type: >
+      [string | symbol]
+    d: >
+      list of events to advise
+
+  - name: hash
+    type: .../types.Hash (event -> handler)
+    d: >
+      list of (event -> handler) pairs to advise
+
+  - name: handler
+    type: function(eventObject)
+    d: >
+      handler to apply upon event
+  d:
+  - >
+    The first signature is the only substantive signature, the remaining signatures are syntax sugar discussed at the end.
+
+    Given an event object, `eo`, upon the owning instance applying ./protected.bdNotify`(eo)`, all handlers previously registered to `eventType===eo.type` are applied to `eo`. See example at ../eventHub.
+
+    The remaining signatures are syntax sugar:
+  - c: |
+      instance.advise(events, handler)
+      instance.advise(hash)
+  - >
+    are essentially equivalent to
+  - c: |
+      (instance.own || noop)(props.map(p => this.advise(p, handler))
+      (instance.own || noop)(Reflect.ownKeys(hash).map(p => this.advise(p, hash[p]))
+  - >
+    We say "essentially" because the .../types.Destroyable objects created with each watch connection are returned to the caller and this detail is not depicted in the code above.
+
+
+- name: destroyAdvise
+  sum: destroys all registered handlers for a particular event or all events
+  sig:
+  - (eventType) => void
+  params:
+  - name: eventType
+    type: string | symbol | undefined
+    d: >
+      destroy all watchers on a single event (if given); all events, otherwise
+  d:
+  - >
+    If `eventType` is provided, than all handlers connected the given event are destroyed; otherwise, all handlers on all events are destroyed.
+
+pMethods:
+- name: bdNotify
+  sum: notify registered handlers of an event
+  sig: (eo) => void
+  params:
+  - name: eo
+    type: Object
+    d: >
+      any object with the property `type`
+  d:
+  - >
+    All handlers previously registered to event type `eo.type` are applied to `eo`.

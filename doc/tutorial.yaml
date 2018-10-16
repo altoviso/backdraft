@@ -1,0 +1,712 @@
+name: bd-tutorial
+type: page
+title: Backdraft Tutorial
+refs:
+  bdf:
+  - ./docs.html#bd-core.functions
+  - ""
+  c:
+  - ./docs.html#bd-core.classes.Component
+  - Component
+  cp:
+  - ./docs.html#bd-core.classes.Component.protected
+  - Component
+  cs:
+  - ./docs.html#bd-core.classes.Component.static
+  - Component
+  Watchable:
+  - ./docs.html#bd-core.classes.Watchable
+  - Watchable
+  watchHub:
+  - ./docs.html#bd-core.mixins.watchHub
+  - watchHub
+  e:
+  - ./docs.html#bd-core.functions.e
+  - e
+d:
+- section:
+    name: Key Design Values
+    id: keyDesign
+    d:
+    - >
+      Backdraft is a library for building browser-hosted user interfaces. It is fanatical about four key design values:
+
+      <h7>Pure JavaScript</h7>
+
+      Backdraft-defined components are expressed in pure JavaScript. There is <i>no</i> markup (HTML, JSX, etc.); there is <i>no</i> templating. A compilation/built step is <i>never</i> required. This makes development easier and faster.
+
+      <h7>Unopinionated</h7>
+
+      The Backdraft programming model <i>completely</i> separates the user-interface from program logic. Backdraft components work with any application design model because they do not impose any constraints on the design model. This decreases program construction complexity by definitively separating concerns.
+
+      <h7>Embrace the DOM</h7>
+
+      Modern DOM is powerful. There is no need to add abstraction layers like virtual DOM or synthetic event systems. Backdraft includes direct, unfiltered access to the DOM, but separates these details from program logic...once again, decreasing construction complexity  by separating concerns.
+
+      <h7>Self-contained, Minimal, and Small</h7>
+
+      Backdraft has <i>no</i> dependencies and requires <i>no</i> special tooling. It provides precisely the machinery necessary to build user-interface components quickly and efficiently, and no more. It is small and easy to grok. This makes it easy to learn and extend.
+
+
+- section:
+    name: The Big Picture
+    id: bigPicture
+    d:
+    - >
+      Backdraft provides machinery to define user-interface components as JavaScript classes. Each class provides a <i>public interface</i>, which application logic engages to receive and present data, and a <i>protected implementation</i>, which creates and controls the DOM tree that actually receives input and displays output.
+
+      <div class="blockDiagram">
+          <div class="block">Application Code</div>
+          <div><p class="icon-arrow-up2"></p>
+              <p class="icon-arrow-down2"></p></div>
+          <div class="block"><p>Backdraft Component Instances</p><p class="small">(instances of a classes derived from Component)</p></div>
+          <div><p class="icon-arrow-up2"></p>
+              <p class="icon-arrow-down2"></p></div>
+          <div class="block">DOM API</div>
+          <div class="doubleArrow"></div>
+      </div>
+
+      Components define their public interface in terms that are convenient to the application logic; it is the job of the protected implementation to abstract away the details of the DOM.
+
+      Let's consider the example of an application that has a function to rename something. From the application's point of view, all it cares about is the new name:
+    - c: |
+        RenameDialog.show({currentName: currentName}).then(newName => {
+            if(newName){
+                // execute the logic to rename the resource
+            }
+        });
+
+    - >
+      This is real code that uses a Backdraft dialog component. You can learn more about the example [[here]http://TODO/TODO] and/or see it in a [[Pen]http://TODO/TODO]. RenameDialog is a JavaScript class derived from Backdraft [[c]]; it's implementation looks like this:
+    - c: |
+        export default class RenameDialog extends Dialog {
+            dialogBody(){
+                return e("div", {className: "rename-dialog"},
+                    e("div",
+                        e("LabeledInput", {
+                            label:"Current Name:",
+                            value: this.kwargs.currentValue,
+                            size: 50, disabled:true}),
+                        e("LabeledInput", {
+                            label:"New Name:",
+                            value: this.kwargs.currentValue,
+                            size: 50, bdAttach:this.newName}),
+                    ),
+                    e("div", {className: "bottom-buttons"},
+                        e(Button, {label: "Cancel", handler: ()=> this.onCancel()}),
+                        e(Button, {label: "OK", handler: ()=> this.promise.resolve(this.newName.value)})
+                    )
+                );
+            }
+        }
+
+- section:
+    name: Declarative Composition
+    id: declarativeComposition
+    d:
+    - >
+      RenameDialog uses <i>declarative composition</i> to describe its implementation: it <i>declares</i> an <i>element</i> tree that describes its user interface. RenameDialog's tree is <i>composed</i> with other components (LabeledInput and Button). Those other components will use the same declarative composition pattern to declare their own element trees, perhaps also composed with yet other components. This system allows extremely complex components to be decomposed into increasingly simple components.
+
+      The base class [[c]] includes machinery to instantiate the element tree into an actual DOM tree and then interact with that DOM tree per the functional requirements of a particular component. We'll talk about life cycle in the next section.
+
+      Each component class uses declarative composition to define its element tree. Each node in the tree can indicate either a DOM node or a Backdraft Component node. The factory function [[e]] manufactures nodes for the tree. The first argument gives the type of node--DOM tag for a DOM node or constructor function (class name) for a Component node. The second argument, which is optional, gives attribute values for DOM nodes or constructor arguments for Components. Finally, the remaining arguments give the list of children for the node. The children can be any number of other element nodes and/or false or arrays of other element nodes and/or false. Here's an example with some arrays of children and false children:
+
+    - c: |
+        e("div", {className:"welcome-message"},
+            e("p", `Welcome ${fname} ${lname}`),
+                customerProps.important &&
+                    e("p", {className:"important"}, "We're very happy to see you again!"),
+                e("div", {className:"suggestion-list"},
+                    e("p", "Please consider buying the following stuff!"),
+                    e("ul", customerProps.suggestions.map((item)=>e("li", item)))
+                )
+            )
+        )
+
+    - >
+      Look at the third line. It evaluates to either false or a `p` element that contains "We're very happy [...]". When the tree is actually instantiated into a DOM tree by [[c]], the child will be ignored as if it wasn't there if the child is false.
+
+      Next look at the seventh line. The children of the `ul` element are an array of `li` elements. Each `customerProps.suggestions` item can be either text or some other Component.
+
+      Taking a step back, this example demonstrates a couple of really powerful ideas!
+
+      <h7>Pure JavaScript yet easier/clearer than markup or templates</h7>
+
+      Ask yourself, is there a markup/templating system that could express the element tree above more tersely? Is there a system that expresses the tree more clearly? In fact the tree's intent is <i>obvious</i> while extremely frugal. And obvious and frugal are key factors to code quality and inversely proportional to construction cost.
+
+      <h7>JavaScript is used to construct the declaration</h7>
+
+      Since the declaration itself is expressed in JavaScript, the full power of JavaScript is available to construct the declaration. Note carefully, that this is <i>different</i> than constructing the DOM/Component tree: JavaScript is used to construct the <i>description</i> of the DOM/Component tree. It is meta programming. And, again, by not introducing another system we have the full power of JavaScript at our fingertips without having to execute a built step or "escape out" of some other markup language to write JavaScript.
+
+- section:
+    name: Hello, World
+    id: helloWorld
+    d:
+    - >
+      Let's build a small component to see how all of this works. Suppose we are given the task of building a component that displays "Hello, World" in one of several languages that are dynamically mutated by application logic. So far as the application is concerned, the component's API consist if a single setter that allows the application to set the language. Here is the start of our component:
+
+    - c: |
+        class HelloWorld extends Component.withWatchables("language") {
+        }
+
+    - >
+      Component.withWatchables("language") creates a new subclass of the Backdraft class [[c]] that has an initializer, getter, and setter for the property `language`. The setter is defined so that clients can hook up a watcher on the property that is applied if/when the property is mutated. For example...
+
+    - c: |
+        let hw = new HelloWorld({language: "english"});
+        hw.watch("language", (newValue) => console.log("new value: ", newValue));
+
+        console.log(hw.language); // english
+        hw.langauge = "french";   // "new value: french"
+        console.log(hw.langauge); // "french"
+
+    - >
+      Behind the scenes, [[cs.withWatchables]] uses capabilities provided by the Backdraft mixin [[bdf.watchable]] which is a superclass of [[c]] to make properties watchable.
+
+      HelloWorld is also going to need a map from a language value to a "hello, world" translation. The map may be the result of a service request to an off-host translation service and may not be available when a particular HelloWorld instance is created and displayed. So we better make the map another mutable property which we'll name `translations`.
+
+      Thinking ahead a little, every time either the `language` property or the `translations` property is mutated, it is possible the particular translation will mutate. So lets restart HelloWorld with all three of these properties:
+
+    - c: |
+        class HelloWorld extends Component.withWatchables("language", "translations", "translation") {
+        }
+
+    - >
+      At this point, the public interface is `HelloWorld` is complete. Next we need to build the protected implementation that presents a DOM tree with the proper translation. [[c.bdElements]] describes the element tree for a particular Component subclass. An override to the default implementation, which declares a tree with a single `div`, is almost-always provided. Such is the case with HelloWorld:
+
+    - c: |
+        class HelloWorld extends Component.withWatchables("language", "translations", "translation") {
+            bdElements(){
+                return e("div", {
+                    bdReflect: "translation",
+                    bdReflectClass: {
+                        "translation": translation => translation ? "" : "empty",
+                        "translations": translations =>
+                                            translations && translations.length ? "" : "no-translations"
+                    }
+                });
+            }
+        }
+
+    - >
+      The tree contains a single element that describes a `div` node with the two attributes `bdReflect` and `bdReflectClass`. `bdReflect` is a special kind of attribute called a <i>post-processing instruction</i>. Post-processing instructions are functions that are applied to the result of instantiating an element node; instantiating an element node means to create either the dom node or Component instance described by the element node. In this case, `bdReflect` says the child of the `div` node should reflect the current value of the translation property. If the value changes, then the child is automatically updated.
+
+      `bdReflectClass` is also a post-processing instruction that says the class should include the string reflected by a particular property. In this case, we'd like `"empty"` to be added to the `div`'s className iff there is no translation and `"no-translations"` to be added iff there are no translations (for example, when the component is waiting for a translation service to deliver the translations). This will allow the visual presentation to be altered by CSS depending upon the state of these properties.
+
+      In the example, the value of `bdReflectClass` is a hash from property to formatter function, and `bdReflectClass` will ensure that any time a given property mutates, the results of the formatter will be computed into the className of the `div`. `bdReflectClass` remembers the previous value of a formatter so that after each application of a formatter, anything previously added that is not in the most-recent result is removed from the className.
+
+      A couple of notes while we're talking about post-processing properties:
+
+    - ul:
+      - bdReflectProp works like bdReflect, except that it reflects into a particular property rather than a child.
+      - bdReflect, bdReflectClass, and bdReflectProp can each be configured with or without formatters.
+      - Backdraft predefines [[several post-processing instructions]http://TODO/TODO].
+      - Post-processing instructions can be added by library users.
+
+    - >
+      There is one task left to complete HelloWorld. Whenever either the `language` or `translations` properties change, the `translation` property needs to be updated. Since both `language` and `translations` are watchable, this is easy. Here is the completed HelloWorld component:
+
+    - c: |
+        class HelloWorld extends Component.withWatchables("language", "translations", "translation") {
+            constructor(kwargs){
+                super(kwargs);
+                let translate = () => (this.translation =
+                                          this.translations && this.translations[this.language])
+                this.watch({language: translate, translations: translate});
+            }
+            bdElements(){
+                return e("div", {
+                    bdReflect: "translation",
+                    bdReflectClass: {
+                        "translation": (translation) => translation ? "" : "empty",
+                        "translations": (translations) => translations && translations.length ? "" : "no-translations"
+                    }
+                });
+            }
+        }
+
+    - >
+      The constructor simply sets up two watches, one each on `language` and `translations`. Both watches have the same watcher...a function that updates the `translation` property. Owing to `bdReflect`, when the translation property mutates, the `div`'s contents will be updated (if it is rendered, we'll talk about rendering next).
+
+      Although it is not strictly necessary to define a `kwargs` parameter for the constructor of HelloWorld and then pass it to the super's constructor, this is a highly recommended best-practice. Without it, there is no way either initialize HelloWorld property values or pass constructor arguments to the superclass ([[c]]), which defines [[several constructor keyword arguments]http://TODO/TODO].
+
+- section:
+    name: Component Life Cycle
+    id: lifeCycle
+    d:
+    - >
+      Here's a simple way to create a HelloWorld instance and append it to the document:
+
+    - c: |
+        let hw = render(HelloWorld, {language: "english", translations: getTranslations()}, "root");
+
+    - >
+      [[bdf.render]] is a highly overloaded function that can take many signatures. In this case we're telling `render` to create a new  `HelloWorld` instance with the given keyword constructor arguments, render it (that is, create its DOM), and append the root of its DOM to the document node with the `id` `"root"`; the new instance is returned. You can see the whole thing work in this [[Pen]http://TODO/TODO].
+
+      In most real Backdraft applications, a single "top-most" component is created as above and then application logic inserts and deletes children components. Consider the example of a home automation system. It may present various switch panels and configuration panels, depending upon what the user is demanding. The "main program" of such an application might look like this:
+
+    - c: |
+        let top = render(TopFrame, "root");
+        let panelCache = {};
+        let currentPanel = 0;
+        connect(globalEventGenerator, "onPanelDemand", (panelId) => {
+            top.delChild(currentPanel, true);
+            currentPanel = panelCache[panelId] =
+                top.insChild(panelCache[panelId] || e(Panel, {id:panelId}));
+        });
+
+    - >
+      Here, a single instance of a `TopFrame` component is created, rendered, and appended to the document node with `id` of `"root"`. An event handler is set up to respond to the `"onPanelDemand"` event which creates a new instance of the panel demanded (if it wasn't previously cached) and swaps out the current panel for the new panel, caching the current panel in the process. The actual generation of an `"onPanelDemand"` event is a separate and decoupled concern of the application logic.
+
+      [[c.insChild]] (line 7) is also a highly overloaded method that is very similar to [[bdf.render]]. In this use case, it causes a new component to be created (if necessary) and then appends that existing/new component to the calling component's DOM tree (in contrast to `render`, which appends to the document).
+
+    - i:
+        With rare exception, creating/destroying an instance's DOM and appending/removing that DOM to/from the document is almost always accomplished behind the scenes by the Backdraft framework. Backdraft abstracts these painful details so that client code thinks in terms of components and children of components, not DOM trees.
+
+    - section:
+        name: Life Cycle Internals
+        id: lifeCycleInternals
+        d:
+        - n:
+            This section is optional. It goes through the laborious process of explicitly moving a component instance through its lifecycle.
+
+        - >
+          The moment an instance of a particular component is instantiated (new'd up) its public interface is fully usable; however, it's DOM is not created, and, therefore, it is not visible in the document.
+
+        - c: |
+            let hw = new HelloWorld();
+            hw.langauge = "english";
+            hw.translations = {
+                english: "Hello, world",
+                french: "Bonjour le monde"
+            };
+            console.log(hw.language, ":" , hw.translation); // english : hello, world
+
+        - >
+          Next we need to create the DOM; this is termed <i>rendering</i> and the [[c.rendered]] says if the component is rendered or not.
+
+        - c: |
+            console.log(hw.rendered); // false
+            hw.render();
+            console.log(hw.rendered); // true
+
+        - >
+          At this point the DOM tree described by `HelloWorld.bdElement` has been created and is fully alive. The root of the tree is stored at `hw.bdDom.root`.
+
+        - c: |
+            console.log(hw.bdDom.root.innerHTML); // "Hello, world"
+            hw.language = "french";
+            console.log(hw.bdDom.root.innerHTML); // "Bonjour le monde"
+
+        - >
+          The component instance can go back and forth between being rendered and not:
+
+        - c: |
+            hw.unrender();
+            console.log(hw.bdDom);  // undefined
+                                    // accessing hw.bdDom.root would throw an exception
+
+            // but the component is still fully alive
+            hw.language = "english";
+            console.log(hw.language, ":" , hw.translation); // english : hello, world
+
+            // and can be rendered again
+            bw.render();
+            console.log(hw.bdDom.root.innerHTML); // "Hello, world"
+
+        - >
+          Notice how `hw` changed internal state when it was not rendered when the language was set to english, above, and this state change was properly reflected when the component was once-again rendered.
+
+          [[bdf.render]] is one way to attach a component to a document and [[c.bdAttached]] says if the component is attached to the document.
+
+        - c: |
+            console.log(hw.bdAttached); // false
+            render(hw, "root");         // "root" is the id of the node to which to append the instance's DOM tree
+            console.log(hw.bdAttached); // true
+
+        - >
+          At this point, assuming the document contains a node with the `id` `"root"`, the `div` node described by `HelloWorld.bdElements` and instantiated by `hw.render` will be a child of `div.root`. Of course all of the reflectors work as advertised:
+
+        - c: |
+            hw.language = "italian"
+            console.log(hw.language, ":", hw.translation); // italian : undefined
+            console.log(hw.bdDom.root.innerHTML);          // undefined
+
+            hw.translations = Object.assign(hw.translations, {italian: "ciao mondo"});
+            console.log(hw.language, ":", hw.translation); // italian : ciao mondo
+            console.log(hw.bdDom.root.innerHTML);          // ciao mondo
+
+        - >
+          Instances can be detached from the document by applying [[c.detach]] with no arguments and both detached (if necessary) and unrendered by applying [[c.unrender]].
+
+          Lastly, component instances can be instructed to destroy all resources/references allocated/held by applying [[c.destroy]]. Typically, once `destroy` is applied to an instance is it dead forever. [[c.destroy]] is not strictly required; however, it can help protect against memory leaks. Since it's usually applied automatically by the framework, its a detail you don't have to think about.
+
+          Here's the definitive list of the lifecycle states:
+
+          <h7>unrendered</h7>
+
+          The component has been instantiated, but the DOM tree associated with the component has not been created (or has been created and subsequently destroyed). [[c.rendered]] and [[c.bdAttached]] are both false.
+
+          <h7>rendered</h7>
+
+          The DOM tree associated with the component has been instantiated, any children in the tree have also been instantiated and rendered. It's also possible that, according to a particular component's implementation, children other than those mentioned in bdElements have been added to the DOM tree. [[c.rendered]] is true, but [[c.bdAttached]] is still false.
+
+          <h7>attached</h7>
+
+          The component is rendered as described above; further, the root of the DOM tree has been appended to a DOM node that exists in the browser document. [[c.rendered]] and [[c.bdAttached]] are both true.
+
+          <h7>destroyed</h7>
+
+          [[c.destroy]] has been applied to the component. The component is unrendered <i>and</i> all handles and resources that were collected during the lifetime of the instance have been destroyed. Typically, once destroyed, a component instance is dead forever. [[c.rendered]] and [[c.bdAttached]] are both false. The instance property `destroyed` is true; note that the property `destroyed` does not exist until [[c.destroy]] is applied to the instance.
+
+          A component can move between the various states any number of time with the exception of destroyed.
+
+- section:
+    name: Children
+    id: children
+    d:
+    - >
+      As we've seen many times now, component instances may contain other component instances. These other instances are termed "children" and an instance that contains a child is termed the "parent" of that child.
+
+      All children mentioned in the element tree given by [[c.bdElements]] are automatically instantiated and rendered when the parent component is rendered. Naturally, each child provides its own element tree and children in those trees are instantiated and rendered when the child is rendered, and so on. When children instances are created and rendered implicitly like this, the root of a particular child's DOM tree is appended to the parent DOM node as given by the element tree.
+
+      [[c.insChild]] and [[c.delChild]] allow children to be explicitly inserted/deleted to/from the children collection of a parent. These methods are useful for some component classes that implement dynamic collections like lists and grids. When a child is explicitly inserted with [[c.insChild]], the child may be appended to the parents DOM tree at several different locations; see [[c.insChild]] for details.
+
+      Children may exist <i>only</i> when the parent is rendered. All children of a particular parent are automatically destroyed when that parent is unrendered. If this default behavior is not appropriate for a particular subclass design, an override to unrender can be provided; for example:
+
+    - c: |
+        unrender(){
+            this.cachedChildren = this.children.map(child => this.delChild(child, true));
+            super.unrender();
+        }
+
+    - >
+      By applying [[c.delChild]] with a `preserve` argument of true, the child will be preserved (not destroyed) upon removing it from the children collection. Presumably, `cachedChildren` would be used in some way by other parts of the implementation. Caching designs can be used to dramatically improve performance for certain kinds of components. We saw an example of this pattern in the home automation main program example.
+
+      [[c.insChild]] and [[c.delChild]] are most often used in classes that present collections of homogeneous child components. Since collections ofter require some kind of re-ordering functionality, Component provides ./reorderChildren, which allows the children of a parent to be reordered in-place. This machinery is <i>the most performant</i> design theoretically possible; hand-tuned designs will be no faster.
+
+- section:
+    name: Reflection or Reaction
+    id: reflection
+    d:
+    - >
+      In recent years, much has been made about so-called "reactive" frameworks. The idea is that the framework somehow magically updates one thing when another thing changes. For example, in React, when a component state changes, the component is re-rendered and the real DOM tree is magically updated as required. Or, in Vue, when some data changes that is referenced by a component, the component re-renders and the real DOM tree is, again, updated as required.
+
+      Of course none of this is new at all. User-interface systems have been "reacting" to state changes since the very first graphical user interfaces (compared to command line interfaces) were built decades ago. What is new is the mental model of detecting and reacting to state changes.
+
+      The React model is the most naive. Essentially, it defines a single state variable per component instance. When the state variable is mutated, the component is re-rendered. A bunch of additional machinery is necessary to make this work efficiently, but the idea is very simple which makes it attractive. Backdraft solves the problem of reactivity with a different metal model:
+
+      <i><b>things can be made <u>watchable</u> and other things can automatically <u>reflect</u> changes to watchable things</b></i>
+
+      There are some significant advantages to Backdraft's model:
+
+    - ul:
+      - State-change implies re-render is <i>not</i> employed; only things that actually change are updated.
+      - There is no virtual DOM, eliminating a huge amount of complexity and potential performance problems.
+      - There is no barrier between the component implementation and the real DOM; components' implementations are expressed in terms of the real DOM compared to the virtual DOM, and, when necessary also the real DOM.
+
+    - >
+      We've already seen several examples of this model with the HelloWorld example which reflects watchable component properties into the real DOM. The next section explains several details about how to make properties watchable.
+
+      For some programming problems, a component must reflect external data. Backdraft includes machinery to transform any JavaScript object (including arrays) into watchable objects. With this capability, changes to the now-watchable external data can be reflected into the DOM of a component. This is described in [[Watchable Data]#bd-tutorial.watchableData].
+
+- section:
+    name: Watchable Properties
+    id: watchableProperties
+    d:
+    - >
+      In the HelloWorld example, we saw that Backdraft components can declare properties that can be watched for mutations. Let's look into the details of how this is done, some potential problems, and solutions to those problems.
+
+      [[c]] has the mixin class [[watchHub]] as a superclass. `watchHub` contains machinery to solve four problems:
+
+    - ol:
+      - >
+        Given a potential new value for a property, decide if the new value is really a mutation of the current value.
+
+      - >
+        Execute the necessary assignments to effect the mutation.
+
+      - >
+        Signal all watchers that have registered on a particular property.
+
+      - >
+        Coordinate all three of the above functions to give the illusion that mutations to several properties occur atomically, when such functionality is desired.
+
+    - >
+      Typically, but not always as we'll see in a moment, a private property is defined and then a getter/setter is defined to read/write the private property. The getter simply returns the value of the private property. On the other hand, the setter uses `watchHub` to execute the mutation, giving watchHub the opportunity to intercept the mutation, detect and execute only true mutations, and signal all watchers. Here's the idea in code:
+
+    - c: |
+        class SomeClassWithWatchableFoo extends Component {
+            constructor(kwargs){
+                super(kwargs):
+                if(kwargs.hasOwnProperty("foo")){
+                    this._foo = kwargs.foo;
+                }
+            }
+
+            get foo(){
+                return this._foo;
+            }
+
+            set foo(newValue){
+                if(newValue!==this._foo){
+                    // do protected before-processing consequent to mutating foo
+
+                    let oldValue = this._foo;
+                    this._foo = newValue;
+
+                    // do protected after-processing consequent to mutating foo
+
+                    this.bdMutateNotify("foo", oldValue, newValue);
+                }
+            }
+        }
+
+    - >
+      The code uses `"_foo"` for the private property name. It could just as well be another name or a symbol--really any legal property address. [[watchHub.bdMutateNotify]] applies all watchers that have been registered by [[watchHub.watch]] to watch the property "foo".
+
+      Notice that such getters/setters will contain exactly the same code, with the exception of the before/after-processing, no matter the property name. This would mean lots of boilerplate code for every watchable property defined by a class. Backdraft includes machinery to help with this.
+
+      [[watchHub.bdMutate]] implements the `if` statement in the setter. In its simplest form, it takes the public and private property names and the proposed new value. Here is a simplified sketch of `bdMutate`:
+
+    - c: |
+        bdMutate(publicName, privateName, newValue){
+            let oldValue = this[privateName];
+            if(!eql(oldValue, newValue)){
+                let hook = this["onMutate_" + privateName];
+                hook && hook.call(this, newValue, oldValue, true);
+                this[privateName] = newValue;
+                hook && hook.call(this, newValue, oldValue, false);
+                this.bdMutateNotify(publicName, oldValue, newValue);
+                return true;
+            }
+            return false;
+        }
+
+    - >
+      With this, we can refactor SomeClassWithWatchableFoo:
+
+    - c: |
+        class SomeClassWithWatchableFoo extends Component {
+            get foo(){
+                return this._foo;
+            }
+            set foo(newValue){
+                if(this.bdMutate("foo", "_foo", newValue){
+                    // do protected after-processing consequent to mutating foo
+                }
+            }
+        }
+
+    - >
+      This is much better, but still mostly boilerplate; that's where [[c.withWatchables]] comes in. It takes a list of public property names and declares a new class that has all of this boilerplate, including the keyword initializer in the constructor. If the class needs before/after-mutate processing, it can provide a hook function. Here's what it all looks like:
+
+    - c: |
+        class SomeClassWithWatchableFoo extends Component.withWatchables("foo") {
+            onMutate_foo(newValue, oldValue, before){
+                if(before){
+                    // do protected before-processing consequent to mutating foo
+                }else{
+                    // do protected after-processing consequent to mutating foo
+                }
+            }
+        }
+
+    - >
+      In many cases, there is no need for onMutate_foo since there is no before/after-mutate processing.
+
+      Looking back at the simplified code for `bdMutate` above, you may have noticed the strange `eql` function (not strange to lisp devs!). `bdMutate` determines if a proposed new value is in fact a mutation using the following algorithm.
+
+    - ol:
+      - if both the new value and the current value are scalar values (string, number, boolean, undefined, or null), then compare using `===`;
+      - otherwise, if the new value defines the method `eql`, then compare using `newValue.eql(currentValue)`;
+      - otherwise, if the current value defines the method `eql`, then compare using `currentValue.eql(newValue)`;
+      - otherwise, compare using ===.
+
+    - >
+      This allows properties values to be objects that know how to determine their own equality. Here's an example. Consider a component type that defines a "validation" property, which is an object that contains a list of validation violations. Perhaps the application logic computes a new validation object upon user mutation of any of several different components and sets the validation property on all the components with the same computed object each time the object is computed. On the other hand, the protected implementation of those components would prefer to not be notified of validation property mutations that are not <i>real</i> mutations. Using `===` will signal a change even if the internal values of two particular validation objects are identical. By providing a smart validation object, this thrashing can be avoided. For an example of this idea, see the [[validation status class in bd-widgets]http://TODO/TODO].
+
+    - >
+      So far the discussion of watchable properties assumes there is a shadow private property that always holds the actual value of the public property. But what is there is no such property? What is the public property is actually the value of a calculation of some internal state. In such cases, there is no need to define a shadow property: the getter is simply the value of the calculation and there is no setter.
+
+      This design does present a problem though: it seems there is no way to set up a watch on the public property. [[watchHub.bdMutateNotify]] solves this problem by applying all watchers registered for a particular public property. `bdMutateNotify` has the signature `(publicName, oldValue, newValue)`. By simply applying `bdMutateNotify` in the protected implementation any time the calculated property changes value, the public property remains watchable.
+
+      Another problem to consider is that, so far, we've assumed that only a single property will be mutated. But in some component designs, when some action results in mutating multiple properties, the component may be in an invalid state until <i>all</i> of the properties have been mutated. For example:
+
+    - c: |
+        class SomeComponent extends Component.withWatchables("foo", "bar") {
+            someAction(){
+                // do some calcs...
+                this.bdMutate("foo", "_foo", newFooValue);
+
+                // at this point this._foo has been updated, but not this._bar
+                // it is therefore possible the instance is in an invalid internal state
+                // but all the foo watchers were applied above
+                // and those watchers were executed when the instance was possibly invalid
+
+                this.bdMutate("bar", "_bar", newBarValue);
+
+                // now the component is valid again
+        }
+
+    - >
+      [[watchHub.bdMutate]] has an alternate signature that takes a set of triples `[publicName, privateName, newValue]`. With this signature, `bdMutate` first executes all mutations, then applies all watchers. The code above would use `bdMutate` like this:
+
+    - c: |
+        class SomeComponent extends Component.withWatchables("foo", "bar") {
+            someAction(){
+                // do some calcs...
+                this.bdMutate(["foo", "_foo", newFooValue], ["bar", "_bar", newBarValue);
+            }
+        }
+
+    - >
+      [[watchHub.bdMutateNotify]] has the same alternate signature.
+
+      In all of the examples, we've used "_<i>public-name</i>" for the private property name. This is the default for `Component.withWatchables`. If the private name parameter is omitted when applying [[watchHub.bdMutate]] or [[watchHub.bdMutateNotify]], then the underscore name is assumed. For example `this.bdMutate("foo", newValue)` is equivalent to `this.bdMutate("foo", "_foo", newValue)`. The private name can also be omitted when multiple mutations are signaled; in the case, the parameter for each property is a pair instead of a triple.
+
+- section:
+    name: Watchable Data
+    id: watchableData
+    d:
+    - >
+      [[bdf.toWatchable]] transforms any JavaScript object (including arrays) into an object that can signal mutations to watchers connected with [[bdf.watch]]. A quick example is easier than words:
+
+    - c: |
+        let bands = {
+            "Rush": {country: "Canada", rating: 7},
+            "Led Zeppelin": {country: "England", rating: 10},
+            "The Who": {country: "England", rating: 10},
+        };
+
+        bands = toWatchable(bands);
+
+        // watch for any changes on the object...
+        watch(bands, (newValue, oldValue, target, prop) => {
+            console.log(`first watcher: ${prop} was changed from ${oldValue} to ${newValue}`);
+        });
+
+        // watch for changes on a particular object within the object
+        watch(bands.Rush, (newValue, oldValue, target, prop) => {
+            console.log(`second watcher: ${prop} was changed from ${oldValue} to ${newValue}`);
+        });
+
+        // watch for changes on a particular scalar
+        watch(bands.Rush, "rating", (newValue, oldValue, target, prop) => {
+            console.log(`third watcher: ${prop} was changed from ${oldValue} to ${newValue}`);
+        });
+
+        // Rush is awesome!!
+        myObj.Rush.rating = 11;
+
+        TODO...put console output
+
+    - >
+      There are two kinds of watches set up above:
+
+    - ul:
+        - >
+          watches on composite objects: the first watcher watches the entire bands object; the second watcher watches the bands.Rush object.
+        - >
+          watches on scalar objects: the third watcher watches bands.Rush.rating, which is a scalar.
+
+    - >
+      In all cases, the watcher is provided the new value, the target object, and the property name that mutated. When watching a scalar, the old value is also provided; however, when a watch is set up on a composite object, it is not desirable to return the old value since the composite could be quite large. Instead, `undefined` will be passed for the `oldValue` parameter.
+
+      Array inserts and deletes can be detected as can property inserts/deletes:
+
+    - c: |
+        TODO
+
+    - >
+      We'll see that it convenient to encapsulate the value of a particular watchable with a formatter and the machinery necessary to register a watcher. The Backdraft class [[Watchable]] accomplishes this; the factory function [[bdf.watchable]] manufactures `Watchable` instances.
+
+    - c: |
+        let rushRating = watchable(bands.Rush, "rating", newValue => {
+            if(newValue<10){
+                console.warn("are you kidding?");
+            }
+            return newValue;
+        });
+
+    - >
+      Watchables are used like this:
+
+    - c: |
+        // get the current value...
+        console.log(rushRating.value); // 11
+        bands[Rush].rating = 12;
+        console.log(rushRating.value); // 12
+
+        // set up a watcher..
+        rushRating.watch((newValue, oldValue, target, prop) => {
+            console.log(`${prop} was changed from ${oldValue} to ${newValue}`);
+        });
+
+        bands[Rush].rating = 8; // the formatter outputs:
+                                // are you kidding
+                                // the watcher outputs:
+                                // TODO
+
+    - >
+      Let's put all of this together to create a component that reflects external data. Here's a component that draws a polygraph with SVG:
+
+    - c: |
+        function valueToPoint(value, index, total){
+            // TODO...explain
+        }
+
+        class Polygraph extends Component {
+            bdElements(){
+                let pointsToPolyPoints = (stats) => {
+                    let length = stats.length;
+                    return stats.map((s, i) => valueToPoint(s.value, i, length)).map(p => p.x + ',' + p.y).join(" ");
+                };
+                return svg("svg", {width: 200, height: 200},
+                    svg("g",
+                        svg("polygon", {bdReflectProp: {points: watchable(this.kwargs.stats, pointsToPolyPoints)}}),
+                        svg("circle", {cx: 100, cy: 100, r: 80})
+                    )
+                );
+            }
+        }
+
+    - >
+      The component could be used something like this:
+
+    - c: |
+        let graphData = toWatchable([
+            {value: 100},
+            {value: 100},
+            {value: 100},
+            {value: 100},
+            {value: 100},
+            {value: 100}
+          ]);
+        render(PolyGraph, {stats: graphData}, "root");
+
+        // the graph is now displayed...it looks like a hexigon
+
+        graphData.splice(4, 3);
+        // the graph is automatically updated...it now looks like a triangle
+
+    - >
+      This is good stuff!
+
+      Keeping in mind that `this.kwargs.stats===graphData` because of the constructor arguments provided when the `PolyGraph` instance was created by `render`, all the magic happens because of
+
+      `bdReflectProp: {points: watchable(this.kwargs.stats, pointsToPolyPoints)}`.
+
+      which accomplishes two things:
+
+    - ol:
+        - >
+          It gets a watchable to `graphData`; let's call this watchable "graphDataWatchable". The watchable includes the formatter `valueToPoint`, which transforms an array of points into a valid SVG `polygraph` `points` attribute. Therefore, the `value` returned by  graphDataWatchable is the result of applying `pointsToPolyPoints` to `graphData`.
+        - >
+          It passes the graphDataWatchable to `bdReflectProp` which initializes the `points` property of the SVG `polygon` element to the `value` of graphDataWatchable and then sets up a watcher via graphDataWatchable to update `points` any time anything in `graphData` mutates.
+
+    - >
+      You can see the full example in this [[Pen]http://TODO/TODO].
+
+      It's worth taking a step back and considering how this problem would be solved in the "state change implies re-render" model. The render would look the same except it would set the SVG `polygraph` `points` attribute directly to `valueToPoint(graphData)`--that is, without the indirection of the bdReflectProp-watchable two-step. On the other hand, there would have to be addition of code to watch `graphData` and cause a state change which would then ultimately cause the re-render. As far as the client code is concerned, there is <i>no</i> significant difference in complexity between the two methods. However, there is a tremendous difference in the complexity of the underlying frameworks,  with Backdraft being much, much simpler.
+

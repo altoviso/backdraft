@@ -1,0 +1,262 @@
+name: watchHub
+owner: bd-core.mixins
+type: mixin
+sum: >
+  provides machinery to signal mutations within an object
+
+namespaces:
+- name: protected
+  sum: protected properties and methods
+  d:
+  - >
+    These properties and methods should only be used by within the implementations of subclasses derived from `eventHub`.
+  n:
+  - The Backdraft Library reserves all names that begin with "bd".
+
+#- name: static
+#  sum: static properties and methods defined on watchHub
+#
+#- name: types
+#  sum: types used in Component watchHub
+
+d:
+- >
+  `watchHub` is a mixin class (see .../mixins) that provides machinery to signal mutations within an object and further to allow clients to register watchers to receive such signals. The method ./watch allows clients to register a .../types.Watcher, and the method ./protected.bdMutateNotify applies all watchers registered to a particular property.
+
+  Often watchable properties are implemented by defining a protected property on an object and providing getter/setter proxies on that property. The method ./protected.bdMutate can be used to signal mutations with this design. See [[Watchable Properties]./tutorial.html#bd-tutorial.watchableProperties] for details. For example:
+
+- c: |
+
+    class SuperClass {
+        superclassMethod(){
+            console.log("in superclass method");
+        }
+    }
+
+    class MyClass extends watchHub(SuperClass) {
+        get myProp(){
+            return this._myProp();
+        }
+        set myProp(value){
+            this.bdMutate("myProp", "_myProp", value);
+        }
+    }
+
+    let test = new MyClass();
+
+    // SuperClass is a superclass of MyClass...
+    test.superclassMethod(); // => in superclass method"
+
+    // connect a watcher...
+    test.watch("myProp", (newValue, oldValue)=>console.log("new:", newValue, "old:", oldValue));
+
+    test.myProp = 3.14;  // new: 3.14 old: undefined
+    test.myProp = "foo"; // new: foo old: 3.14
+
+props:
+- name: isBdWatchHub
+  jstype: ro, true
+  sum: returns `true` to indicate the instance contains the watchHub interface
+  d:
+  - >
+    Since ../watchHub is a mixin class (see .../mixins), `instanceof` does not function as expected. Instead, `isBdWatchHub` can be used to test if a particular instance defines the `watchHub` interface. For example:
+
+  - c: |
+      class SuperClass {};
+
+      class MyClass extends watchHub(SuperClass) {}
+
+      let test = new MyClass();
+      test instanceof MyClass;    // true;
+      test instanceof SuperClass; // true;
+      test instanceof watchHub;   // false;
+      test instanceof watchHub;   // false;
+      test.isBdWatchHub;          // true
+
+methods:
+- name: watch
+  sum: register a watcher on a property
+  sig:
+  - (prop=STAR, watcher) => Destroyable
+  - (props, watcher) => [Destroyable]
+  - (hash) => [Destroyable]
+  - (watchable, prop=STAR, watcher) => Destroyable
+  - (watchable, props, watcher) => [Destroyable]
+  - (watchable, hash) => [Destroyable]
+  - (watchable) => [Destroyable]
+  params:
+  - name: prop
+    type: ?, string | symbol
+    default: .../variables.STAR
+    d: >
+      the property to watch
+
+  - name: props
+    type: >
+      [string | symbol]
+    d: >
+      list of properties to watch
+
+  - name: hash
+    type: .../types.Hash (property -> watcher)
+    d: >
+      list of (property -> watcher) pairs to watch
+
+  - name: watcher
+    type: .../types.Watcher
+    d: >
+      watcher to apply upon mutation of prop
+
+  - name: watchable
+    type: ../watchHub | .../types.Watchable
+    d: >
+      object to watch
+  d:
+  - >
+    The first signature is the only substantive signature, the remaining signatures are syntax sugar discussed at the end.
+
+    When `watch` is applied with a `prop` argument <i>other than</i> .../variables.STAR, then watchers will be applied to the following arguments:
+
+  - ul:
+      - >
+        `newValue`: the value of the property after mutation
+      - >
+        `oldValue`: the value of the property before mutation
+      - >
+        `prop`: the same as `prop` provided when `watch` was applied to connect the watcher
+      - >
+        `object`: the object to which `watch` was applied to connect the watcher
+  - >
+    When `watch` is applied with a `prop === `.../variables.STAR, then watchers will be applied to the following arguments:
+  - ul:
+    - >
+      `newValue`: the value of the particular property that mutated, after mutation
+    - >
+      `oldValue`: .../variables.UNKNOWN_OLD_VALUE
+    - >
+      `prop`: an array that lists the property path to the particular watchable property that mutated
+    - >
+      `object`: the object to which `watch` was applied to connect the watcher
+
+
+  - >
+    The remaining signatures are syntax sugar:
+  - c: |
+      instance.watch(props, watcher)
+      instance.watch(hash, watcher)
+      instance.watch(watchable, prop, watcher)
+      instance.watch(watchable, props, watcher)
+      instance.watch(watchable, hash)
+      instance.watch(watchable)
+  - >
+    are essentially equivalent to
+  - c: |
+      (instance.own || noop)(props.map(p => this.watch(p, watcher))
+      (instance.own || noop)(Reflect.ownKeys(hash).map(p => this.watch(p, hash[p]))
+      (instance.own || noop)(`.../functions.watch`(watchable, props, watcher))
+      (instance.own || noop)(`.../functions.watch`(watchable, hash))
+      (instance.own || noop)(`.../functions.watch`(watchable))
+  - >
+    We say "essentially" because the .../types.Destroyable objects created with each watch connection are returned to the caller and this detail is not depicted in the code above.
+
+- name: destroyWatch
+  sum: destroys all registered watchers for a particular property or all properties
+  sig:
+  - (prop) => void
+  params:
+  - name: prop
+    type: ?, string | symbol | undefined
+    d: >
+      destroy all watchers on a single property (if given)
+  d:
+  - >
+    If `prop` is provided, than all watchers watching the given property are destroyed; otherwise, all watchers on all properties are destroyed.
+
+- name: getWatchableRef
+  sum: create and own ../WatchableRef
+  sig: (prop=STAR, formatter=x=>x)
+  params:
+  - name: prop
+    type: ?, string | symbol
+    default: .../variables.STAR
+    d: >
+      the reference property
+  - name: formatter
+    default: x => x
+    type: ?, any => any
+    d: >
+      the formatter used by the ../WatchableRef instance
+  d:
+  - >
+    Syntax sugar:
+  - c: |
+      instance.getWatchableRef(<i>args</i>)
+  - >
+    is equivalent to
+  - c: |
+      (this.own || noop)new `../WatchableRef`(this, <i>args</i>)
+
+pMethods:
+- name: bdMutateNotify
+  sum: notify watchers of a mutation
+  sig:
+  - (prop, oldValue, newValue) => void
+  - (list) => void
+  params:
+  - name: prop
+    type: string | symbol
+    d: >
+      a property name registerable with ./watch
+  - name: oldValue
+    type: any
+    d: >
+      the value of the mutated property, before the mutation
+  - name: newValue
+    type: any
+    d: >
+      the value of the mutated property, after the mutation
+
+  - name: list
+    type: array of [publicName, oldValue, newValue]
+    d: >
+      see description
+  d:
+  - >
+    Applies `(newValue, oldValue, this, prop)` to all watchers connected via ./watch to the property `prop`. A list of triples is used to signal several mutations at once:
+  - c: |
+      this.bdMutateNotify(list)
+  - >
+    is equivalent to
+  - c: |
+      list.forEach(item => this.bdMutateNotify(...item))
+  - >
+    This signature can be used to give the illusion that several different properties mutated atomically. See [[Watchable Properties]./tutorial.html#bd-tutorial.watchableProperties] for details.
+
+- name: bdMutate
+  sum: mutate a property and notify watchers
+  sig:
+  - (publicName, privateName, newValue) => void
+  - (list) => void
+  params:
+  - name: publicName
+    type: string | symbol
+    d: >
+      a property name registerable with ./watch
+  - name: privateName
+    type: string | symbol
+    d: >
+      the property name that holds the actual value
+  - name: newValue
+    type: any
+    d: >
+      the value to assign to the property
+  - name: list
+    type: array of [publicName, privateName, newValue]
+    d: >
+      see description
+  d:
+  - >
+    `bdMutate` compares `this[privateName]` to `newValue` using .../functions.eql. If a mutation is detected, `this[privateName]` is set to `newValue` and all watchers registered on `publicName` are applied via ./protected.bdMutateNotify.
+
+    A list of triples is used to give the illusion that several property mutations occur atomically. First, each property is mutated, then, each mutation is notified. This algorithm results in applying watchers after all mutations have been completed, thereby preventing watchers from being applied when the underlying object is in a possibly-illegal state.
+

@@ -1,0 +1,139 @@
+# TODO: check for all refs of "Watchable"
+name: Element
+owner: bd-core.classes
+type: class
+sum: >
+  describes the DOM of a ../Component
+
+d:
+- >
+  `Element` instances are used to describe the DOM tree defined by a ../Component subclass as returned by ../Component.protected.bdElements. Each `Element` instance represents a node in a tree that describes either a DOM node or a `Component` instance; further, each instance can contain children, allowing a tree structure to be defined.
+
+  `Element`s are immutable and encapsulate four things:
+
+- defs:
+  - >
+    `type`
+  - d:
+    - >
+      either a native DOM node tag or a subclass of ../Component
+
+  - >
+    `ctorProps`
+  - d:
+    - >
+      a ./types.Hash of `(property -> value)` that is used to initialize the node when it is created
+
+  - >
+    `ppFuncs`
+  - d:
+    - >
+      a ./types.Hash of `(post-processing-function -> arguments)` that gives a list of functions that are executed immediately after the node is created and initialized
+
+  - >
+    `children`
+  - d:
+    - >
+      a list of children `Element` instances
+
+- >
+  Typically, `Element` instances are created with the factory functions .../functions.e or .../functions.svg.
+
+- sa:
+    - >
+      [[Declarative Composition]./tutorial.html#bd-tutorial.declarativeComposition]
+    - .../functions.e
+    - .../functions.svg
+methods:
+- name: constructor
+  sum: instance initializer
+  sig:
+  - (htmlTag, props={}, ...children)
+  - (namespacedTag, props={}, ...children)
+  - (component, props={}, ...children)
+  params:
+  - name: htmlTag
+    type: string
+    d: >
+      an HTML tag name
+  - name: namespacedTag
+    type: >
+      [namespace, tag]
+    d: >
+      `namespace` (a string) is a www.w3.org namespace;<br>`tag` (a string) gives a element tag within that namespace
+  - name: component
+    type: subclass of ./Component
+    d: >
+      component type
+  - name: props
+    type: ?, ../Hash
+    default: >
+      {}
+    d: >
+      The ./types.Hash of `(property -> value)` and `(post-processing-function -> arguments)` pairs that describe how to initialize ./ctorProps and ./ppFuncs.
+  - name: children
+    type: ?, falsey | ./Element | [children]
+    d: >
+      `children` can be `falsey | ./Element | [children]`, thereby allowing arbitrarily nested arrays of children.
+  d:
+  - >
+    Initializes a new instance.
+
+    `children` is flattened into a single array and all falsey values are removed.
+
+    An example of the `[namespace, tag]` form is `["http://www.w3.org/2000/svg", "circle"]`. Backdraft provides .../functions.svg to avoid this verbose form for the SVG namespace.
+
+    `props` is sifted into `ctorProps` and `ppFuncs`: any property `p` in `props` such that `getPostProcessingFunction(p)` returns a function is placed in `ppFuncs`; otherwise `p` is placed in `ctorProps`.
+
+  - w:
+    - >
+      User-defined post-processing-instructions must be added to the Backdraft post-processing-instruction catalog with .../functions.insPostProcessingFunction and/or .../functions.replacePostProcessingFunction <i>before</i> creating ./Element nodes that reference those user-defined post-processing-instructions.
+
+  - n:
+      Typically, the functions .../functions.e and .../functions.svg are used to create element instances.
+props:
+- name: type
+  jstype: ro, string | [namespace, tag] | subclass of ../Component
+  sum: the type of node
+  d:
+  - >
+    Describes the type of the actualized node:
+  - ul:
+      - >
+        If a `string`, then type gives an HTML element type, for example `"div"`.
+      - >
+        If a `[namespace, tag]`, then namespace gives a www.w3.org namespace (a string) and tag (a string) gives the element type within that namespace, for example `["http://www.w3.org/2000/svg", "circle"]`.
+      - >
+        Otherwise type is a subclass of ./Component.
+  - n: >
+      `svg(<i>node</i>, <i>args</i>)` is shorthand for `new Element(["http://www.w3.org/2000/svg", <i>node</i>], <i>args</i>)`; see .../functions.svg.
+
+- name: ctorProps
+  jstype: ro, Hash of `(property -> value)`
+  sum: .../types.Hash of `(property -> value)` used to initialize the actualized node
+  d:
+  - >
+    When ./type gives a ../Component subclass, `ctorProps` gives the arguments applied to the constructor. For example, given an `Element` instance `element`, the `Component` instance would be created as follows:
+
+    `new element.type(element.ctorProps)`
+
+    When ./type gives a native DOM node tag, `ctroProps` gives the `(property -> value)` pairs used to initialize the actualized node immediately after it is created., For example, given an `Element` instance `element`, and a newly created node `n`, `n` would be initialized as follows:
+
+    `Reflect.ownKeys(element.ctorProps).forEach(p => setAttr(n, p, element.ctorProps[p])`
+
+- name: ppFuncs
+  jstype: ro, .../types.Hash of `(post-processing-function -> arguments)`
+  sum: set of (post-processing-function, arguments) pairs executed on a newly actualized node
+  d:
+  - >
+    Immediately after the node implied by ./type is instantiated and initialized by ./ctorProps, each post-processing-function `ppf`, given by `ppFuncs` is executed as follows:
+
+    .../functions.getPostProcessingFunction`(ppf)(owner, target, ...(ppFuncs[ppf]))`
+
+    `owner` is the ../Component instance being rendered and `target` is the instantiated node.
+- name: children
+  jstype: ro, undefined | Element | [Element]
+  sum: the children of the `Element`
+  d:
+  - >
+    The children of the `Element`.

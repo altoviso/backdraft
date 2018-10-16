@@ -1,0 +1,218 @@
+# TODO: check for all refs of "Watchable"
+name: WatchableRef
+owner: bd-core.classes
+type: class
+sum: >
+  provides for retrieving and watching a formatted property value within a watchable object
+
+d:
+- >
+  WatchableRef encapsulates two operations:
+- ol:
+    - retrieving and formatting the current value of a property within a watchable object
+    - connecting watchers to a property within a watchable object, ensuring all new/old values applied to the watchers are formatted and the watchers are called <i>only if</i> the formatted new/old values mutate (compared to raw property values).
+- >
+  The property of interest in the watchable object is termed the "reference property" and the watchable object is termed the "reference object". Both the reference property and reference object are initialized at construction and are immutable for the lifetime of a `WatchableRef` instance.
+
+  The example below sets up a `WatchableRef` on the property `a` of `data`. Further a formatter is provided that converts the number to either the string `"odd"` or `"even"` depending upon its value.
+- c: |
+    let data = toWatchable({a:1, b:2});
+    let ref = new WatchableRef(data, "a", value => value % 2 ? "odd" : "even");
+
+    // ref.value gives the current value of the reference property in the
+    // reference object applied to the formatter
+    console.log(ref.value); // => odd
+    data.a = 2;
+    console.log(ref.value); // => even
+
+    // set up a watch on the ref...
+    ref.watch((newValue, oldValue, refObj, prop) => {
+        console.log(`new=${newValue}, old=${oldValue}, prop=${prop}, ${refObj===data}`);
+    });
+
+    data.a = 3; // => new=odd, old=even, prop=a, true
+    data.a = 5; // since the formatted value did not change, the watcher is not called
+                // note: the formatter was called
+    data.a = 6  // => new=even, old=odd, prop=a, true
+- >
+  `WatchableRef`s may be set up to reference all properties on a reference object by omitting the reference property at construction. Refs set up in this manner are termed "star" refs. For star refs, the ./value property returns the result of the formatter applied to the reference object. The arguments provided to watchers connected to star refs are also different as follows:
+
+- ol:
+  - >
+    `newValue` is the result of the formatter applied to the current value of the reference object
+  - >
+    `oldValue` is the constant ./static.UNKNOWN_OLD_VALUE
+  - >
+    `props` is an array that lists the property path to the particular property in the reference object that mutated.
+
+- >
+  For example:
+
+- c: |
+    let data = toWatchable([{a:1, b:2}, {c:3, d:4}]);
+    let ref = new WatchableRef(data, value => {
+        console.log("in formatter", value===data);
+        return JSON.stringify(data);
+    });
+
+    // ref.value returns the formatted reference object
+    console.log(ref.value);
+        // => in formatter true
+        // => [{"a":1,"b":2},{"c":3,"d":4}]
+    data[0].b= 3.14;
+    console.log(ref.value);
+        // => in formatter true
+        // => [{"a":1,"b":3.14},{"c":3,"d":4}]
+
+
+    ref.watch((newValue, oldValue, referenceObject, prop) => {
+        console.log("newValue: ", newValue);
+        console.log(oldValue===WatchableRef.UNKNOWN_OLD_VALUE);
+        console.log(referenceObject===data);
+        console.log(prop);
+    });
+
+    data[1].c = "test";
+        // => in formatter true
+        // => newValue:  [{"a":1,"b":3.14},{"c":"test","d":4}]
+        // => true
+        // => true
+        // => (2) ["1", "c"]
+
+- >
+  The formatter is optional, if missing, the formatter defaults to the identity function; see ./constructor.
+
+  `WatchableRef`s are an advanced featured. `WatchableRef`s are used internally by Backdraft to set up reflectors. The code for [[bdReflect]http://TODO] and [[bdReflectClass]http://TODO] is instructive.
+
+  The function ./getWatchableRef provides sugar:
+
+  `getWatchableRef(<i>args</i>)`
+
+  is equivalent to
+
+  `new WatchableRef(<i>args</i>)`
+
+namespaces:
+- name: static
+  sum: static properties and methods defined on WatchableRef
+
+props:
+- name: value
+  jstype: any
+  sum: the formatted value of the reference property
+  d:
+  - >
+    Given `referenceObject`, `referenceProp`, and `formatter` at construction, `value` is returned as follows:
+
+  - c: |
+      if(referenceProp===WatchableRef.STAR){
+          return formatter(referenceObject);
+      }else{
+          return formatter(referenceObject[referenceProp]);
+      }
+
+  - >
+    Recall that the formatter defaults to the identify function; see ./constructor.
+methods:
+- name: constructor
+  sum: instance initializer
+  sig: (referenceObject, referenceProp = WatchableRef.STAR, formatter = x => x)
+  params:
+  - name: referenceObject
+    type: ../mixins/watchHub | .../types.Watchable
+    d: >
+      the reference watchable object
+  - name: referenceProp
+    type: ?, string | symbol | ./STAR
+    default: ./static.STAR
+    d: >
+      the property within `referenceObject` to reference
+  - name: formatter
+    type: ?, function(any) => any
+    default: >
+      `x => x`
+    d: >
+      applied to the reference property value to compute ./value and applied to `newValue`/`oldValue` args before applying watchers
+  d:
+  - >
+    Initializes a new WatchableRef instance.
+
+    When `referenceProp===./STAR`, ./value return formatted `referenceObject` and watchers are applied upon any mutation within `referenceObject`; see ../WatchableRef.
+  - n:
+      ../mixins/watchHub is a superclass of ../Component, therefore, all `Component` instances are watchable objects.
+
+- name: watch
+  sum: connect a watcher to the reference property in the reference watchable object
+  sig: (watcher) => Destroyable
+  params:
+  - name: watcher
+    type: .../types.Watcher
+    d: >
+      applied when the formatted value of the reference property mutates
+  - name: returns
+    type: .../types.Destroyable
+    d: >
+      `Destroyable` that terminates the watch
+  d:
+  - >
+    Connects watcher so that watcher is applied when the formatted value of the reference property mutates. Note carefully that the watcher is applied only if a substantive mutation is detected, taking into account the formatter.
+
+    When `watch` is applied when the reference property is <i>other than</i> .../variables.STAR, then watchers will be applied to the following arguments:
+
+  - ul:
+    - >
+      `newValue`: the value of the property after mutation
+    - >
+      `oldValue`: the value of the property before mutation
+    - >
+      `prop`: the same as `prop` provided when `watch` was applied to connect the watcher
+    - >
+      `object`: the object to which `watch` was applied to connect the watcher
+  - >
+    When `watch` is applied when the reference property  is .../variables.STAR, then watchers will be applied to the following arguments:
+  - ul:
+    - >
+      `newValue`: the value of the particular property that mutated, after mutation
+    - >
+      `oldValue`: .../variables.UNKNOWN_OLD_VALUE
+    - >
+      `prop`: an array that lists the property path to the particular watchable property that mutated
+    - >
+      `object`: the object to which `watch` was applied to connect the watcher
+
+  - >
+    See example at ../WatchableRef.
+
+    When the following three conditions exist:
+  - ol:
+      - >
+        the reference object is an instance of ../mixins/watchHub
+      - >
+        the reference object is not ./STAR
+      - >
+        `referenceObject[referenceProp]` is <i>also</i> a watchable
+
+  - >
+    Then, any connected watchers will be signaled if <i>either</i> `referenceObject[referenceProp]` mutates <i>or</i> some mutation occurs within `referenceObject[referenceProp]`.
+
+- name: destroy
+  sum: destroys all registered watchers
+  sig: () => void
+  d:
+  - >
+    Destroys all registered watchers. The `WatchableRef` instance is not dead; other watchers can be connected by applying ./watch after applying ./destroy.
+
+sProps:
+- name: STAR
+  jstype: symbol
+  sum: reference to .../variables.STAR
+  d:
+  - >
+    See ./constructor
+
+- name: UNKNOWN_OLD_VALUE
+  jstype: symbol
+  sum: reference to .../variables.UNKNOWN_OLD_VALUE
+  d:
+  - >
+    See .../variables.UNKNOWN_OLD_VALUE.
