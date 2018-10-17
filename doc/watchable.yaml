@@ -7,12 +7,12 @@ sum: >
 
 d:
 - >
-  WatchableRef encapsulates two operations:
+  WatchableRef encapsulates two operations on a particular property within .../mixins.watchHub or .../types.Watchable instance:
 - ol:
-    - retrieving and formatting the current value of a property within a watchable object
-    - connecting watchers to a property within a watchable object, ensuring all new/old values applied to the watchers are formatted and the watchers are called <i>only if</i> the formatted new/old values mutate (compared to raw property values).
+    - retrieving and formatting the current value of the property
+    - connecting watchers to the property, ensuring new/old values applied to the watchers are formatted and the watchers are called only if the <i>formatted</i> new/old values mutate
 - >
-  The property of interest in the watchable object is termed the "reference property" and the watchable object is termed the "reference object". Both the reference property and reference object are initialized at construction and are immutable for the lifetime of a `WatchableRef` instance.
+  The property of interest in the watchable object is termed the "reference property" and the owning object is termed the "reference object". Both the reference property and reference object are initialized at construction and are immutable for the lifetime of a `WatchableRef` instance.
 
   The example below sets up a `WatchableRef` on the property `a` of `data`. Further a formatter is provided that converts the number to either the string `"odd"` or `"even"` depending upon its value.
 - c: |
@@ -41,9 +41,9 @@ d:
   - >
     `newValue` is the result of the formatter applied to the current value of the reference object
   - >
-    `oldValue` is the constant ./static.UNKNOWN_OLD_VALUE
+    if the mutated property is a non-scalar type, then `oldValue` is the constant ./static.UNKNOWN_OLD_VALUE
   - >
-    `props` is an array that lists the property path to the particular property in the reference object that mutated.
+    `prop` is an array that lists the property path to the particular property in the reference object that mutated
 
 - >
   For example:
@@ -80,17 +80,19 @@ d:
         // => (2) ["1", "c"]
 
 - >
-  The formatter is optional, if missing, the formatter defaults to the identity function; see ./constructor.
+  The formatter is optional; if missing, the formatter defaults to the identity function; see ./constructor.
 
-  `WatchableRef`s are an advanced featured. `WatchableRef`s are used internally by Backdraft to set up reflectors. The code for [[bdReflect]http://TODO] and [[bdReflectClass]http://TODO] is instructive.
+  `WatchableRef`s are an advanced featured. `WatchableRef`s are used internally by Backdraft to set up reflectors. The code for [[bdReflect]https://github.com/rcgill/stage-bd-core/blob/v2.3.0/src/dom.js#L455].
 
-  The function ./getWatchableRef provides sugar:
-
-  `getWatchableRef(<i>args</i>)`
-
-  is equivalent to
-
-  `new WatchableRef(<i>args</i>)`
+- sa:
+    - >
+      .../functions.getWatchableRef
+    - >
+      .../mixins.watchHub
+    - >
+      [[Watchable Properties]./tutorial.html#bd-tutorial.watchableProperties]
+    - >
+      [[Watchable Data]./tutorial.html#bd-tutorial.watchableData]
 
 namespaces:
 - name: static
@@ -116,15 +118,15 @@ props:
 methods:
 - name: constructor
   sum: instance initializer
-  sig: (referenceObject, referenceProp = WatchableRef.STAR, formatter = x => x)
+  sig: (referenceObject, referenceProp = STAR, formatter = x => x)
   params:
   - name: referenceObject
-    type: ../mixins/watchHub | .../types.Watchable
+    type: .../mixins.watchHub | .../types.Watchable
     d: >
       the reference watchable object
   - name: referenceProp
-    type: ?, string | symbol | ./STAR
-    default: ./static.STAR
+    type: ?, string | symbol | .../variables.STAR
+    default: .../variables.STAR
     d: >
       the property within `referenceObject` to reference
   - name: formatter
@@ -137,19 +139,19 @@ methods:
   - >
     Initializes a new WatchableRef instance.
 
-    When `referenceProp===./STAR`, ./value return formatted `referenceObject` and watchers are applied upon any mutation within `referenceObject`; see ../WatchableRef.
+    When `referenceProp===`.../variables.STAR, ./value return formatted `referenceObject` and watchers are applied upon any mutation within `referenceObject`; see ../WatchableRef.
   - n:
-      ../mixins/watchHub is a superclass of ../Component, therefore, all `Component` instances are watchable objects.
+      .../mixins.watchHub is a superclass of .../classes.Component, therefore, all `Component` instances are watchable objects.
 
 - name: watch
   sum: connect a watcher to the reference property in the reference watchable object
-  sig: (watcher) => Destroyable
+  sig: (watcher) => handle
   params:
   - name: watcher
     type: .../types.Watcher
     d: >
       applied when the formatted value of the reference property mutates
-  - name: returns
+  - name: handle
     type: .../types.Destroyable
     d: >
       `Destroyable` that terminates the watch
@@ -200,7 +202,7 @@ methods:
   sig: () => void
   d:
   - >
-    Destroys all registered watchers. The `WatchableRef` instance is not dead; other watchers can be connected by applying ./watch after applying ./destroy.
+    Destroys all registered watchers. The `WatchableRef` instance is not dead; other watchers can be connected by applying ./watch after applying `destroy`.
 
 sProps:
 - name: STAR

@@ -69,7 +69,7 @@ props:
       let test = new MyClass();
       test instanceof MyClass;    // true;
       test instanceof SuperClass; // true;
-      test instanceof watchHub;   // false;
+      test instanceof WatchHub;   // false;
       test instanceof watchHub;   // false;
       test.isBdWatchHub;          // true
 
@@ -77,13 +77,13 @@ methods:
 - name: watch
   sum: register a watcher on a property
   sig:
-  - (prop=STAR, watcher) => Destroyable
-  - (props, watcher) => [Destroyable]
-  - (hash) => [Destroyable]
-  - (watchable, prop=STAR, watcher) => Destroyable
-  - (watchable, props, watcher) => [Destroyable]
-  - (watchable, hash) => [Destroyable]
-  - (watchable) => [Destroyable]
+  - (prop = STAR, watcher) => handle
+  - (props, watcher) => handles[]
+  - (hash) => handles[]
+  - (watchable, prop = STAR, watcher) => handle
+  - (watchable, props, watcher) => handles[]
+  - (watchable, hash) => handles[]
+  - (watchable) => handles[]
   params:
   - name: prop
     type: ?, string | symbol
@@ -93,7 +93,7 @@ methods:
 
   - name: props
     type: >
-      [string | symbol]
+      (string | symbol)[]
     d: >
       list of properties to watch
 
@@ -111,6 +111,16 @@ methods:
     type: ../watchHub | .../types.Watchable
     d: >
       object to watch
+
+  - name: handle
+    type: .../types.Destroyable
+    d: >
+      .../types.Destroyable object that can be used to terminate the watch
+
+  - name: handles
+    type: .../types.Destroyable[]
+    d: >
+      .../types.Destroyable objects that can be used to terminate the watch
   d:
   - >
     The first signature is the only substantive signature, the remaining signatures are syntax sugar discussed at the end.
@@ -132,12 +142,13 @@ methods:
     - >
       `newValue`: the value of the particular property that mutated, after mutation
     - >
-      `oldValue`: .../variables.UNKNOWN_OLD_VALUE
+      `oldValue`: see .../variables.UNKNOWN_OLD_VALUE
     - >
       `prop`: an array that lists the property path to the particular watchable property that mutated
     - >
       `object`: the object to which `watch` was applied to connect the watcher
-
+  - >
+    All signatures return a handle or handles to all watches that were connected. If `this` implements the method .../classes.Component.own, then all handles are owned. This ensures the watches are automatically terminated when the owning object is destroyed with .../classes.Component.destroy
 
   - >
     The remaining signatures are syntax sugar:
@@ -153,9 +164,9 @@ methods:
   - c: |
       (instance.own || noop)(props.map(p => this.watch(p, watcher))
       (instance.own || noop)(Reflect.ownKeys(hash).map(p => this.watch(p, hash[p]))
-      (instance.own || noop)(`.../functions.watch`(watchable, props, watcher))
-      (instance.own || noop)(`.../functions.watch`(watchable, hash))
-      (instance.own || noop)(`.../functions.watch`(watchable))
+      (instance.own || noop)(watch(watchable, props, watcher))
+      (instance.own || noop)(watch(watchable, hash))
+      (instance.own || noop)(watch(watchable))
   - >
     We say "essentially" because the .../types.Destroyable objects created with each watch connection are returned to the caller and this detail is not depicted in the code above.
 
@@ -173,8 +184,8 @@ methods:
     If `prop` is provided, than all watchers watching the given property are destroyed; otherwise, all watchers on all properties are destroyed.
 
 - name: getWatchableRef
-  sum: create and own ../WatchableRef
-  sig: (prop=STAR, formatter=x=>x)
+  sum: create and own .../classes.WatchableRef
+  sig: (prop = STAR, formatter=x=>x)
   params:
   - name: prop
     type: ?, string | symbol
@@ -185,16 +196,16 @@ methods:
     default: x => x
     type: ?, any => any
     d: >
-      the formatter used by the ../WatchableRef instance
+      the formatter used by the .../classes.WatchableRef instance
   d:
   - >
     Syntax sugar:
   - c: |
-      instance.getWatchableRef(<i>args</i>)
+      instance.getWatchableRef(prop, formatter)
   - >
     is equivalent to
   - c: |
-      (this.own || noop)new `../WatchableRef`(this, <i>args</i>)
+      (this.own || noop)(getWatchableRef(this, prop, formatter))
 
 pMethods:
 - name: bdMutateNotify

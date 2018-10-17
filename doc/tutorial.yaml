@@ -710,3 +710,4 @@ d:
 
       It's worth taking a step back and considering how this problem would be solved in the "state change implies re-render" model. The render would look the same except it would set the SVG `polygraph` `points` attribute directly to `valueToPoint(graphData)`--that is, without the indirection of the bdReflectProp-watchable two-step. On the other hand, there would have to be addition of code to watch `graphData` and cause a state change which would then ultimately cause the re-render. As far as the client code is concerned, there is <i>no</i> significant difference in complexity between the two methods. However, there is a tremendous difference in the complexity of the underlying frameworks,  with Backdraft being much, much simpler.
 
+      <div class="copyright">Copyright &copy; 2018, <a href="http://www.altoviso.com">ALTOVISO LLC</a></div>

@@ -73,9 +73,9 @@ methods:
 - name: advise
   sum: register a handler for an event
   sig:
-  - (eventType, handler) => Destroyable
-  - (eventTypes, handler) => Destroyable[]
-  - (hash) => Destroyable[]
+  - (eventType, handler) => handle
+  - (eventTypes, handler) => handles[]
+  - (hash) => handles[]
   params:
   - name: event
     type: string | symbol
@@ -97,11 +97,23 @@ methods:
     type: function(eventObject)
     d: >
       handler to apply upon event
+
+  - name: handle
+    type: .../types.Destroyable
+    d: >
+      .../types.Destroyable object that can be used to terminate the advise
+
+  - name: handles
+    type: .../types.Destroyable[]
+    d: >
+      .../types.Destroyable objects that can be used to terminate the advise
   d:
   - >
     The first signature is the only substantive signature, the remaining signatures are syntax sugar discussed at the end.
 
     Given an event object, `eo`, upon the owning instance applying ./protected.bdNotify`(eo)`, all handlers previously registered to `eventType===eo.type` are applied to `eo`. See example at ../eventHub.
+
+    All signatures return a handle or handles to all advises that were connected. If `this` implements the method .../classes.Component.own, then all handles are owned. This ensures the advises are automatically terminated when the owning object is destroyed with .../classes.Component.destroy
 
     The remaining signatures are syntax sugar:
   - c: |

@@ -1,27 +1,14 @@
 - name: bdReflect
   owner: bd-core.post-processing-functions
-  type: function
+  type: ppf
   sum: reflect a watchable into a property of `ppfTarget`
-  sig:
-  - (watchable, prop, formatter)
-  params:
-  - name: watchable
-    type: ?, ../mixins.watchHub | ../types.Watchable
-    d: >
-      the object that contains the watchable property, if missing, `ppfOwner` is assumed
-  - name: prop
-    type: string | symbol
-    d: >
-      the property to reflect
-  - name: formatter
-    type: ?, function(any) => any
-    default: >
-      `x => x`
-    d: >
-      formatter to apply to `watchable[prop]` during reflection
   d:
   - >
-    `bdReflect` takes a hash from property is `ppfTarget` (see ../post-processing-functions for a definition `ppfTarget`) to a formatted watchable that is reflected into that property. To be reflected means that the property is initialized with the formatted value of `watchable[prop]` when `ppfTarget` is created and further, the property is updated to reflect the current formatted value of `watchable[prop]` any time the formatted value of `watchable[prop]` mutates. For example, consider the following component:
+    This description uses some of the terms `ppfOwner`, `ppfTarget`, `ppfProcId`, `ppfProc`, and `ppfArgs`; see .../post-processing-functions for a definition of these terms. Arguments
+
+    bdReflect takes a hash from property, termed the `<i>targetProperty</i>`, in `ppfTarget` to the arguments `(watchable, prop, formatter)`. `watchable`, optional, is either a .../mixins.watchHub a .../types.Watchable; if missing, `watchable` defaults to `ppfOwner`. `prop` is a string or symbol to watch in `watchable`. `formatter`, optional, is a formatter function to apply to `watchable[prop]` before reflecting into `ppfTarget[targetProperty]`, if missing, `formatter` defaults to `x => x`.
+
+    To reflect means `ppfTarget[targetProperty]` is initialized with `formatter(watchable[prop])` when `ppfTarget` is created and further the property is updated to reflect the current formatted value of `formatter(watchable[prop])` any time that value mutates. For example, consider the following component:
 
   - c: |
       class MyComponent extends Component.withWatchables("myProp") {
@@ -32,7 +19,20 @@
   - >
     The `innerHTML` of the `DIV` node will be initialized to `this.myProp ? this.myProp : "?"` and any time that the value `this.myProp ? this.myProp : "?"` mutates, `innerHTML` will be updated accordingly.
 
-    When reflecting a property in the `ppfOwner` (see ../post-processing-functions for a definition `ppfOwner`), the watchable argument may be omitted. The following is equivalent to the original example:
+    The arguments for an particular `targetProperty` are given as an array; if both `watchable` and `formatter` are missing, then arguments may be given as a single scalar `prop` value. For example:
+
+  - c: |
+      {bdRefect: {innerHTML: [this, "myProp", v => v ? v : "?"]}}
+      // arguments: (this, "myProp", v => v ? v : "?")
+
+      {bdRefect: {innerHTML: ["myProp"]}}
+      // arguments: (ppfOwner, "myProp", x => x)
+
+      {bdRefect: {innerHTML: "myProp"}}
+      // arguments: (ppfOwner, "myProp", x => x)
+
+  - >
+    When reflecting a property in the `ppfOwner`, the watchable argument may be omitted. The following is equivalent to the original example:
 
   - c: |
       bdElements(){
@@ -40,14 +40,14 @@
       }
 
   - >
-    As described in ../post-processing-functions, when the value of a function in `ppFuncs` is a hash, as in the case of `bdReflect`, the underscore optimization may be employed. The following is equivalent to the original example:
+    As described in .../post-processing-functions, when `ppfArgs` is a hash, as in the case of `bdReflect`, the underscore optimization may be employed. The following is equivalent to the original example:
 
   - c: |
       bdElements(){
           e("div", {bdReflect_innerHTML: ["myProp", v => v ? v : "?"]);
       }
   - >
-    `bdReflect` includes an extra expressive optimization by assuming `innerHTML` if the target property is missing. The following is equivalent to the original example:
+    `bdReflect` includes an extra expressive optimization by assuming `innerHTML` if the target property is missing. This allows `bdReflect` to accept `ppfArgs` that gives an argument list rather than a hash. The following is equivalent to the original example:
 
   - c: |
       bdElements(){
@@ -63,24 +63,20 @@
 
 - name: bdAdvise
   owner: bd-core.post-processing-functions
-  type: function
+  type: ppf
   sum: connect an event handler to an event on `ppfTarget`
-  sig: (handler)
-  params:
-  - name: handler
-    type: function(eventObject) =>  void
-    d: >
-      the handler to apply when event is signaled
   d:
   - >
-    `bdAdvise` takes a hash from event type to handler function. When `ppfTarget` (see ../post-processing-functions for a definition of `ppfTarget`) is a DOM node, the event is connected with ../functions.connect; when `ppfTarget` is a `component`, the event is connected with ../mixins.watchHub.advise. For example, consider:
+    This description uses some of the terms `ppfOwner`, `ppfTarget`, `ppfProcId`, `ppfProc`, and `ppfArgs`; see .../post-processing-functions for a definition of these terms.
+
+    `bdAdvise` takes a hash from event type, `eventType`, to handler function, `handler`. If `ppfTarget` is a .../classes.Component, then `ppfTarget.advise` is applied to `(eventType, handler)` (see .../mixins.eventHub.advise); otherwise `handler` is connected by applying .../functions.connect to `(ppfTarget, eventType, handler)` and the handle returned is applied to `ppfOwner.ownWhileRendered` (see .../classes.Component.ownWhileRendered). For example:
 
   - c: |
       class MyClass extends Component {
           bdElements(){
               return e("div",
                   e("div", {bdAdvise: {click: this.onClick.bind(this)}}),
-                  e(AnotherComponent, {bdAdvise: {someEvent: this.onSomeEvent.bind(this)}})
+                  e(SomeComponent, {bdAdvise: {someEvent: this.onSomeEvent.bind(this)}})
               };
           }
       }
@@ -88,13 +84,13 @@
   - >
     The `bdAdvise` for the freshly-created `DIV` node, `node`, causes the following connection:
   - c: |
-      owner.ownWhileRendered(connect(node, "click", this.onClick.bind(this)))
+      ppfOwner.ownWhileRendered(connect(node, "click", this.onClick.bind(this)))
   - >
-    And the `bdAdvise` for freshly-instantiated `AnotherComponent` instance, `instance`, causes the following connection:
+    And the `bdAdvise` for freshly-instantiated `SomeComponent`, `instance`, causes the following connection:
   - c: |
-      owner.ownWhileRendered(instance.advise("someEvent" this.onClick.bind(this)))
+      instance.advise("someEvent" this.onClick.bind(this)))
   - >
-    If a `string` or `symbol` is given for the handler, then `ppfOwner[handler]` is assumed (see ../post-processing-functions for a definition of `ppfOwner`). For example:
+    If a `string` or `symbol` is given for the handler, then `ppfOwner[handler]` is assumed. For example:
   - c: |
       e("div", {bdAdvise: {click: "onClick"}})
   - >
@@ -102,30 +98,20 @@
   - c: |
       e("div", {bdAdvise: {click: this.onClick.bind(this)}})
   - >
-    As described in ../post-processing-functions, when the value of a function in `ppFuncs` is a hash, as in the case of `bdAdvise`, the underscore optimization may be employed. The following is equivalent to `DIV` connection in the original example:
+    As described in .../post-processing-functions, when `ppfArgs` is a hash, as in the case of `bdAdvise`, the underscore optimization may be employed. The following is equivalent to `DIV` connection in the original example:
 
   - c: |
       e("div", {bdAdvise_click: "onClick"})
   - >
 - name: bdAttach
   owner: bd-core.post-processing-functions
-  type: function
+  type: ppf
   sum: attach a reference to `ppfTarget`
-  sig:
-  - (prop)
-  - (func)
-  params:
-  - name: prop
-    type: string | symbol
-    d: >
-      property in `ppfOwner` to initialize with a reference to `ppfTarget`
-  - name: func
-    type: function(ppfOwner) => void
-    d: >
-      function to receive a reference to `ppfTarget`
   d:
   - >
-    The first form causes the following processing:
+    This description uses some of the terms `ppfOwner`, `ppfTarget`, `ppfProcId`, `ppfProc`, and `ppfArgs`; see .../post-processing-functions for a definition of these terms.
+
+    When `ppfArgs` is a `string` or `symbol`, `prop`, `bdAttach` causes the following processing:
   - c: |
       ppfOwner[prop] = ppfTarget;
       ppfOwner.ownWhileRendered({
@@ -134,95 +120,76 @@
       	}
       });
   - >
-    The second form causes the following processing:
+    When `ppfArgs` is a `x => void`, `func`, `bdAttach` causes the following processing:
   - c: |
       func(ppfTarget);
 - name: bdWatch
   owner: bd-core.post-processing-functions
-  type: function
+  type: ppf
   sum: connect a watcher to a watchable property in `ppfTarget`
-  sig:
-  - (watcher)
-  - (prop)
-  params:
-  - name: watcher
-    type: ../types.Watcher
-    d: >
-      the watcher to connect
-  - name: prop
-    type: string | symbol
-    d: >
-      the watcher to connect is given by `ppfOwner[prop]`
   d:
   - >
-    `ppfTarget` must be a ../classes.Component. See ../post-processing-functions for definitions of `ppfOwner`, `ppfTarget`, and `ppfProcId`.
+    This description uses some of the terms `ppfOwner`, `ppfTarget`, `ppfProcId`, `ppfProc`, and `ppfArgs`; see .../post-processing-functions for a definition of these terms.
 
-    The first form causes the following processing:
-  - c: |
-      ppfOwner.ownWhileRendered(ppfTarget.watch(ppfProcId, watcher))
-  - >
-    The second form causes the following processing:
-  - c: |
-      ppfOwner.ownWhileRendered(ppfTarget.watch(ppfProcId, ppfOwner[prop].bind(ppfOwner))
+    bdWatch takes a hash from property, `watchProp`, to watcher function, `watcher`. `ppfTarget` must be a .../classes.Component and `bdWatch` connects the watcher to the `watchProp` by applying `ppfTarget.watch` to `(watchProp, watcher)` (see .../mixins.watchHub.watch).
+
+    bdWatch defines an optimization that allows `watcher` to be a `string` or `symbol` in which case the actual watcher is computed as `ppfOwner[watcher]`.
 
 - name: bdTitleNode
   owner: bd-core.post-processing-functions
-  type: function
+  type: ppf
   sum: sets `bdDom.titleNode` to `ppfTarget`
   d:
   - >
-    Sets `bdDom.titleNode` to `ppfTarget`. See ../post-processing-functions for definitions of `ppfTarget`. See ../classes.Component.title for details about how a title is reflected.
+    This description uses some of the terms `ppfOwner`, `ppfTarget`, `ppfProcId`, `ppfProc`, and `ppfArgs`; see .../post-processing-functions for a definition of these terms.
+
+    Sets `bdDom.titleNode` to `ppfTarget`. See .../classes.Component.title for details about how a title is reflected.
 
 - name: bdChildrenAttachPoint
   owner: bd-core.post-processing-functions
-  type: function
+  type: ppf
   sum: designates `ppfTarget` as the node to which children are attached
   d:
   - >
-    Designates `ppfTarget` as the node to which children are attached. See ../post-processing-functions for definitions of `ppfTarget`.
+    This description uses some of the terms `ppfOwner`, `ppfTarget`, `ppfProcId`, `ppfProc`, and `ppfArgs`; see .../post-processing-functions for a definition of these terms.
+
+    Designates `ppfTarget` as the node to which children are attached.
 
 - name: bdReflectClass
   owner: bd-core.post-processing-functions
-  type: function
-  sum: reflects one or more formatted watchables into `ppfTarget.className`
-  sig: (watchable, prop, formatter, ...)
-  params:
-  - name: watchable
-    type: ?, ../mixins.watchHub | ../types.Watchable
-    d: >
-      the object that contains the watchable property, if missing, `ppOwner` is assumed
-  - name: prop
-    type: string | symbol
-    d: >
-      the property to reflect
-  - name: formatter
-    type: ?, function(any) => any
-    default: >
-      `x => x`
-    d: >
-      formatter to apply to `watchable[prop]` during reflection
+  type: ppf
+  sum: reflects one or more formatted watchables into `ppfOwner.className`
   d:
   - >
-    Reflects one or more formatted watchables into `ppfTarget.className`. Each (watchable, prop, formatter) is a completely separate reflection. For example:
+    This description uses some of the terms `ppfOwner`, `ppfTarget`, `ppfProcId`, `ppfProc`, and `ppfArgs`; see .../post-processing-functions for a definition of these terms.
+
+    Reflects one or more formatted watchables into `ppfOwner.className`. `ppfArgs` is given as a list or arguments (an array). The list is transformed into a set of triples of `(watchable, prop, formatter)` and each triple causes `formatter(watchable[prop])` to be reflected into `ppfOwner.className`. Each triple is a completely separate reflection. For example:
 
   - c: |
       class MyClass extends Component.withWatchables("error", "value") {
           bdElements(){
               return e("div" {
-                  bdReflectClass:[this, "error", v => v ? "error" : "", this, "value", v = v=="" ? "no-value" : ""]},
-                  /* children go here */
+                  bdReflectClass:[
+                    this, "error", v => v ? "error" : "",
+                    this, "value", v = v=="" ? "no-value" : ""
+                  ],
+                  // other ctorProps and ppFuncs
+                },
+                  // children, if any
               );
           }
       }
 
   - >
-    The two CSS classes, namely "error" and "no-value", will be added/removed from the `className` property on the `DIV` depending upon the `error` and `value` property values of a particular `MyClass` instance when that instance is rendered.
+    The two CSS classes, namely "error" and "no-value", will be added/removed from `ppfOwner.className` depending upon the `error` and `value` property values of a particular `MyClass` instance when that instance is rendered.
 
-    Since the `prop` argument is <i>always</i> required, it is possible to omit optional arguments. For example:
+    Since the `prop` argument is <i>always</i> required, it is possible to omit optional arguments. The following example gives a bdReflectClass ppfArgs with four triples:
 
   - c: |
+      // the following ppfArgs has gives three triples with
       bdReflectClass:[
           this, "p1", v => v ? "p1" : "", // all three args
           "p2", "p2", v => v ? "p2" : "", // missing first arg; equivalent to (this, "p1", v => v ? "p1" : "")
           this, "p3",                     // missing last arg; equivalent to (this, "p1", x => x)
           "p4"]                           // missing first and last arg; equivalent to (this, "p1", x => x)
+

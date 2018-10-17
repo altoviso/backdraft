@@ -13,8 +13,8 @@ namespaces:
     A mixin is a function that follows this pattern:
 
   - c: |
-      function mixin(super) {
-          return class extends super {
+      function mixin(superClass) {
+          return class extends superClass {
               // properties and methods added by mixin
           };
       }
@@ -42,7 +42,7 @@ namespaces:
 
     Since ./watchHub and ./eventHub are both mixins, they are available for use in client-defined classes that do not derive from ../classes.Component.
 
-    Mixin classes work almost the same as normal classes with one notable exception: `instanceof` does not work. For example, even though ../classes.Component has all of the properties and methods of ./watchHub, an instance of `Component` is not an instance of `eventHub` since `eventHub` is not a constructor function (it is a function that returns a constructor function). To solve this problem, mixins typically provide a property `is<i>Unique-mixin-name</i>()` that returns true. For example, ./eventHub defines the property ./eventHub.isBdEventHub:
+    Mixin classes work almost the same as normal classes with one notable exception: `instanceof` does not work. For example, even though ../classes.Component has all of the properties and methods of ./watchHub, an instance of `Component` is not an instance of `eventHub` since `eventHub` is not a constructor function (it is a function that returns a constructor function). To solve this problem, mixins typically provide a property `is<i>Unique-mixin-name</i>` that returns true. For example, ./eventHub defines the property ./eventHub.isBdEventHub:
 
   - c: |
 
@@ -72,27 +72,35 @@ namespaces:
     When a component is rendered, the ../classes.Element tree returned by ../classes.Component.protected.bdElements is transformed into a tree of DOM nodes and `Component` instances as given by the nodes in that tree. The transformation for each node takes three steps:
   - ol:
       - >
-        Instantiate the DOM node of component instance. <b>Important:</b> when describing the operation of post-processing functions, this node/instance is termed the `<i>ppfTarget</i>`.
+        Instantiate the DOM node or component instance. <b>Important:</b> when describing the operation of post-processing functions, this node/instance is termed the `<i>ppfTarget</i>`.
       - >
         Initialize the properties of the new node/instance as given by ../classes.Element.ctorProps (note: if a new component instance is being created, this step is actually part of Step 1 since `ctorProps` are passed as constructor arguments when the component is created).
       - >
         Apply the post-processing functions to the `ppfTarget` as given by ../classes.Element.ppFuncs.
   - i:
-    - ol:
+    - ul:
       - >
         the component instance whose ../classes.Element tree is being rendered is termed the `<i>ppfOwner</i>`
       - >
         the particular node in that tree that is being instantiated, initialized, and post-processed with the post-processing functions is termed the `<i>ppfTarget</i>`
       - >
-        If the value of a particular post-processing function contained in `ppFuncs` is a ../types.Hash, then each key in a particular hash for a particular post-processing instruction is termed a `<i>ppfProcId</i>`
+        each key in `Reflect.ownKeys(ppFuncs`) is termed a `<i>ppfProcId</i>`
+      - >
+        each `ppfProcId` identifies a post-processing function that is located at `getPostProcessingFunction(ppfProcId)`; this function is termed a `<i>ppfProc</i>`
+      - >
+        each value at `ppFuncs[ppfProcId]` is termed the `<i>ppfArgs</i>` for the `ppfProc` given by `ppfProcId`
 
   - >
-    A post-processing function has the signature `(ppfOwner, ppfTarget, arg1, arg2, ...)`. `arg1, arg2, ...` is the list of arguments given for the particular post-processing instruction. For example, consider the following component definition:
+    A post-processing function has the signature `(ppfOwner, ppfTarget, <i>args</i>)`. if `ppfArgs` is an array, then it is spread when it the `ppfProc` is applied. For example, if `ppfArgs` is `[arg1, arg2, arg3]` for a particular `ppfProcId`, then `getPostProcessingFunction(ppfProcId)(ppfOwner, ppfTarget, ...ppfArgs)` is applied. Let's look at an example to drive this all home:
 
   - c: |
       class MyButton extends Component {
           bdElements(){
-              return e("div", {className: "bd-button", bdAdvise: {click: this.onClick.bind(this)}});
+              return e("div", {
+                  className: "bd-button",
+                  bdAdvise: {click: this.onClick.bind(this)},
+                  bdReflect: {innerHTML: ["label", label => label.toUpperCase()]}
+              });
           }
       }
 
@@ -100,22 +108,23 @@ namespaces:
       button.render();
 
   - >
-    Note carefully:
+    For the node `e("div", ...)`,
   - ul:
       - >
-        `bdAdvise` is a post-processing instruction
+        `bdAdvise` and `bdReflect` are `ppfProcId`s and the indicate the post-processing functions `getPostProcessingFunction("bdReflect")` and `getPostProcessingFunction("bdReflect")`, respectively.
       - >
-        `button` is the `ppOwner` when the `bdAdvise` function is applied
+        `button` is the `ppfOwner` when the post-processing functions are applied
       - >
-        the `DIV` DOM node is the `ppfTarget when the `bdAdvise` function is applied
+        the `DIV` DOM node is the `ppfTarget` when the post-processing functions are applied
       - >
-        `bdAdvise` is applied to the `ppfProcId`, `"click"` in this particular case (there could be multiple props).
+        bdAdvise has `ppfArgs === {click: this.onClick.bind(this)}`; bdReflect has `ppfArgs === {innerHTML: ["label", label => label.toUpperCase()]}`.
+      - >
 
   - >
-    When `button` is rendered, ../classes.Component retrieves `button`'s ../classes.Element tree by applying `bdElements`. The tree contains a single `DIV` node with a ctorProps value of `{className: "bd-button"}` and a ppFuncs value of `{bdAdvise: {click: this.onClick.bind(this)}}`. After the `DIV` node is created (Step 1) and the `className` property set to `"bd-button"` (Step 2), the post-processing functions listed in `ppFuncs` are applied. In this case, there is a single function, `bdAdvise`, and it will be applied as follows:
+    When `button` is rendered, ../classes.Component retrieves `button`'s ../classes.Element tree by applying `bdElements`. The tree contains a single `DIV` node with a ctorProps value of `{className: "bd-button"}` and a ppFuncs value of `{bdAdvise: {...}, bdReflect: {...}}`. After the `DIV` node is created (Step 1) and the `className` property set to `"bd-button"` (Step 2), the post-processing functions bdAdvise and bdReflect are applied. For example bdAdvise will be processed as follows:
 
   - c: |
-      getPostProcessingFunction`("bdAdvise")(button, node, {click: this.onClick.bind(this)})
+      getPostProcessingFunction("bdAdvise")(button, node, {click: this.onClick.bind(this)})
   - >
     If you look at the documentation for ./bdAdvise, you'll see that this statement results in the following:
 
@@ -127,19 +136,7 @@ namespaces:
       Looking back at the definition of the `Element` node, you will notice that there is one ../types.Hash that holds both `ctorProps` and `ppFuncs`. The element factory ../functions.e determines whether or not a particular property in the hash is a post-processing function by checking for its existence in ../functions.getPostProcessingFunction.
 
   - >
-    When the value of a post-processing function in `ppFuncs` is an array, the contents of the array are spread when the post-processing function is applied. For example, assume `myPpf` is a post-processing function, then providing an array value for `myPpf`:
-
-  - c: |
-      {myPpf: ["foo", bar, 3.14]}
-
-  - >
-    results in applying `myPpf` as follows:
-
-  - c: |
-      getPostProcessingFunction`("myPpf")(owner, target, "foo", bar, 3.14)
-
-  - >
-    Post-processing functions often take a single ../types.Hash for their third parameter; further, actual `ppFuncs` values of a particular function often provide a `Hash` with a single property. Backdraft supports some syntax sugar, termed the <i>underscore optimization</i>, to improve the expression in such cases:
+    `ppfArgs` is often a single ../types.Hash; further, actual `ppfArgs` values are often a `Hash` with a single property. Backdraft supports some syntax sugar, termed the <i>underscore optimization</i>, to improve the expression in such cases:
 
   - c: |
       {somePpf: {foo: "someArg"}}
@@ -170,120 +167,50 @@ d:
 
   Backdraft has <i>no</i> dependencies and requires <i>no</i> special tooling. It provides precisely the machinery necessary to build user-interface components quickly and efficiently, and no more. It is small and easy to grok. This makes it easy to learn and extend.
 
+
 - section:
-    name: Installation
+    name: Requirements
+    id: requirments
+    d:
+    - >
+      Backdraft is 100% modern Javascript (ES6). It requires a modern browser:
+
+    - ul:
+        - Chrome v69+
+        - Firefox v62+
+        - Safari v12+
+        - Edge v42+
+        - iOS v10+
+
+    - If you want to target some old, decrepit browser, build your code in a modern environment and then cross-compile it to target the old environment. Here's a [[good reference]https://leanpub.com/setting-up-es6/read#ch_deploying-es6] to start you on this task. Note that Backdraft is intended to build user interfaces for applications--not advertising web pages. Most users of applications have access to a modern browser so, in the normal case, this is never an issue.
+
+- section:
+    name: Installation and Basic Usage
     id: installation
     d:
     - >
-      With npm:
-
-    - tc: |
-        $ npm install bd-core
-    - >
-      With yarn:
-
-    - tc: |
-        $ yarn add bd-core
-    - >
-      With bower:
-
-    - tc: |
-        $ bower install --save bd-core
+      See [[Installation]./install.html] for installation basic usage instructions.
 - section:
-    name: Basic Usage
-    id: basicUsage
+    name: Package Organization
+    id: packageOrg
     d:
     - >
       Backdraft is distributed with three versions of the code:
     - ul:
-      - the raw source; each source file is an ES6 module
-      - a rollup of the library into a single ES6 module
-      - a rollup of the library into a single [[UMD]https://github.com/umdjs/umd] module; when this module is injected into an HTML document with a  `script` element, it defines the global variable `bd` which contains all of the Backdraft top-level public functions, classes, and variables
-    - >
-      npm and yarn install Backdraft at `npm_modules/bd-core`. The three versions of the code are located as follows:
-    - ul:
-      - >
-        raw source: `node_modules/bd-core/lib.js`
-      - >
-        ES6 module rollup: `node_modules/bd-core/dist/lib.js`
-      - >
-        UMD module rollup: `node_modules/bd-core/dist/lib-umd.j`s
-    - >
-      bower is similarly located except it uses `bower_components` in place of `node_modules`.
-
-      Here is a "hello, world" application using ES6 modules, this source would sit in a directory that's a sibling to `node_modules`.
-    - htmlc: |
-        <!DOCTYPE html>
-        <html lang="en">
-        <body>
-        <div id="root">
-        </div>
-        <script type="module">
-            import {Component, e, render} from "../node_modules/bd-core/dist/lib.js";
-
-            class HelloWorld extends Component {
-            	bdElements(){
-            		return e("div", "hello, world");
-                }
-            }
-
-            render(HelloWorld, "root")
-        </script>
-        </body>
-        </html>
-    - >
-      If you are using AMD, then you should configure the loader to locate the package `backdraft` at `node_modules/bd-core/dist/lib-umd.js`. We recommend you try out [[bd-load]https://github.com/altoviso/bd-load] for AMD loading (we were part of the team that defined AMD years ago). Here is the main document for a trivial "hello-world" Backdraft application; the document is located as a sibling to `node_modules`.
-
-    - htmlc: |
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <script src="node_modules/bd-load/load.js"></script>
-            <script>
-        		require.config({
-        			packages: [
-        				{name: 'backdraft', location: './node_modules/bd-core/dist', main: "lib-umd"},
-        			]
-        		});
-        		window.onload = function(){
-        			require(["backdraft"], function(bd){
-                        class HelloWorld extends bd.Component {
-                            bdElements(){
-                                return bd.e("div", "hello, world");
-                            }
-                        }
-        				bd.render(HelloWorld, "root");
-        			})
-        		}
-            </script>
-        </head>
-        <body>
-        <div id="root"></div>
-        </body>
-        </html>
-    - >
-      It is inconvenient to reference the install location in every resource that imports symbols from Backdraft. To make things easier, create a resource in the project root source directory that re-exports Backdraft symbols. For example, if a particular project organizes all of its source code in the `<i>project-root</i>/src` directory, then create a file in that directory named `backdraft.js` with the following contents:
-    - c: |
-        export * from "../node_modules/bd-core/lib.js"
-    - >
-      This allows us to write a module that imports from Backdraft easily. Consider what `<i>project-root</i>/src/hello-world.js might look like:
-    - c: |
-        import {Component, e} from "./backdraft.js"
-
-        export default class HelloWorld extends Component {
-            bdElements(){
-                return e("div", "hello, world");
-            }
-        }
+      - the root module of the raw source is located at `<i>package-root</i>/lib.js`; each source file is an ES6 module
+      - a rollup of the library into a single ES6 module is located at `<i>package-root</i>/dist/lib.js`
+      - a rollup of the library into a single [[UMD]https://github.com/umdjs/umd] module is located at `<i>package-root</i>/dist/lib-umd.js`; when this module is injected into an HTML document with a  `script` element, it defines the global variable `bd` which contains all of the Backdraft public functions, classes, and variables
 - sa:
   - >
     [[The Backdraft Tutorial]./tutorial.html]
   - >
     [[Examples]./examples.html]
   - >
+    [[An Engineer's Overview of Backdraft]./blog/engineer-overview.html]
+  - >
     [[Support]./support.html]
   - >
-    [[Tests]http://TODO] (another good place to see examples)
+    [[Tests]https://github.com/altoviso/backdraft/tree/v2.3.0/test]
 
 variables:
 - name: version
@@ -300,7 +227,7 @@ variables:
     let eqlComparators = new Map()
   d:
   - >
-    Used by ../functions.eql to compute equality. Client code should add entries to the map for intelligent equality calculations. See ../functions.eql.
+    Used by ../functions.eql to compute equality. Client code should add entries to the map for intelligent equality calculations.
 
 - name: STAR
   sum: special value used to register watchers to watch all properties
@@ -362,15 +289,15 @@ variables:
     `focusManager` is a singleton object that signals focus changes through connectable events and provides focus state values through read-only properties. The following properties are defined:
   - ul:
     - >
-      `focusedComponent`: the component that currently has the focus.
+      `focusedComponent`: the component that currently has the focus
     - >
       `focusedNode`: the DOM node that currently has the focus
     - >
-      `focusedStack`: the stack of components (`focusedComponent`, parent, grand-parent, etc.) that currently have the focus.
+      `focusedStack`: the stack of components (`focusedComponent`, parent, grand-parent, etc.) that currently have the focus
     - >
       `previousFocusedComponent`: the component that had the focus just before `focusedComponent` gained the focus
     - >
-      `previousFocusedNode`: the DOM node that had teh focus just before `focusedNode` gained the focus
+      `previousFocusedNode`: the DOM node that had the focus just before `focusedNode` gained the focus
   - >
     As the focus moves from one component to another, the stack of components from the particular component that holds the DOM node that has the focus to its parent, grand-parent, and so on up through the top-most component changes. This movement of focus can be visualized as popping components off a stack as they lose the focus, and pushing components on a stack as they gain focus; `blurComponent` and `focusComponent` signal these pops and pushes respectively. Events are ordered by first signaling all blurred components as they are popped off the stack, then signaling all focused components as the are pushed on the stack, and finally signalling the top-most component with `focusedComponent`. The following events are defined:
   - ul:
@@ -393,6 +320,12 @@ variables:
     - >
       `resize`: the viewport was resized
 types:
+- name: CSSStyleDeclaration
+  sum: a CSS declaration block
+  d:
+  - >
+    A CSS declaration block, that exposes style information and various style-related methods and properties. See [[CSSStyleDeclaration]https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration].
+
 - name: Posit
   sum: Javascript Object that gives position and size values
   def: |
@@ -425,7 +358,7 @@ types:
     function(newValue, oldValue, object, prop)
   d:
   - >
-    `Watcher` defines the call signature used by ../mixins.watchHub and ./Watchable instances when they notify their connected watchers of a mutation. `prop` is the property in `object` that mutated. `newValue` is the value of the property after the mutation and `oldValue` is the value before mutation.
+    `Watcher` defines the call signature used by ../mixins.watchHub and ./Watchable when they notify their connected watchers of a mutation. `prop` is the property in `object` that mutated. `newValue` is the value of the property after the mutation and `oldValue` is the value before mutation.
   - sa:
     - >
     - ../mixins.watchHub
@@ -458,8 +391,8 @@ types:
   - c: |
       function doOnceOnClick(node, callback){
           let h = connect(node, "click", (e) => {
-              callback();
               h.destroy();
+              callback();
           });
       }
 
@@ -474,7 +407,7 @@ types:
     }
   d:
   - >
-    Any instance of the JavaScript Object class used solely as an [[associative array]https://en.wikipedia.org/wiki/Associative_array]
+    A plain JavaScript Object used solely as an [[associative array]https://en.wikipedia.org/wiki/Associative_array]
     where the keys may be strings or symbols and the values may be any type.
 
 functions:
@@ -490,7 +423,7 @@ functions:
   - (element, id, position) => component
   params:
   - name: componentClass
-    type: subclass of/or ../classes.Component
+    type: subclass of/or ../classes.Component constructor
     d: >
       the component class to create
   - name: componentInstance
@@ -755,9 +688,13 @@ functions:
     type: ../classes.Component
     d: >
       source DOM node is given by `component.bdDom.root`
+  - name: CSSStyleDeclaration
+    type: ../types.CSSStyleDeclaration
+    d: >
+      live CSSStyleDeclaration
   d:
   - >
-    Returns a [[live CSSStyleDeclaration]https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration] object via [[window.getComputedStyle]https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle].
+    Returns a live [[CSSStyleDeclaration]https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration] object via [[window.getComputedStyle]https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle].
 
     The first signature is the only substantive signature, the remaining signatures are syntax sugar:
 
@@ -858,9 +795,9 @@ functions:
 - name: setPosit
   sum: set the size and/or position of a DOM node
   sig:
-  - (node, posit) => Posit
-  - (component, posit) => Posit
-  - (id, posit) => Posit
+  - (node, posit) => void
+  - (component, posit) => void
+  - (id, posit) => void
   params:
   - name: node
     type: DOM node
@@ -874,9 +811,13 @@ functions:
     type: ../classes.Component
     d: >
       source DOM node is given by `component.bdDom.root`
+  - name: posit
+    type: ../types.Posit
+    d: >
+      position properties to set
   d:
   - >
-    Sets the DOM style size and/or position values in pixels as given by `posit`. `posit` need not provide all possible values, any value will be set. Any property in `posit` that is not a property defined by ../types.Posit is ignored.
+    Sets the DOM style size and/or position values in pixels as given by `posit`. `posit` need not provide all possible values. Any property in `posit` that is not a property defined by ../types.Posit is ignored.
 
     The first signature is the only substantive signature, the remaining signatures are syntax sugar:
 
@@ -892,7 +833,7 @@ functions:
 - name: insert
   sum: insert a DOM node with respect to another DOM node
   sig:
-  - (node, refNode, position="last")
+  - (node, refNode, position = "last") => node | nodes[] | void
   params:
   - name: node
     type: DOM node
@@ -907,6 +848,14 @@ functions:
     default: ?, "last"
     d: >
       location to insert node with respect to reference node
+  - name: node
+    type: DOM node
+    d: >
+      `refNode` when `position==="replace"`
+  - name: nodes
+    type: array of DOM node
+    d: >
+      children of `refNode` when `position==="only"`
   d:
   - >
     Inserts `node` with respect to `refNode` as given by position:
@@ -939,8 +888,8 @@ functions:
 - name: create
   sum: create a DOM node
   sig:
-  - (htmlTag, props)
-  - (namespacedTag, props={})
+  - (htmlTag, props) => domNode
+  - (namespacedTag, props = {}) => domNode
   params:
   - name: htmlTag
     type: string
@@ -950,13 +899,17 @@ functions:
     type: >
       [namespace, tag]
     d: >
-      `namespace` (a string) is a www.w3.org namespace;<br>`tag` (a string) gives a element tag within that namespace
+      `namespace` (a `string`) is a www.w3.org namespace;<br>`tag` (a `string`) gives a element tag within that namespace
   - name: props
     type: ?, ../types.Hash
     default: |
       {}
     d: >
       hash of (attributeName -> value) pairs to initialize new DOM node
+  - name: domNode
+    type: DOM node
+    d: >
+      the new DOM node
   d:
   - >
     If `htmlTag` is given, then creates a new DOM node with [[document.createElement]https://developer.mozilla.org/en-US/docs/Web/API/Document/createElement]; if namespacedTag is given, then creates a new DOM node with [[document.createElementNS]https://developer.mozilla.org/en-US/docs/Web/API/Document/createElementNS]. After the node is created, attributes values are initialized by applying ./setAttr`(node, hash)`.
@@ -992,17 +945,34 @@ functions:
 - name: connect
   sum: connect a listener function to an event signaled by an object
   sig:
-  - (node) => void
+  - (eventType, eventSourceType1, handler, useCapture) => handle
+  - (eventType, eventSourceType2, handler) => handle
   params:
-  - name: node
-    type: DOM node
+  - name: eventType
+    type: string | symbol
     d: >
-      the DOM node to destroy
+      the event to connect
+  - name: eventSourceType1
+    type: object that contains addEventListener method
+    d: >
+      the source of the event
+  - name: eventSourceType2
+    type: object that contains advise method
+    d: >
+      the source of the event
+  - name: handler
+    type: (eventObject) => any
+    d: >
+      the event handler
+  - name: handle
+    type: ../types.Destroyable
+    d: >
+      ../types.Destroyable object that can be used to terminate the advise
   d:
   - >
-    Connects `listener` to the event `type` generated by `target` and returns a ../types.Destroyable that destroys the connection. Any `target` that implements `addEventListener` and `removeEventListener` works with `connect`.
+    Connects `listener` to the event `eventType` generated by `eventSourceType1`/`eventSourceType2` and returns a ../types.Destroyable that destroys the connection. `eventSourceType1` source objects (typically DOM nodes) are connected with [[addEventListener]https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener]; `eventSourceType2` source objects are connected with `advise` with semantics as given by ../mixins.eventHub.advise. Any `target` that implements `addEventListener` and `removeEventListener` works with `connect`.
 
-    `useCapture` has semantics as given by `target.addEventListener`.
+    `useCapture` has semantics as given by `eventSourceType1.addEventListener`.
 
     If the document supports touch events, then event types `mousedown`, `mousemove`, and `mouseup` result in connecting listener to `touchstart`, `touchmove`, and `touchend`, respectively in addition to requested event type. In this case, the returned ../types.Destroyable will destroy both connections.
 
@@ -1025,16 +995,16 @@ functions:
     is equivalent to
   - c: |
       if(event && event.preventDefault){
-        event.preventDefault();
-        event.stopPropagation();
+          event.preventDefault();
+          event.stopPropagation();
       }
 
 - name: e
   sum: ../classes.Element factory
   sig:
-  - (htmlTag, props={}, ...children)
-  - (namespacedTag, props={}, ...children)
-  - (component, props={}, ...children)
+  - (htmlTag, props = {}, ...children) => element
+  - (namespacedTag, props = {}, ...children) => element
+  - (component, prop s= {}, ...children) => element
   params:
   - name: htmlTag
     type: string
@@ -1044,21 +1014,25 @@ functions:
     type: >
       [namespace, tag]
     d: >
-      `namespace` (a string) is a www.w3.org namespace;<br>`tag` (a string) gives a element tag within that namespace
+      `namespace` (a `string`) is a www.w3.org namespace;<br>`tag` (a `string`) gives a element tag within that namespace
   - name: component
-    type: subclass of ./Component
+    type: subclass of ./Component constructor
     d: >
       component type
   - name: props
-    type: ?, ../Hash
+    type: ?, ../types.Hash
     default: >
       {}
     d: >
-      The ./types.Hash of `(property -> value)` and `(post-processing-function -> arguments)` pairs that describe how to initialize ./ctorProps and ./ppFuncs.
+      The ../types.Hash of `(property -> value)` and `(post-processing-function -> arguments)` pairs that describe how to initialize ../classes.Element.ctorProps and ../classes.Element.ppFuncs.
   - name: children
-    type: ?, falsey | ./Element | [children]
+    type: ?, falsey | ../classes.Element | children[]
     d: >
-      `children` can be `falsey | ./Element | [children]`, thereby allowing arbitrarily nested arrays of children.
+      `children` can be `falsey | `Element` | children[]`, thereby allowing arbitrarily nested arrays of children.
+  - name: element
+    type: ../classes.Element
+    d: >
+      the new ../classes.Element
   d:
   - >
     Syntax sugar:
@@ -1074,7 +1048,7 @@ functions:
 - name: svg
   sum: specialized ../classes.Element factory
   sig:
-  - (svgTag="svg", props={}, ...children)
+  - (svgTag = "svg", props = {}, ...children)
   params:
   - name: svgTag
     type: ?, string
@@ -1083,15 +1057,15 @@ functions:
     d: >
       a SVG tag name
   - name: props
-    type: ?, ../Hash
+    type: ?, ../types.Hash
     default: >
       {}
     d: >
-      The ./types.Hash of `(property -> value)` and `(post-processing-function -> arguments)` pairs that describe how to initialize ./ctorProps and ./ppFuncs.
+      The ../types.Hash of `(property -> value)` and `(post-processing-function -> arguments)` pairs that describe how to initialize ../classes.Element.ctorProps and ../classes.Element.ppFuncs.
   - name: children
-    type: ?, falsey | ./Element | [children]
+    type: ?, falsey | ../classes.Element | children []
     d: >
-      `children` can be `falsey | ./Element | [children]`, thereby allowing arbitrarily nested arrays of children.
+      `children` can be `falsey | `Element` | [children]`, thereby allowing arbitrarily nested arrays of children.
   d:
   - >
     Syntax sugar:
@@ -1104,48 +1078,48 @@ functions:
 
 - name: getPostProcessingFunction
   sum: return a post-processing function from the post-processing catalog
-  sig: (name)
+  sig: (ppfProcId) => (ppfOwner, ppfTarget, ...args) => void
   params:
-  - name: name
+  - name: ppfProcId
     type: string | symbol
     d: >
-      the name of the post-processing function to return
+      target post-processing function identifier
   d:
   - >
-    Returns the requested post-processing function if it exists in Backdraft's private catalog of post-processing functions; `undefined` otherwise.
+    Returns the requested post-processing function if it exists in Backdraft's private catalog of post-processing functions; `undefined` otherwise. See ../post-processing-functions for definitions of `ppfProcId`, `ppfOwner`, and `ppfTarget` and other details.
 
     Function are inserted into the catalog with ../functions.insPostProcessingFunction and ../functions.replacePostProcessingFunction.
 - name: insPostProcessingFunction
   sum: insert a post-processing function into Backdraft's private catalog
-  sig: (name, ppf)
+  sig: (ppfProcId, ppf) => void
   params:
-  - name: name
+  - name: ppfProcId
     type: string | symbol
     d: >
-      the name of the post-processing function
+      the identifier of the post-processing function
   - name: ppf
-    type: function(owner, target, <i>function-dependent-parameters</i>)
+    type: function(ppfOwner, ppfTarget, <i>function-dependent-parameters</i>)
     d: >
       the post-processing function
   d:
   - >
-    Inserts `ppf` at `name` into Backdraft's private catalog of post-processing functions. An exception is thrown if a function already exists for `name`. See ./functions.replacePostProcessingFunction to replace an already-existing function.
+    Inserts `ppf` at `ppfProcId` into Backdraft's private catalog of post-processing functions. An exception is thrown if a function already exists for `ppfProcId`. See ../functions.replacePostProcessingFunction to replace an already-existing function. See ../post-processing-functions for definitions of `ppfProcId`, `ppfOwner`, and `ppfTarget` and other details.
 
 - name: replacePostProcessingFunction
   sum: insert/replace a post-processing function into Backdraft's private catalog
-  sig: (name, ppf)
+  sig: (ppfProcId, ppf) => void
   params:
-  - name: name
+  - name: ppfProcId
     type: string | symbol
     d: >
-      the name of the post-processing function to return
+      the identifier of the post-processing function
   - name: ppf
-    type: function(owner, target, <i>function-dependent-parameters</i>)
+    type: function(ppfOwner, ppfTarget, <i>function-dependent-parameters</i>)
     d: >
       the post-processing function
   d:
   - >
-    Inserts `ppf` at `name` into Backdraft's private catalog of post-processing functions. If a function already exists for `name`, then that function is replaced with `ppf`.
+    Inserts `ppf` at `ppfProcId` into Backdraft's private catalog of post-processing functions. If a function already exists for `ppfProcId`, then that function is replaced with `ppf`. See ../post-processing-functions for definitions of `ppfProcId`, `ppfOwner`, and `ppfTarget` and other details.
 
 - name: getWatchableRef
   sum: ../classes.WatchableRef factory
@@ -1179,9 +1153,9 @@ functions:
 - name: watch
   sum: connect a watcher to a watchable
   sig:
-    - (watchable, prop=STAR, watcher) => Destroyable
-    - (watchable, props, watcher) => [Destroyable]
-    - (watchable, hash) => [Destroyable]
+    - (watchable, prop = STAR, watcher) => handle
+    - (watchable, props, watcher) => handles[]
+    - (watchable, hash) => handles[]
   params:
   - name: watchable
     type: ../types.Watchable
@@ -1196,6 +1170,14 @@ functions:
     type: ../types.Watcher
     d: >
       watcher to apply upon mutation of prop
+  - name: handle
+    type: ../types.Destroyable
+    d: >
+      ../types.Destroyable object that can be used to terminate the watch
+  - name: handles
+    type: ../types.Destroyable
+    d: >
+      array of ../types.Destroyable object that can be used to terminate the watches
   d:
   - >
     The first signature is the only substantive signature, the remaining signatures are syntax sugar discussed at the end.
@@ -1217,29 +1199,34 @@ functions:
     - >
       `newValue`: the value of `watchable[prop]` after mutation
     - >
-      `oldValue`: ../variables.UNKNOWN_OLD_VALUE
+      `oldValue`: see .../variables.UNKNOWN_OLD_VALUE
     - >
       `prop`: an array that lists the property path to the particular watchable property that mutated
     - >
       `object`: `watchable` provided when `watch` was applied to connect the watcher
-
   - >
-    For example:
+    All signatures return a handle or handles to all watches that were connected.
+
+    Example:
 
   - c: |
       let target = toWatchable([{fname: "John", lname: "Doe"}]);
 
       // connect to fname
       let h1 = watch(target[0], "fname", (newValue, oldValue, target, property) => {
-      console.log(`fname watcher: new value=${newValue}, old value=${oldValue}, property:`, property);
+          console.log(
+              `fname watcher: new value=${newValue}, old value=${oldValue}, property:`,
+               property
+          );
       });
 
       // connect to the entire target
       let h2 = watch(target, (newValue, oldValue, object, prop) => {
-      console.log("object watcher:",
-      "new value=", newValue,
-      "old value=", oldValue === UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : "?",
-      "prop=", prop);
+          console.log(
+              "object watcher:",
+              "new value=", newValue,
+              "old value=", oldValue === UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : "?",
+              "prop=", prop);
       });
 
       target[0].fname = "Joe";
@@ -1252,7 +1239,8 @@ functions:
       h1.destroy();
 
       target[0].fname = "Adam";
-      // since we destroyed the first watcher, we don't see it's output; the second watcher is still connected...
+      // since we destroyed the first watcher, we don't see it's output;
+      // the second watcher is still connected...
       // = > object watcher: new value= Adam old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "fname"]
 
   - >
@@ -1337,7 +1325,7 @@ functions:
     - ../classes.WatchableRef.watch
     - ../mixins.watchHub
     - ../mixins.watchHub.watch
-    - ../mixins.watchHub.getWatchable
+    - ../mixins.watchHub.getWatchableRef
 - name: isWatchable
   sum: predicate that says if source is a ../types.Watchable
   sig: (source) => boolean
@@ -1348,11 +1336,11 @@ functions:
       value to test
   d:
   - >
-    Returns `true` is source is a ../mixins.watchHub or ../types.Watchable; `false` otherwise.
+    Returns `true` is source is a ../mixins.watchHub or a ../types.Watchable; `false` otherwise.
 
 - name: bind
   sum: makes a connection so that mutations in one property are immediately propagated to another property
-  sig: (src, srcProp, dest, destProp) => Destroyable
+  sig: (src, srcProp, dest, destProp) => handle
   params:
   - name: src
     type: ../mixins.watchHub | ../types.Watchable
@@ -1370,6 +1358,10 @@ functions:
     type: string | symbol
     d: >
       the property in `dest` to mutate
+  - name: handle
+    type: ../types.Destroyable
+    d: >
+      ../types.Destroyable object that can be used to terminate the binding
   d:
   - >
     Initializes `dest[destProp]` to `src[srcProp]`, then sets up a watcher on `src[srcProp]` to propagate any mutations to `dest[destProp]`. Really just syntax sugar:
@@ -1390,7 +1382,7 @@ functions:
 
 - name: biBind
   sum: makes connections so that mutations in one property are immediately propagated to another property
-  sig: (src, srcProp, dest, destProp) => [Destroyable]
+  sig: (src, srcProp, dest, destProp) => handles[]
   params:
   - name: src
     type: ../mixins.watchHub | ../types.Watchable
@@ -1408,6 +1400,10 @@ functions:
     type: string | symbol
     d: >
       the property in `src` to watch
+  - name: handles
+    type: ../types.Destroyable[]
+    d: >
+      ../types.Destroyable objects that can be used to terminate the binding
   d:
   - >
     Initializes `src[srcProp]` to `dest[destProp]`, then sets up watchers on both properties so that any mutation on one is propagated to the other. Really just syntax sugar:
@@ -1419,7 +1415,7 @@ functions:
 
   - c: |
       src[srcProp] = dest[destProp];
-      return [bind(src, srcProp, dest, destProp), bind(src, srcProp, dest, destProp)];
+      return [bind(src, srcProp, dest, destProp), bind(dest, destProp, src, srcProp)];
 
 - name: eql
   sum: tests if two values are equal
@@ -1443,9 +1439,9 @@ functions:
           }else{
               let comparator = eqlComparators.get(refValue.constructor);
               if(comparator){
-                  return comparator(otherValue, refValue);
+                  return comparator(refValue, otherValue);
               }else{
-                  return otherValue === refValue;
+                  return refValue === refValue;
               }
           }
       }
@@ -1475,7 +1471,7 @@ functions:
 mixins:
 - name: withWatchables
   sum: mixin class that automatically defines watchable properties
-  sig: withWatchables(superClass, ...propertyDefs) => class
+  sig: withWatchables(superClass = class{}, ...propertyDefs) => class
   d:
   - >
     Defines a new class that has `superClass` as its base class and contains getters and setters for each property definition in `propertyDefs`. Each property definition can either give a public-property-name or a (public-property-name, private-property-name) pair. If the first form is given, then that public-property-name must be a string and the private-property-name is automatically calculated to be the public-property-name prefixed by an underscore.
@@ -1494,7 +1490,7 @@ mixins:
               return this._x;
           }
           set x(value){
-              this.bdMutate("x"", "_x", value);
+              this.bdMutate("x", "_x", value);
           }
       }
 

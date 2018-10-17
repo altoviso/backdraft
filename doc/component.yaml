@@ -1,7 +1,7 @@
 name: Component
 owner: bd-core.classes
 type: class
-supers: [.../mixins/eventHub, .../mixins/watchHub]
+supers: [.../mixins.eventHub, .../mixins.watchHub]
 sum: >
   base class used to build a user interface components
 
@@ -18,18 +18,12 @@ namespaces:
   sum: static properties and methods defined on Component
 
 - name: types
-  sum: types used in Component machinery
+  sum: types used in `Component` machinery
 
 d:
-- n:
-  - >
-    The description that follows is fairly detailed...it is not quite a tutorial, but its more than a
-    typical reference manual. Individual property
-    and method entries are more terse. Since the actual code that defines Component is less than 1000 lines, the best
-    way to learn the framework is a three-step process: (1) read the tutorial, (2) read this description, and (3) read the code!
 - >
-  Component abstracts a user interface component. Subclasses derived from Component provide a public interface that is
-  independent of the DOM, and Component provides machinery to aid in constructing the protected implementation
+  `Component` abstracts a user interface component. Subclasses derived from `Component` provide a public interface that is
+  independent of the DOM, and `Component` provides machinery to aid in constructing the protected implementation
   that bridges the gap between that public interface and the DOM.
 
   Consider the example of a combo box component. From the view of the application logic,
@@ -46,7 +40,7 @@ d:
   and responds to DOM events as the user interacts with the component. For an example of a complete combo box implementation
   see [[bd-widgets.ComboBox]https://github.com/altoviso/bd-widgets/blob/master/src/comboBox/ComboBox.js].
 - >
-  Component provides machinery to aid in constructing the protected implementation, including:
+  `Component` provides machinery to aid in constructing the protected implementation, including:
 
 - ol:
   - Declarative composition
@@ -58,7 +52,7 @@ d:
   - IO state and behavior management
 
 - >
-  Subclasses derived from Component are intended to be based on composition <i>and</i> specialization patterns; a Component
+  Subclasses derived from `Component` are intended to be based on composition <i>and</i> specialization patterns; a `Component`
   subclass can be defined by:
 - ul:
   - composing several other component subclasses
@@ -70,10 +64,10 @@ d:
     id: declarativeComposition
     d:
     - >
-      The actualization of a browser-hosted user interface component is a DOM tree or forest. Component uses declarative composition
-      to describe the structure, properties, and connections of the DOM tree/forest prescribed by a particular Component subclass.
-      This is to say that the tree/forest is functionally <i>declared</i> as opposed to being built by an imperative process, and the
-      components used in the declaration may be other component subclasses. Here is an example:
+      The actualization of a browser-hosted user interface component is a DOM tree or forest. `Component` uses declarative composition
+      to describe the structure, properties, and connections of the DOM tree/forest prescribed by a particular `Component` subclass.
+      This is to say that the tree/forest is functionally <i>declared</i> as as an abstraction as opposed to being built with actual DOM nodes by an imperative process, and the
+      components used in the declaration may be other `Component` subclasses. Here is an example:
     - c: |
         e("div", {className: "renameDialog"},
             e("div",
@@ -88,38 +82,37 @@ d:
 
     - >
       The example is from a rename dialog that shows a current name, collects a new name, and provides "OK" and "Cancel" buttons
-      to terminate the dialog. The tree is composed of ./Element nodes that contain other Element nodes; ../e is a factory
-      function that creates such nodes.
+      to terminate the dialog. See the [[Rename Dialog Example]http://backdraftjs.org/examples/dialog/index.html] for a working example.
+
+      The tree is an abstraction of the the actual DOM tree associated with a particular `Component` instance. The abstraction is composed of .../classes.Element nodes that contain other `Element` nodes; .../functions.e is a factory function that creates such nodes.
 
     - ul:
       - >
-        Each node that has a string for the first argument to the `e` factory indicates
+        Each node that has a tag name for the first argument to the `e` factory indicates
         a DOM element (all the `"div"` nodes).
       - >
-        Each node that has a constructor function for the first argument indicates a Component subclass (`Labeled`, `Input`,
+        Each node that has a constructor function for the first argument indicates a `Component` subclass (`Labeled`, `Input`,
         and `Button`).
 
     - >
-      Finally all of the subclasses found in the tree will have their own trees composed of other DOM elements and Component
-      subclasses: this is the <i>composition</i> aspect of the declarative composition design.
+      Subclasses found in the tree will have their own trees of `Element` nodes: this is the <i>composition</i> aspect of the declarative composition design. `Component`'s internal machinery transforms an abstract `Element` tree in to a tree of DOM nodes; this is described in detail below.
 
     - i:
-        - >
-          Component subclasses may define their DOM as either a single-rooted tree or a multi-rooted forest, and all Component
-          machinery is designed and implemented to handle both cases. When rendered, a reference to the DOM created by
-          a component is maintained at ./bdDom.root. For a single-rooted tree, `bdDom.root`
-          will reference a single DOM node; similarly, for a multi-rooted tree, `bdDom.root`
-          will reference an array of DOM nodes. Unless there is an important difference between the behavior of a single-rooted
-          tree compared to a multi-rooted forest, we shall write in terms of a single-rooted tree for the remainder of Component's
-          reference documentation.
+      - >
+        `Component` subclasses may define their DOM as either a single-rooted tree or a multi-rooted forest, and all Component
+        machinery is designed and implemented to handle both cases. When rendered, a reference to the DOM created by
+        a component is maintained at `<i>instance</i>.bdDom.root` (see ./protected.bdDom). For a single-rooted tree, `bdDom.root`
+        will reference a single DOM node; similarly, for a multi-rooted forest, `bdDom.root`
+        will reference an array of DOM nodes. Unless there is an important difference between the behavior of a single-rooted
+        tree compared to a multi-rooted forest, we shall write in terms of a single-rooted tree for the remainder of Component's
+        reference documentation.
     - i:
-        - >
-          Notice that the entirety of this system resides within the standard JavaScript
-          environment. There is never a need to "compile" or otherwise transform an Element tree beyond executing it within
-          a JavaScript environment.
+      - >
+        Notice that the entirety of this system resides within the standard JavaScript
+        environment. There is never a need to "compile" or otherwise transform an `Element` tree.
 
     - >
-      Since the Element tree is declared with standard JavaScript, the full power of the language is available in the
+      Since the `Element` tree is declared with standard JavaScript, the full power of the language is available in the
       declaration. There is never the need to "escape" out of a templating/markup language to include state-dependent
       structure/value in the declaration. Here is another example where the structure of the declaration is affected by state:
     - c: |
@@ -128,32 +121,33 @@ d:
                 customerProps.important && e("p", {className:"important"}, "We're very happy to see you again!"),
                 e("div", {className:"suggestion-list"},
                     e("p", "Please consider buying the following stuff!"),
-                    e("ul", customerProps.suggestions.map((item)=>e("li", item)))
+                    e("ul", customerProps.suggestions.map(item => e("li", item)))
                 )
             )
         )
     - >
-      The protected method ./bdElements returns the ./Element tree that describes the structure, properties, and connections
-      of the DOM tree prescribed by a particular Component subclass. An override for ./bdElements is almost-always provided
+      The protected method ./protected.bdElements returns the .../classes.Element tree that describes the structure, properties, and connections
+      of the DOM tree prescribed by a particular `Component` subclass. An override for `bdElements` is almost-always provided
       in subclass definitions.
+
       The method ./render transforms the declaration into an actual DOM tree and saves a reference to the root at
-      ./bdDom.root. The method ./unrender destroys the DOM tree and any resources consequent rendering.
+      `<i>instance</i>.bdDom.root` (see ./protected.bdDom). The method ./unrender destroys the DOM tree and any resources consequent rendering.
     - i:
       - >
-        Life cycle methods like render and unrender are rarely applied explicitly; this is discussed in ./typicalLifeCycles.
+        Life cycle methods like `render` and `unrender` are rarely applied explicitly; this is discussed in the section Typical Life Cycles, later.
 - section:
     name: Life Cycle
     id: lifecycle
     d:
     - >
-      Component instances have the following life cycle states:
+      `Component` instances have the following life cycle states:
     - ol:
       - >
         <b>Unrendered</b>: the component's DOM tree has not been instantiated. ./rendered and ./attachedToDoc are false. The
         component's public API is fully functional according to the semantics of that API. For example, ./addClassName and
         ./removeClassName can be applied to an unrendered component, and when that component is finally rendered,
-        the className property of ./bdDom.root will be set accordingly. Of course some public functions are nonsensical
-        when applied to an unrendered component. For example, ./setFocus simply results in a no-op when applied to an unrendered component.
+        the className property of `bdDom.root` (see ./protected.bdDom) will be set accordingly. Of course some public functions are nonsensical
+        when applied to an unrendered component. For example, ./focus simply results in a no-op when applied to an unrendered component.
       - >
         <b>Rendered</b>: the component's DOM tree has been instantiated, but not attached to the document. ./rendered
         is true, but ./attachedToDoc is false.
@@ -171,12 +165,12 @@ d:
       methods with the exception of ./destroy (see above).
     - i:
       - >
-        Remember, life cycle methods like render and unrender are rarely applied explicitly; this is discussed in ./typicalLifeCycles.
+        Remember, life cycle methods like render and unrender are rarely applied explicitly; this is discussed in the section Typical Life Cycles, later.
     - n:
       - >
-        Applying ./destroy to a Component instance is not strictly required to ensure garbage collection of an instance that
+        Applying ./destroy to a `Component` instance is not strictly required to ensure garbage collection of an instance that
         is no longer in use <i>so long as all references to that instance have been deleted</i>. The most common places to
-        miss references to a Component instance are found in event handler and watcher connections that reference the component.
+        miss references to a `Component` instance are found in event handler and watcher connections that reference the component.
         So long as handlers and watchers are connected through ./advise and ./watch, all connections will be automatically
         destroyed by ./destroy. This is the raison d'être for ./destroy.
 
@@ -185,11 +179,11 @@ d:
     id: childManagement
     d:
     - >
-      Component instances may contain other Component instances. These other instances are termed "children" and an instance
+      `Component` instances may contain other `Component` instances. These other instances are termed "children" and an instance
       that contains a child is termed the "parent" of that child. ./insChild and ./delChild allow children to be explicitly
-      inserted/deleted to/from the children collection of a parent. While these methods are useful for some Component subclasses
+      inserted/deleted to/from the children collection of a parent. While these methods are useful for some `Component` subclasses
       that implement collections like lists and grids, usually children are created, rendered, and inserted automatically when a parent
-      is rendered. Recall the rename element tree we saw earlier; here it is in a more-complete context.
+      is rendered as a consequence of the parent's `Element` tree containing `Component` nodes. Recall the rename element tree we saw earlier; here it is in a more-complete context.
       It contains four children--two `Labeled` instances and two `Button` instances.
     - c: |
         class RenameDialog extends Dialog {
@@ -219,15 +213,15 @@ d:
             }
         );
     - >
-      Notice how `bdElements` in the example above describes a DOM tree <i>and</i> a set of Component instances used to
-      "decorate" that tree. All children mentioned in the ./Element tree given by ./bdElements are automatically
+      Notice how `bdElements` in the example above describes a DOM tree <i>and</i> a set of `Component` instances used to
+      "decorate" that tree. All children mentioned in the ./Element tree given by ./protected.bdElements are automatically
       instantiated and rendered when the parent component is rendered. Naturally, each child instance
       provides its own DOM tree and decorations and so on until the component instance is completely rendered. This
-      is a good example of a Component subclass that is both a specialization of another Component subclass, namely `Dialog`,
-      and a composition of other Component subclasses, namely `Labeled` and `Button`.
+      is a good example of a `Component` subclass that is both a specialization of another `Component` subclass, namely `Dialog`,
+      and a composition of other `Component` subclasses, namely `Labeled` and `Button`.
 
-      When children instances are created implicitly during rendering as given by ./bdElements, the root of a particular
-      child's DOM tree is appended to the parent DOM node as given by the Element tree; this is obvious from the example
+      When children instances are created implicitly during rendering as given by ./protected.bdElements, the root of a particular
+      child's DOM tree is appended to the parent DOM node as given by the `Element` tree; this is obvious from the example
       above. When a child is explicitly inserted with ./insChild, the child may be appended to the parents DOM tree at
       several different locations. See ./insChild for details.
 
@@ -245,16 +239,16 @@ d:
       parts of the implementation--almost certainly during ./render. Caching designs can be used to dramatically improve
       performance for certain kinds of components.
 
-      ./insChild and ./delChild are most often used in Component subclasses that present collections, for example lists and
-      grids. Since collections ofter require some kind of re-ordering functionality, Component provides ./reorderChildren,
+      ./insChild and ./delChild are most often used in `Component` subclasses that present collections, for example lists and
+      grids. Since collections ofter require some kind of re-ordering functionality, `Component` provides ./reorderChildren,
       which allows the children of a parent to be reordered in-place. This machinery is <i>the most performant</i> design
       theoretically possible; hand-tuned designs will be no faster.
 
-      Owing to the design of Component's child management machinery, rendering and unrendering a particular Component instance
+      Owing to the design of Component's child management machinery, rendering and unrendering a particular `Component` instance
       automatically creates, renders, unrenders, and destroys that instance's children as the instance lives its lifetime.
       Therefore constructing an application is a matter of explicitly rendering a top-level component and then allowing
       that component to insert/remove children as required given user stimulation and that component's semantics.
-      Each child will manage its own children semantics similarly. Indeed, many kinds of applications include a single,
+      Each parent will manage its own children semantics similarly. Indeed, many kinds of applications include a single,
       explicit render of the top-level component instance.
 
 - section:
@@ -269,7 +263,7 @@ d:
 
     - ol:
       - - >
-          An application creates, renders, and attaches a single Component instance with the ../render
+          An application creates, renders, and attaches a single `Component` instance with the ../render
           function:
         - c: |
             let top = render(e(TopFrame), "root");
@@ -291,41 +285,36 @@ d:
       - - >
           Usually, children are inserted consequent to some event caused by the user:
         - c: |
-            connect(globalEventGenerator, "onPanelDemand", (panelId) => top.insChild(e(Panel, {id:panelId})));
+            globalEventGenerator.advise(
+              "onPanelDemand", (panelId) => top.insChild(e(Panel, {id:panelId})));
       - - >
           Putting this all together, the `"onPanelDemand"` event handler may cache panels, perhaps, something like this:
         - c: |
             let panelCache = {};
             let currentPanel = 0;
-            connect(globalEventGenerator, "onPanelDemand", (panelId) => {
+            globalEventGenerator.advise("onPanelDemand", (panelId) => {
                 top.delChild(currentPanel, true);
-                currentPanel = panelCache[panelId] = top.insChild(panelCache[panelId] || e(Panel, {id:panelId}));
+                currentPanel =
+                    panelCache[panelId] =
+                        top.insChild(panelCache[panelId] || e(Panel, {id:panelId}));
             });
 
     - >
       Most applications use the methods demonstrated above most of the time. However, there are many additional methods
-      to create, render, unrender, attach, detach, and destroy Component instances. See ../render, ./constructor, ./render,
-      ./unrender, ./bdAttach, ./insChild, and ./delChild for further details.
+      to create, render, unrender, attach, detach, and destroy `Component` instances. See ../render, ./constructor, ./render,
+      ./unrender, ./insChild, and ./delChild for further details.
 
 - section:
     name: Property Managment and Protected Names
     id: propManagement
     d:
     - >
-      Component inherits the mixin class ../mixins.watchHub, which provides an interface to register property watchers and fire
-      mutation notifications to those watchers. Here's how this works: For each public property name, a Component subclass
-      defines an associated protected name that is unlikely to clash with any potential public name--public names that
-      may be desirable not only in the subclass being defined, but also in any potential subclasses of the subclass. All
-      Backdraft-defined protected names begin with the prefix "bd", for example, "bdElements", "bdClassName", "bdHasFocus",
-      and so on. The actual, protected property value is stored at the property address given by the protected name.  Then
-      a getter, and, if the property is mutable, a setter are provided to give public access to the protected property.
-      Finally, ../mixins.watchHub.bdMutate is used to detect and signal mutations. For example, here is how the public property "foo"
-      could be implemented in an imaginary Backdraft component.
+     `Component` inherits the mixin class .../mixins.watchHub, which provides an interface to register property watchers and fire mutation notifications to those watchers. Here's how this works: For each <i>watchable</i> public property name, a `Component` subclass defines an associated protected name that is unlikely to clash with any potential public name--public names that may be desirable not only in the subclass being defined, but also in any potential subclasses of the subclass. All Backdraft-defined protected names begin with the prefix "bd", for example, "bdElements", "bdClassName", "bdHasFocus", and so on. The actual, protected property value is stored at the protected name. Then a getter, and, if the property is mutable, a setter are provided to give public access to the protected property. Finally, .../mixins.watchHub.bdMutate is used to detect and signal mutations. For example, here is how the public property "foo" could be implemented in an imaginary Backdraft component.
 
     - c: |
         class SomeComponent extends Component{
             set foo(){
-                this.bdMutate("bdFoo", "foo", value);
+                this.bdMutate("foo", "bdFoo", value);
             }
             get foo(){
                 return this.bdFoo;
@@ -333,30 +322,29 @@ d:
         }
 
         let c = new MyComponent();
-        c.watch("foo", (newValue, oldValue)=>console.log(newValue, oldValue));
+        c.watch("foo", (newValue, oldValue) => console.log("***", newValue, oldValue));
 
-        c.foo;        // => undefined
-        c.foo = "bar" // => "bar", undefined is logged
-        c.foo;        // => "bar"
-        c.foo = "baz" // => "baz", "bar" is logged
+        c.foo = "bar" // => *** "bar" undefined
+        c.foo = "baz" // => *** "baz" "bar"
         c.foo = "baz" // "baz"==="baz" => the watcher is not applied
     - i:
       - >
         The example uses "bd" to prefix "foo" when defining the protected property address; this prefix is reserved by the
         Backdraft library and client code should choose another prefix. Prefixes should be selected so they are likely
-        universally unique. This problem can also be solved with symbols, but we decided the added complexity was not worth
-        the return--particularly because polluting the namespace with words that begin with "bd" does not seem too terrible.
+        universally unique.
+    - n: >
+        Either or both of the public and private property name can be `symbol`s
 
     - In this pattern, we say...
     - ol:
-        - >
-          `bdFoo` is a protected property
-        - >
-          `foo` is a public property
-        - >
-          `foo` reflects `bdFoo`
-        - >
-          `bdFoo` is reflected by `foo`
+      - >
+        `bdFoo` is a protected property
+      - >
+        `foo` is a public property
+      - >
+        `foo` reflects `bdFoo`
+      - >
+        `bdFoo` is reflected by `foo`
 
     - Noice that, but <i>not</i> supplying a getter, a public property could be made read-only while the protected property
       remains mutable. This is a common pattern where a public property reflects an internal state, but that internal state
@@ -364,64 +352,62 @@ d:
       where the protected property doesn't exist at all and the read-only public property is a reflection of some internal
       state calculation.
 
-    - Here is a list of the public properties defined by Component together with the protected properties/state, they reflect.
+    - Here is a list of the public properties defined by `Component` together with the protected properties/state, they reflect.
 
     - table:
       - - >
           ./id
-        - >
-          none, read-only property defined at construction
+          - >
+          read-only property defined at construction
       - - >
           ./rendered
-        - >
-          !!./bdDom, bdDom exists iff the component has been rendered
+          - >
+          !!./protected.bdDom, bdDom exists iff the component has been rendered
       - - >
           ./attachedToDoc
-        - >
-          ./bdAttachedToDoc
+          - >
+          ./protected.bdAttachedToDoc
       - - >
           ./className
-        - >
-          ./bdClassName
+          - >
+          ./protected.bdClassName
       - - >
           ./hasFocus
-        - >
-          ./bdHasFocus, automatically set by ../FocusManager
+          - >
+          ./protected.bdHasFocus, automatically set by ../FocusManager
       - - >
           ./enabled
-        - >
-          !./bdDisabled
+          - >
+          !./protected.bdDisabled
       - - >
           ./disabled
-        - >
-          ./bdDisabled
+          - >
+          ./protected.bdDisabled
       - - >
           ./tabIndex
-        - >
-          ./bdTabIndex
+          - >
+          ./protected.bdTabIndex
       - - >
           ./visible
-        - >
+          - >
           reflects/mutates "bd-hidden" in ./className
       - - >
           ./title
-        - >
-          ./bdTitle
+          - >
+          ./protected.bdTitle
 - section:
     name: Event Managment
     id: eventManagement
     d:
     - >
-      Component inherits the mixin class ../mixins.eventHub, which provides an interface to register event handlers and fire
-      event notifications to registered handlers. Component does not define any events itself. See ./advise and ../mixins.eventHub
-      for further details.
+      `Component` inherits the mixin class .../mixins.eventHub, which provides an interface to register event handlers and fire event notifications to registered handlers. `Component` does not define any events itself. See .../mixins.eventHub.advise and .../mixins.eventHub for further details.
 
 
 types:
 - name: ConstructorKeywordArgs
   sum: keyword-arguments consumed by Component's constructor
   def: |
-    interface ConstructorKeywordArgs extends ../Hash {
+    interface ConstructorKeywordArgs {
         id?: any truthy value convertible to string;
         staticClassName?: string;
         className?: string | string[];
@@ -429,14 +415,15 @@ types:
         title?: string;
         disabled?: boolean;
         enabled?: boolean;
-        elements?: ../Element | ../Element[] | () => (./Element | ./Element[]);
-        postRender?: () => (../Destroyable | ../Destroyable[] | void);
-        overrides?: ../Hash;
-        callbacks?: ../Hash;
+        elements?: .Element | Element[] | () => (Element | Element[]);
+        postRender?: () => (Destroyable | Destroyable[] | void);
+        overrides?: Hash;
+        callbacks?: Hash;
+        mix?: Hash;
         [string]: any
         [symbol]: any
     }
-  d: rawld See ./constructor.
+  d: See ../constructor.
 
 methods:
 - name: constructor
@@ -445,16 +432,18 @@ methods:
   sig: (kwargs)
   params:
   - name: kwargs
-    type: ./ConstructorKeywordArgs
+    type: ./types.ConstructorKeywordArgs
     d: >
-      Gives a hash of values from which to initialize instance data. ./ConstructorKeywordArgs lists the properties consumed
+      Gives a hash of values from which to initialize instance data. `ConstructorKeywordArgs` lists the properties consumed
       by Component; all other properties may be defined by subclasses according to their own semantics.
   d:
   - >
-    Creates a new Component instance. A reference to `kwargs` is saved at `this.kwargs`. If `kwargs.id.toString()` is a
-    non-empty string, then the instance property `id` is defined with the value `kwargs.id.toString()`; otherwise, the instance property
-    `id` is set to undefined. Note that `id` is read-only for the lifetime of the component instance and can never be mutated
-    after construction. Remaining Component-defined instance properties are initialized as follows:
+    Creates a new `Component` instance. A reference to `kwargs` is saved at `this.kwargs`.
+
+    If `kwargs.id.toString()` is a non-empty string, then the instance property `id` is defined with the value `kwargs.id.toString()`; otherwise, the instance property `id` is set to undefined. Note that `id` is read-only for the lifetime of the component instance and can never be mutated after construction.
+
+    Remaining `Component`-defined instance properties are initialized as follows:
+
   - table:
     - - >
         ./staticClassName
@@ -463,7 +452,7 @@ methods:
     - - >
         ./className
       - >
-        `""`
+       `""`
     - - >
         ./tabIndex
       - >
@@ -486,7 +475,7 @@ methods:
     - - >
         `kwargs.staticClassName`
       - >
-        ./staticClassName is initialized to `kwargs.staticClassName + " " + (this.constructor.className || "")`
+        ./staticClassName is initialized to `kwargs.staticClassName`
     - - >
         `kwargs.className`
       - >
@@ -502,35 +491,26 @@ methods:
     - - >
         `kwargs.disabled`
       - >
-        ./disabled is initialized to `kwargs.disabled`; ./enabled is initialized to `!kwargs.disabled`; if both `kwargs.disabled`
-        and `kwargs.enabled` are provided, `kwargs.disabled` wins.
+        ./disabled is initialized to `kwargs.disabled`; ./enabled is initialized to `!kwargs.disabled`; if both `kwargs.disabled` and `kwargs.enabled` are provided, `kwargs.disabled` wins.
     - - >
         `kwargs.enabled`
       - >
-        ./enabled is initialized to `kwargs.enabled`; ./disabled is initialized to `!kwargs.enabled`; if both `kwargs.disabled`
-        and `kwargs.enabled` are provided, `kwargs.disabled` wins.
+        ./enabled is initialized to `kwargs.enabled`; ./disabled is initialized to `!kwargs.enabled`; if both `kwargs.disabled` and `kwargs.enabled` are provided, `kwargs.disabled` wins.
     - - >
         `kwargs.postRender`
       - >
         `this.postRender` is set to `kwargs.postRender`
     - - >
-        `kwargs.overrides`
+        `kwargs.mix`
       - >
-        for each property and/or symbol, `key`, defined by the ../Hash given by `kwargs.overrides`, `this[key]` is set to
-        `kwargs.overrides[key]`. This allows per-instance overrides of any method or property and/or the ad hoc addition
-        of per-instance methods/properties at construction.
+        for each `key` in `Reflect.ownKeys(kwargs.mix)`, `this[key]` is set to `kwargs.mix[key]`. This allows per-instance overrides of any method or property and/or the ad hoc addition of per-instance methods/properties at construction.
     - - >
         `kwargs.callbacks`
       - >
-        for each property and/or symbol, `watchableProp`, defined by the ../Hash given by `kwargs.callbacks` that is contained
-        in the array `this.constructor.watchables`, ./watch is applied to `(watchableProp, kwargs.callbacks[watchableProp])`
-        <br><br>
-        for each property and/or symbol, `eventId`, defined by the ../Hash given by `kwargs.callbacks` that is contained
-        in the array `this.constructor.events`, ./advise is applied to `(eventId, kwargs.callbacks[eventId])`
-        <br><br>
-        see ./_static.watchables and ./_static.events
+        for each `watchableProp` in `Reflect.ownKeys(kwargs.callbacks)` that is also contained in the array `this.constructor.watchables`, .../mixins.watchHub.watch is applied to `(watchableProp, kwargs.callbacks[watchableProp])`<br><br>for each `eventType` in `Reflect.ownKeys(kwargs.callbacks)` that is also contained in the array `this.constructor.events`, .../mixins.eventHub.advise is applied to `(eventType, kwargs.callbacks[eventType])`<br><br>see ./static.watchables and ./static.events
+
   - >
-    Subclasses of Component may override or define addition semantics on `kwargs` as required by the design of the subclass.
+    Subclasses of `Component` may override or define addition semantics on `kwargs` as required by the design of the subclass.
 
     Upon construction, an instance is in the unrendered state.
 - name: destroy
@@ -550,7 +530,7 @@ methods:
     - Deletes `this.kwargs`.
 - name: render
   sum: >
-    creates the DOM tree and renders all children given by ./bdElements
+    creates the DOM tree and renders all children given by ./protected.bdElements
   order: 1
   sig: (callback) => void
   params:
@@ -562,21 +542,29 @@ methods:
   - >
     If the instance is already in the rendered state, then no-op; otherwise:
   - ol:
-    - Generate the ./Element tree(s) by applying ./bdElements.
-    - Create the DOM tree(s) decribed by the Element tree(s) generated in Step 1.
-    - Store the new tree(s) at ./bdDom.root.
-    - Publish the new tree(s) in the Component catalog (see ./get).
+    - Generate the .../classes.Element tree(s) by applying ./protected.bdElements.
+    - Create the DOM tree(s) decribed by the `Element` tree(s) generated in Step 1.
+    - Store the new tree(s) at `bdDom.root` (see ./protected.bdDom).
+    - Publish the new tree(s) in the `Component` catalog (see ./static.get).
     - Apply ./postRender.
     - Apply `callback` (if provided).
   sa: ./unrendered, ./rendered
 
 - name: postRender
   sum: executes processing after the creation of the DOM tree(s)
-  sig: () => void
+  sig: () => handles
+  params:
+  - name: handles
+    type: ../Destroyable | ../Destroyable[]
+    d: >
+      see description
   d:
   - >
     Upon entry to `postRender` the DOM tree(s) associated with the instance have been created and their root(s) stored at
-    ./bdDom.root. The default implementation of `postRender` is a no-op. See ./render for further details.
+    `bdDom.root` (see ./protected.bdDom). The default implementation of `postRender` is a no-op. See ./render for further details.
+
+    Any handles returned by `postRender` are applied to ./ownWhileRendered.
+
 
 
 - name: unrender
@@ -589,7 +577,7 @@ methods:
     If the instance is in the unrendered state, then no-op; otherwise:
   - ol:
     - >
-      Deletes the Component's tree(s) from the Component catalog (see ./get):
+      Deletes the Component's tree(s) from the `Component` catalog (see ./static.get):
     - >
       Deletes itself by applying ./delChild on itself to its parent (if any).
     - >
@@ -598,7 +586,7 @@ methods:
       Destroys all destroyable objects collected by ./ownWhileRendered.
 
   - w: >
-      Subclasses of Component that create children which are not managed by the children collection (an atypical practice)
+      Subclasses of `Component` that create children which are not managed by the children collection (an atypical practice)
       usually provide an override to unrender that ensures such children are properly destroyed.
 
 - name: own
@@ -666,9 +654,9 @@ methods:
   sum: >
     inserts a child component into the children collection
   sig:
-  - (element, node, position) => Component
-  - (ComponentSubclass, kwargs, node, position) => Component
-  - (child, node, position) => Component
+  - (element, node, position) => insertedChild
+  - (ComponentSubclass, kwargs, node, position) => insertedChild
+  - (child, node, position) => insertedChild
   params:
   - name: element
     type: ../Element
@@ -680,7 +668,7 @@ methods:
       the reference node to attach the child's root(s); if a string is provided, then node is computed as
       `document.getElementById(node)`; see position
   - name: position
-    type: ?, ../types.Position
+    type: ?, .../types.Position
     d: >
       if missing, defaults to "last"
       <br><br>
@@ -696,7 +684,7 @@ methods:
   - name: ComponentSubclass
     type: function
     d: >
-      ComponentSubclass is a constructor function that creates an instance of Component; child to be inserted is `new ComponentSubclass(kwargs)`
+      a constructor function that creates an instance of Component; child to be inserted is `new ComponentSubclass(kwargs)`
   - name: kwargs
     type: ./ConstructorKeywordArgs
     d: >
@@ -705,13 +693,16 @@ methods:
     type: instance of ../Component
     d: >
       the child to be inserted
-  return: child instance that was inserted
+  - name: insertedChild
+    type: instance of ../Component
+    d: >
+      the child that was inserted
   d:
   - >
     Creates a new component (if an `element` or `ComponentSubclass` was provided), deletes the child from its current parent (if `child`
     was provided that has a parent), renders the child (if necessary), inserts the child DOM root(s) into the instance DOM
     tree, and pushed child into ./children. If the instance is attached to the document,
-    ./bdAttachToDoc is applied on the child.
+    ./protected.bdAttachToDoc is applied on the child.
 
     If `node` is provided, then the DOM root(s) of the new child are inserted with respect to `node`
     as give by `position`; see the description of the `position` parameter, above.
@@ -720,18 +711,18 @@ methods:
     choices:
   - ol:
     - >
-      `child.bdParentAttachPoint`; see ./bdParentAttachPoint
+      `child.bdParentAttachPoint`; see ./protected.bdParentAttachPoint
     - >
-      `this.bdChildrenAttachPoint`; see ./bdChildrenAttachPoint
+      `this.bdChildrenAttachPoint`; see ./protected.bdChildrenAttachPoint
     - >
-      `this.bdDom.root`; see ./bdDom.root
+      `this.bdDom.root`; see ./protected.bdDom.root
   - Note that an instance must be rendered before attempting to insert children.
 
 - name: delChild
   sum: >
     deletes a child component from the children collection
   sig:
-  - (child, preserve) => Component | false
+  - (child, preserve) => deletedChild
   params:
   - name: child
     type: ../Component
@@ -741,20 +732,23 @@ methods:
     type: ?, boolean
     d: >
       if truthy, then ./destroy is <i>not</i> applied to the child; otherwise ./destroy is applied to the child
-  return: if preserve is true, then the deleted, but still rendered child; false otherwise
+  - name: deletedChild
+    type: .../classes.Component
+    d: >
+      the deleted child (if any)
   d:
   - >
     If the child does not exist in the children collection, then no processing occurs and `false` is returned; this is not
     considered an error. Otherwise...
-  - >
-    The child's dom root(s) are removed from the instances's DOM tree, `false` is applied to ./bdAttachToDoc on the
+
+    The child's dom root(s) are removed from the instances's DOM tree, `false` is applied to ./protected.bdAttachToDoc on the
     child, and the child is deleted from ./children. If preserve is `true`, then the child is returned
     with no other processing (the child will be in the rendered state). If preserve is `false`, then ./destroy is applied to
     the child and `false` is returned.
   - n:
     - >
       Notice that false is returned in two cases: (1) the child does not exist in the children collection, (2) the child
-      was destroyed. Since a destroyed Component instance has no internal state and cannot be further manipulated, there is
+      was destroyed. Since a destroyed `Component` instance has no internal state and cannot be further manipulated, there is
       no purpose in returning such an instance.
 
 
@@ -769,11 +763,11 @@ methods:
     d: >
       the component string to test
   return:
-    - >
-      `true` if value is contained in `this.className`, false otherwise
+  - >
+    `true` if value is contained in `this.className`, false otherwise
   d:
   - >
-      `this.className` must contain the complete component given by `value`. Consider the following example:
+    `this.className` must contain the complete component given by `value`. Consider the following example:
   - c: |
       let c = new Component({});
       c.className = "foofoo bar baz";
@@ -873,8 +867,8 @@ methods:
   - this
   d:
   - >
-    `args` is broken down into a single list of words with no repeats. For each word, w, in the list, if `this.containsClassName(w)`
-    is true, then w is removed from ./className, otherwise, w is added to ./className.
+    `args` is broken down into a single list of words with no repeats. For each word, `w`, in the list, if `this.containsClassName(w)`
+    is true, then `w` is removed from ./className, otherwise, `w` is added to ./className.
 
 - name: focus
   sum: >
@@ -889,33 +883,43 @@ props:
 - name: id
   jstype: ro, string | undefined
   sum: the instance if (if any); otherwise, undefined
-    TODO
-  d: TODO
+    unique identifier for the `Component` instance
+  d:
+  - >
+    A unique identifier for the `Component` instance; reflected to `bdDom.root.id` (see ./protected.bdDom) when the instance is rendered.
 
 - name: parent
   jstype: row, Component | undefined
   sum: >
-    the Component instance which holds this instance in its children collection.
+    the `Component` instance which holds this instance in its children collection.
   d: >
-    The Component instance which holds this instance in its children collection (if any); otherwise, undefined.
-  sa: ./bdAdopt, ./insChild, ./delChild, ./childManagement
+    The `Component` instance which holds this instance in its children collection (if any); otherwise, undefined.
+  sa: ./protected.bdAdopt, ./insChild, ./delChild, ./childManagement
+
+- name: children
+  jstype: row, []Component | undefined
+  sum: >
+    the list of children contained by the instance
+  d: >
+    The list of children contained by the instance. Children are only contained when the instance is rendered. If the instance is not rendered or had no children, then `children` is undefined.
 
 - name: rendered
   jstype: row, boolean
   sum:  indicates the rendered state
   d: >
-    `true` if the instance is rendered; otherwise `false`
+    `true` if the instance is rendered; otherwise `false`. If `rendered` is `true`, ./protected.bdDom will be defined; if `rendered` is `false`, ./protected.bdDom is undefined.
+
   sa: See ./render, ./unrender, and ./lifecycle.
 
 - name: attachedToDoc
   jstype: row, boolean
   sum: indicates whether or not the instance's DOM is a descendant of `document.body`
   d:
+  - >
+    `true` when the instance is rendered and its DOM is a descendant of `document.body`; otherwise, `false`.
+  - n:
     - >
-      `true` when the instance is rendered and its DOM is a descendant of `document.body`; otherwise, `false`.
-    - n:
-      - >
-        `attachedToDoc` reflects `bdAttachedToDoc`
+      `attachedToDoc` reflects `bdAttachedToDoc`
 
 - name: title
   jstype: rww, string
@@ -923,7 +927,7 @@ props:
     reflected into the `title` property of the title node
   d:
   - >
-    When a component's .../classes.Element tree (as given by ./protected.bdElements) is rendered, one node in the tree is designated the "title node". A reference to this node is maintained at ./protected.bdDom`.titleNode`. If not explicitly set by some other means (typically .../post-processing-functions.bdTitleNode), the `bdDom.titleNode` is taken as `bdDom.root`.
+    When a component's .../classes.Element tree (as given by ./protected.bdElements) is rendered, one node in the tree is designated the "title node". A reference to this node is maintained at `bdDom.titleNode` (see ./protected.bdDom). If not explicitly set by some other means, the `bdDom.titleNode` is taken as `bdDom.root`.
 
 - name: className
   jstype: rww, string
@@ -931,10 +935,9 @@ props:
     the per-instance className
   d:
   - >
-    A sequence of words separated by single spaces that typically control the visual presentation of the DOM tree through associated
-    CSS. The property is maintained and may be mutated whether or not the component is rendered.
+    A sequence of words separated by single spaces that are reflected to `bdDom.root.className` (see ./protected.bdDom) when the instance is rendered. The property is maintained and may be mutated whether or not the component is rendered.
 
-    When the component is rendered, the concatenation of ./staticClassName && `className` is reflected to
+    When the component is rendered, the concatenation of ./staticClassName and `className` is reflected to
     the DOM root's `className` attribute, and mutating `className` causes the DOM root's `className` attribute to mutate. For example:
   - c: |
       class C1 extends Component {
@@ -958,7 +961,7 @@ props:
   - >
     `className` is initialized during construction and may be mutated at any time directly or through the convenience methods
     ./addClassName, ./removeClassName, ./toggleClassName. Further, if a `className` property is provided
-    on the root element returned by ./bdElements, then the contents of that property is automatically added to the current
+    on the root element returned by ./protected.bdElements, then the contents of that property is automatically added to the current
     `className` value when the component is rendered. Here is an example to illustrate this design.
 
   - c: |
@@ -990,7 +993,7 @@ props:
     does not provide any access--read or write--to ./staticClassName.
   - n:
     - >
-      `className` reflects ./bdClassName
+      `className` reflects ./protected.bdClassName
   - sa: ./containsClassName, ./addClassName, ./removeClassName, ./toggleClassName, ./staticClassName
 
 - name: staticClassName
@@ -998,8 +1001,8 @@ props:
   sum: the static className of the component
   d:
   - >
-    Component defines a "static className" at construction which may not be mutated during the lifetime of the component. See
-    ./constructor for details on initialization. When the component is rendered, the concatenation of staticClassName and ./className
+    `Component` defines a "static className" at construction which may not be mutated during the lifetime of the component. See
+    ./constructor for details on initialization. When the component is rendered, the concatenation of `staticClassName` and ./className
     is reflected in the className property of the root node of the component's DOM.
 
 - name: hasFocus
@@ -1010,10 +1013,9 @@ props:
   - >
     When a DOM node is the `document.activeElement` (has the browser focus) and that node is contained in the DOM tree of a component,
     `hasFocus` is true for that component and all of its ancestors; `hasFocus` is false otherwise.
-    - n:
-      - >
-         `hasFocus` reflects ./bdHasFocus; bdHasFocus
-        is mutated by the private methods ./bdOnFocus and ./bdOnBlur which are applied by the ../FocusManager.
+  - n:
+    - >
+      `hasFocus` reflects ./protected.bdHasFocus; bdHasFocus is mutated by the private methods ./protected.bdOnFocus and ./protected.bdOnBlur which are applied by the .../variables.focusManager.
 pProps:
 - name: bdClassName
   jstype: rw, string | undefined
@@ -1021,7 +1023,7 @@ pProps:
     the protected property that holds the actual ./className value
   d:
   - >
-    `bdClassName` is mutated by ./bdSetClassName; `bdClassName` is reflected by ./className.
+    `bdClassName` is mutated by ./protected.bdSetClassName; `bdClassName` is reflected by ./className.
   - w:
     - This is a protected property and is not intended to be accessed by client code.
 
@@ -1061,7 +1063,7 @@ pProps:
     the protected property that holds various references pertaining to a component's rendering
   d:
   - >
-    `bdDom` holds various references/data pertaining to a component's rendering. Component defines the following properties:
+    `bdDom` holds various references/data pertaining to a component's rendering. `Component` defines the following properties:
   - ul:
     - >
       `bdDom.root`: the root DOM node or nodes of the component's rendering
@@ -1082,7 +1084,7 @@ pProps:
     the protected property that holds the actual ./parent value
   d:
   - >
-    `bdParent` is reflected by ./parent; bdParent is mutated by internal, protected processes, primarily ./bdAdopt.
+    `bdParent` is reflected by ./parent; bdParent is mutated by internal, protected processes, primarily ./protected.bdAdopt.
   - w:
     - This is a protected property and is not intended to be accessed by client code.
 
@@ -1092,8 +1094,8 @@ pProps:
     the protected property that holds the actual ./hasFocus value
   d:
   - >
-    `bdHasFocus` is reflected by ./hasFocus; bdHasFocus is mutated by internal, protected processes, primarily ./bdOnFocus
-    and ./bdOnBlur.
+    `bdHasFocus` is reflected by ./hasFocus; bdHasFocus is mutated by internal, protected processes, primarily ./protected.bdOnFocus
+    and ./protected.bdOnBlur.
   - w:
     - This is a protected property and is not intended to be accessed by client code.
 
@@ -1103,8 +1105,8 @@ pProps:
     the location within a parent to attach the component
   d:
   - >
-    Gives the property address within a prospective parent's ./bdDom object that holds the DOM node to which the component's
-    DOM root should be appended. This is typically set by the post-processing instruction ./ppi.bdParentAttachPoint.
+    Gives the property address within a prospective parent object that holds the DOM node to which the component's
+    DOM root should be appended.
   - w:
     - This is a protected property and is not intended to be accessed by client code.
 
@@ -1114,8 +1116,8 @@ pProps:
     the location within a parent to attach children
   d:
   - >
-    Gives the property address within a component's ./bdDom object that holds the DOM node to which the component
-    should append children DOM roots. This is typically set by the post-processing instruction ./ppi.bdParentAttachPoint.
+    Gives the property address within the component instance that holds the DOM node to which the component
+    should append children DOM roots.
   - w:
     - This is a protected property and is not intended to be accessed by client code.
 
@@ -1126,7 +1128,7 @@ pProps:
   d:
   - >
     `bdAttachedToDoc` is reflected by ./attachedToDoc; bdAttachedToDoc is mutated by internal, protected processes, primarily
-    ./bdAttachToDoc.
+    ./protected.bdAttachToDoc.
   - w:
     - This is a protected property and is not intended to be accessed by client code.
 
@@ -1134,31 +1136,31 @@ pProps:
 
 pMethods:
 - name: bdElements
-  sum: generate the Element tree(s) that describe the components DOM
+  sum: generate the `Element` tree(s) that describe the components DOM
   sig: () => ../Element | ../Element[]
   d:
   - >
-    `bdElements` is applied immediately before rendering the instance to create the Element tree(s) that describe the
+    `bdElements` is applied immediately before rendering the instance to create the `Element` tree(s) that describe the
     structure, properties, and connections of the DOM tree(s) associated with the instance. Typically, classes
-    derived from Component override `bdElements` to define a particular structure as required by the semantics
+    derived from `Component` override `bdElements` to define a particular structure as required by the semantics
     and design of the subclass. `bdElements` may also be overridden on a per-instance basis by providing `kwargs.elements`
     at construction or setting the instance `bdElement` method explicitly.
 
-    The default implementation generates the Element tree `Element("div", {})`.
+    The default implementation generates the `Element` tree `new Element("div", {})`.
 
 - name: bdAttachToDoc
   sum: >
-    mutates the property ./bdAttachedToDoc; applied recursively to all children
+    mutates the property ./protected.bdAttachedToDoc; applied recursively to all children
   sig:
   - (attach) => boolean
   params:
   - name: attach
     type: boolean
     d: >
-      the new value of ./bdAttachedToDoc
+      the new value of ./protected.bdAttachedToDoc
   d:
   - >
-    If `attach`!==./bdAttachedToDoc, then mutate bdAttachedToDoc to the new value, recursively apply to all children,
+    If `attach!==`./protected.bdAttachedToDoc, then mutate bdAttachedToDoc to the new value, recursively apply to all children,
     and return `true`; otherwise, no-op and return `false`.
 
 - name: bdAdopt
@@ -1175,43 +1177,43 @@ pMethods:
   - ol:
     - Push the child into ./children.
     - Mutate the child's ./parent property to reflect the new parent.
-    - If `this.attachedToDoc===true`, than apply true to ./bdAttachToDoc on the child.
+    - If `this.attachedToDoc===true`, than apply true to ./protected.bdAttachToDoc on the child.
 
 
 - name: bdOnFocus
   sum: >
-    applied by ../FocusManager when the component or one of its descendants receives the focus
+    applied by .../variables.focusManager when the component or one of its descendants receives the focus
   sig:
   - () => void
   d:
   - >
-    This protected method is applied by the ../FocusManager when a DOM node within the component's DOM or
-    one of its descendants' DOM  receives the focus. The default processing sets ./bdHasFocus to true and executes
+    This protected method is applied by the .../variables.focusManager when a DOM node within the component's DOM or
+    one of its descendants' DOM  receives the focus. The default processing sets ./protected.bdHasFocus to true and executes
     `this.addClassName("bd-focused")`.
   - w:
     - This is a protected method and is not intended to be accessed by client code.
 
 - name: bdOnBlur
   sum: >
-    applied by ../FocusManager when the component loses the focus
+    applied by .../variables.focusManager when the component loses the focus
   sig:
   - () => void
   d:
   - >
-    This protected method is applied by the ../FocusManager when the component has the focus and then the focus moves
-    to a component other than itself or one if its descendants. The default processing sets ./bdHasFocus to false and
+    This protected method is applied by the .../variables.focusManager when the component has the focus and then the focus moves
+    to a component other than itself or one if its descendants. The default processing sets ./protected.bdHasFocus to false and
     executes `this.removeClass("bd-focused")`.
   - w:
     - This is a protected method and is not intended to be accessed by client code.
 
 - name: bdSetClassName
   sum: >
-    TODO
+    mutates ./protected.bdClassName and signals all ./className watchers
   sig:
   - (newValue, oldValue) => void
   d:
   - >
-    Sets bdClassName to the new value.
+    Mutates ./protected.bdClassName and signals all ./className watchers.
   - w:
     - This is a protected method and is not intended to be accessed by client code.
 
@@ -1247,7 +1249,7 @@ sProps:
 
 sMethods:
 - name: get
-  sum: resolve a Component instance from a DOM node
+  sum: resolve a `Component` instance from a DOM node
   sig: (node) => Component | undefined
   d:
   - >

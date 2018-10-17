@@ -22,13 +22,13 @@ d:
     `ctorProps`
   - d:
     - >
-      a ./types.Hash of `(property -> value)` that is used to initialize the node when it is created
+      a .../types.Hash of `(property -> value)` that is used to initialize the node when it is created
 
   - >
     `ppFuncs`
   - d:
     - >
-      a ./types.Hash of `(post-processing-function -> arguments)` that gives a list of functions that are executed immediately after the node is created and initialized
+      a .../types.Hash of `(post-processing-function -> arguments)` that gives a list of functions that are executed immediately after the node is created and initialized
 
   - >
     `children`
@@ -48,9 +48,9 @@ methods:
 - name: constructor
   sum: instance initializer
   sig:
-  - (htmlTag, props={}, ...children)
-  - (namespacedTag, props={}, ...children)
-  - (component, props={}, ...children)
+  - (htmlTag, props = {}, ...children)
+  - (namespacedTag, props = {}, ...children)
+  - (component, props = {}, ...children)
   params:
   - name: htmlTag
     type: string
@@ -60,21 +60,21 @@ methods:
     type: >
       [namespace, tag]
     d: >
-      `namespace` (a string) is a www.w3.org namespace;<br>`tag` (a string) gives a element tag within that namespace
+      `namespace` (a `string`) is a www.w3.org namespace;<br>`tag` (a `string`) gives a element tag within that namespace
   - name: component
-    type: subclass of ./Component
+    type: subclass of ./Component constructor
     d: >
       component type
   - name: props
-    type: ?, ../Hash
+    type: ?, .../types.Hash
     default: >
       {}
     d: >
-      The ./types.Hash of `(property -> value)` and `(post-processing-function -> arguments)` pairs that describe how to initialize ./ctorProps and ./ppFuncs.
+      The .../types.Hash of `(property -> value)` and `(post-processing-function -> arguments)` pairs that describe how to initialize ./ctorProps and ./ppFuncs.
   - name: children
-    type: ?, falsey | ./Element | [children]
+    type: ?, falsey | .../classes.Element | children[]
     d: >
-      `children` can be `falsey | ./Element | [children]`, thereby allowing arbitrarily nested arrays of children.
+      `children` can be `falsey | `.../classes.Element` | children[]`, thereby allowing arbitrarily nested arrays of children.
   d:
   - >
     Initializes a new instance.
@@ -83,7 +83,7 @@ methods:
 
     An example of the `[namespace, tag]` form is `["http://www.w3.org/2000/svg", "circle"]`. Backdraft provides .../functions.svg to avoid this verbose form for the SVG namespace.
 
-    `props` is sifted into `ctorProps` and `ppFuncs`: any property `p` in `props` such that `getPostProcessingFunction(p)` returns a function is placed in `ppFuncs`; otherwise `p` is placed in `ctorProps`.
+    `props` is sifted into ./ctorProps and ./ppFuncs: any property `p` in `props` such that .../functions.getPostProcessingFunction`(p)` returns a function is placed in `ppFuncs`; otherwise `p` is placed in `ctorProps`.
 
   - w:
     - >
@@ -93,7 +93,7 @@ methods:
       Typically, the functions .../functions.e and .../functions.svg are used to create element instances.
 props:
 - name: type
-  jstype: ro, string | [namespace, tag] | subclass of ../Component
+  jstype: ro, string | [namespace, tag] | subclass of ../Component constructor
   sum: the type of node
   d:
   - >
@@ -102,9 +102,9 @@ props:
       - >
         If a `string`, then type gives an HTML element type, for example `"div"`.
       - >
-        If a `[namespace, tag]`, then namespace gives a www.w3.org namespace (a string) and tag (a string) gives the element type within that namespace, for example `["http://www.w3.org/2000/svg", "circle"]`.
+        If a `[namespace, tag]`, then namespace (a `string`) gives a www.w3.org namespace and tag (a `string`) gives the element type within that namespace, for example `["http://www.w3.org/2000/svg", "circle"]`.
       - >
-        Otherwise type is a subclass of ./Component.
+        Otherwise type is a subclass of ./Component constructor.
   - n: >
       `svg(<i>node</i>, <i>args</i>)` is shorthand for `new Element(["http://www.w3.org/2000/svg", <i>node</i>], <i>args</i>)`; see .../functions.svg.
 
@@ -113,26 +113,29 @@ props:
   sum: .../types.Hash of `(property -> value)` used to initialize the actualized node
   d:
   - >
-    When ./type gives a ../Component subclass, `ctorProps` gives the arguments applied to the constructor. For example, given an `Element` instance `element`, the `Component` instance would be created as follows:
+    When ./type gives a ../Component subclass constructor, `ctorProps` gives the arguments applied to the constructor. For example, given an `Element` instance `element` where `element.type===MyClass`, the `Component` instance would be created as follows:
 
-    `new element.type(element.ctorProps)`
+    `new MyClass(element.ctorProps)`
 
-    When ./type gives a native DOM node tag, `ctroProps` gives the `(property -> value)` pairs used to initialize the actualized node immediately after it is created., For example, given an `Element` instance `element`, and a newly created node `n`, `n` would be initialized as follows:
+    When ./type gives a DOM node tag, `ctroProps` gives the `(property -> value)` pairs used to initialize the actualized node immediately after it is created., For example, given an `Element` instance `element`, and a newly created node `n`, `n` would be initialized as follows:
 
     `Reflect.ownKeys(element.ctorProps).forEach(p => setAttr(n, p, element.ctorProps[p])`
 
 - name: ppFuncs
-  jstype: ro, .../types.Hash of `(post-processing-function -> arguments)`
-  sum: set of (post-processing-function, arguments) pairs executed on a newly actualized node
+  jstype: ro, .../types.Hash of `(ppfProcId -> arguments)`
+  sum: hash of (ppfProcId -> arguments) pairs executed on a newly actualized node
   d:
   - >
-    Immediately after the node implied by ./type is instantiated and initialized by ./ctorProps, each post-processing-function `ppf`, given by `ppFuncs` is executed as follows:
+    Immediately after the node implied by ./type is instantiated and initialized by ./ctorProps, each post-processing-function given by `ppFuncs` is executed as follows:
+  - c: |
+      Reflect.ownKeys(element.ppFuncs).forEach(ppfProcId =>
+          getPostProcessingFunction(ppfProcId)(ppfOwner, ppfTarget, ...(element.ppFuncs[ppf]))
+      )
 
-    .../functions.getPostProcessingFunction`(ppf)(owner, target, ...(ppFuncs[ppf]))`
-
-    `owner` is the ../Component instance being rendered and `target` is the instantiated node.
+  - >
+    See .../post-processing-functions for an explanation of `ppfProcId`, `ppfOwner`, and `ppfTarget`. See .../functions.getPostProcessingFunction.
 - name: children
-  jstype: ro, undefined | Element | [Element]
+  jstype: ro, undefined | Element | Element[]
   sum: the children of the `Element`
   d:
   - >
