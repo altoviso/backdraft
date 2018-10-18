@@ -172,7 +172,7 @@ function applyWatchers(newValue, oldValue, receiver, name){
 			(watchers = catalog[STAR]) && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, prop));
 		}else{
 			let watchers = catalog[STAR];
-			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, UNKNOWN_OLD_VALUE, receiver, name));
+			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, name));
 		}
 	}
 	if(watch.log){
