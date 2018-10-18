@@ -10,7 +10,7 @@ function eql(refValue, otherValue){
 		if(comparator){
 			return comparator(refValue, otherValue);
 		}else{
-			return refValue === refValue;
+			return refValue === otherValue;
 		}
 	}
 }
