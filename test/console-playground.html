@@ -9,7 +9,8 @@
 <p>All Backdraft symbols have been published to the global environment.</p>
 <script src="../dist/lib-umd.js"></script>
 <script>
-	if(0){
+	Reflect.ownKeys(bd).forEach(k => window[k] = bd[k]);
+	if(1){
 		let data = toWatchable([{a: 1, b: 2}, {c: 3, d: 4}]);
 		let ref = new WatchableRef(data, value => {
 			console.log("in formatter", value === data);
@@ -28,7 +29,7 @@
 
 		ref.watch((newValue, oldValue, referenceObject, prop) => {
 			console.log("newValue: ", newValue);
-			console.log(oldValue === WatchableRef.UNKNOWN_OLD_VALUE);
+			console.log("oldValue: ", oldValue);
 			console.log(referenceObject === data);
 			console.log(prop);
 		});
@@ -41,7 +42,7 @@
 		// [1, "c"]
 	}
 
-	if(1){
+	if(0){
 		let target = toWatchable([{fname: "John", lname: "Doe"}]);
 
 		// connect to fname
@@ -96,6 +97,56 @@
 
 		// change an item deep in the hierarchy...
 		target[0].departments.engineering.staff.programmers.fellows.push("Russel");
+	}
+
+	if(0){
+		let level2 = toWatchable({
+			level1: {
+				p: "A"
+			}
+		});
+		toString = (oldValue) =>
+			oldValue === UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : oldValue;
+
+		watch(level2, STAR, (newValue, oldValue, object, prop) => {
+			console.log("level2:", prop, newValue, toString(oldValue));
+		});
+
+		watch(level2.level1, STAR, (newValue, oldValue, object, prop) => {
+			console.log("level1:", prop, newValue, toString(oldValue));
+		});
+
+		level2.level1.p = "B";
+		// output:
+		// level1: p B A
+		// level2: ["level1", "p"] B UNKNOWN_OLD_VALUE
+	}
+	if(0){
+		let bands = {
+			"Rush": {country: "Canada", rating: 7},
+			"Led Zeppelin": {country: "England", rating: 10},
+			"The Who": {country: "England", rating: 10},
+		};
+
+		bands = toWatchable(bands);
+
+		// watch for any changes on the object...
+		watch(bands, (newValue, oldValue, target, prop) => {
+			console.log(`first watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+		});
+
+		// watch for changes on a particular object within the object
+		watch(bands.Rush, (newValue, oldValue, target, prop) => {
+			console.log(`second watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+		});
+
+		// watch for changes on a particular scalar
+		watch(bands.Rush, "rating", (newValue, oldValue, target, prop) => {
+			console.log(`third watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+		});
+
+		// Rush is awesome!!
+		bands.Rush.rating = 11;
 	}
 </script>
 </body>
