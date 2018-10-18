@@ -8,9 +8,9 @@ function eql(refValue, otherValue){
 	}else{
 		let comparator = eqlComparators.get(refValue.constructor);
 		if(comparator){
-			return comparator(otherValue, refValue);
+			return comparator(refValue, otherValue);
 		}else{
-			return otherValue === refValue;
+			return refValue === refValue;
 		}
 	}
 }
