@@ -14,6 +14,4 @@ export * from "./src/Component.js";
 export * from "./src/Collection.js";
 export * from "./src/dom.js";
 
-export function version(){
-	return "2.3.0";
-}
+export const version = "2.3.0";
