@@ -3,7 +3,7 @@
 ## a JavaScript library for building browser-hosted user interfaces
 
   * employs a familiar, frugal, and powerful  API that includes declarative composition *as well as* traditional type specialization.
-  * small--about 1000 lines of pure, modern JavaScript
+  * small--about 2000 lines of pure, modern JavaScript
   * faster than almost all and *as fast as any* component-construction library
   * *no* compilation step required
   * *zero* external dependencies in the library code
@@ -44,17 +44,15 @@ The Backdraft library makes no judgement about how you condition your code for p
 
 ## Documentation
 
-[Tutorial](http://backdraftjs.org/tutorial/1-getting-started.html)
+[Tutorial](http://backdraftjs.org/tutorial.html)
 
 [Reference Manual](http://backdraftjs.org/docs.html)
-
-[Videos](http://backdraftjs.org/videos.html)
 
 [Blog](http://backdraftjs.org/blog/top.html)
 
 ## Examples
 
-The GitHub repo [altoviso/backdraft-tutorial](https://github.com/altoviso/backdraft-tutorial) includes several examples including all [tutorial](http://backdraftjs.org/tutorial/1-getting-started.html) code, the [todomvc example](https://github.com/tastejs/todomvc), and the [js-framework-benchmark example](https://github.com/krausest/js-framework-benchmark).
+The GitHub repo [altoviso/backdraft-examples](https://github.com/altoviso/backdraft-tutorial) includes several examples including all [tutorial](http://backdraftjs.org/tutorial.html) code, the [todomvc example](https://github.com/tastejs/todomvc), and the [js-framework-benchmark example](https://github.com/krausest/js-framework-benchmark).
 
 ## Support
 

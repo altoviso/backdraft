@@ -82,7 +82,7 @@ d:
 - >
   The formatter is optional; if missing, the formatter defaults to the identity function; see ./constructor.
 
-  `WatchableRef`s are an advanced featured. `WatchableRef`s are used internally by Backdraft to set up reflectors. The code for [[bdReflect]https://github.com/rcgill/stage-bd-core/blob/v2.3.0/src/dom.js#L455].
+  `WatchableRef`s are an advanced featured. `WatchableRef`s are used internally by Backdraft to set up reflectors.
 
 - sa:
     - >
