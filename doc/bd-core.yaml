@@ -151,19 +151,19 @@ d:
 
   Backdraft is a library for building browser-hosted user interfaces. It is fanatical about four key design values:
 
-  <h7>Pure JavaScript</h7>
+  <h6>Pure JavaScript</h6>
 
   Backdraft-defined components are expressed in pure JavaScript. There is <i>no</i> markup (HTML, JSX, etc.); there is <i>no</i> templating. A compilation/built step is <i>never</i> required. This makes development easier and faster.
 
-  <h7>Unopinionated</h7>
+  <h6>Unopinionated</h6>
 
   The Backdraft programming model <i>completely</i> separates the user-interface from program logic. Backdraft components work with any application design model because they do not impose any constraints on the design model. This decreases program construction complexity by definitively separating concerns.
 
-  <h7>Embrace the DOM</h7>
+  <h6>Embrace the DOM</h6>
 
   Modern DOM is powerful. There is no need to add abstraction layers like virtual DOM or synthetic event systems. Backdraft includes direct, unfiltered access to the DOM, but separates these details from program logic...once again, decreasing construction complexity  by separating concerns.
 
-  <h7>Self-contained, Minimal, and Small</h7>
+  <h6>Self-contained, Minimal, and Small</h6>
 
   Backdraft has <i>no</i> dependencies and requires <i>no</i> special tooling. It provides precisely the machinery necessary to build user-interface components quickly and efficiently, and no more. It is small and easy to grok. This makes it easy to learn and extend.
 
@@ -1016,7 +1016,7 @@ functions:
     d: >
       `namespace` (a `string`) is a www.w3.org namespace;<br>`tag` (a `string`) gives a element tag within that namespace
   - name: component
-    type: subclass of ./Component constructor
+    type: subclass of ../classes.Component constructor
     d: >
       component type
   - name: props
@@ -1126,12 +1126,12 @@ functions:
   sig: (referenceObject, referenceProp = WatchableRef.STAR, formatter = x => x)
   params:
   - name: referenceObject
-    type: ../mixins/watchHub | ../types.Watchable
+    type: ../mixins.watchHub | ../types.Watchable
     d: >
       the reference watchable object
   - name: referenceProp
-    type: ?, string | symbol | ./STAR
-    default: ./static.STAR
+    type: ?, string | symbol
+    default: ../variables.STAR
     d: >
       the property within `referenceObject` to reference
   - name: formatter
@@ -1199,7 +1199,7 @@ functions:
     - >
       `newValue`: the value of `watchable[prop]` after mutation
     - >
-      `oldValue`: see .../variables.UNKNOWN_OLD_VALUE
+      `oldValue`: see ../variables.UNKNOWN_OLD_VALUE
     - >
       `prop`: an array that lists the property path to the particular watchable property that mutated
     - >

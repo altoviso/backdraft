@@ -20,6 +20,9 @@ refs:
   watchHub:
   - ./docs.html#bd-core.mixins.watchHub
   - watchHub
+  watchHubp:
+  - ./docs.html#bd-core.mixins.watchHub.protected
+  - watchHub
   Element:
   - ./docs.html#bd-core.classes.Element
   - Element
@@ -37,19 +40,19 @@ d:
     - >
       Backdraft is a library for building browser-hosted user interfaces. It is fanatical about four key design values:
 
-      <h7>Pure JavaScript</h7>
+      <h6>Pure JavaScript</h6>
 
       Backdraft-defined components are expressed in pure JavaScript. There is <i>no</i> markup (HTML, JSX, etc.); there is <i>no</i> templating. A compilation/built step is <i>never</i> required. This makes development easier and faster.
 
-      <h7>Unopinionated</h7>
+      <h6>Unopinionated</h6>
 
       The Backdraft programming model <i>completely</i> separates the user-interface from program logic. Backdraft components work with any application design model because they do not impose any constraints on the design model. This decreases program construction complexity by definitively separating concerns.
 
-      <h7>Embrace the DOM</h7>
+      <h6>Embrace the DOM</h6>
 
       Modern DOM is powerful. There is no need to add abstraction layers like virtual DOM or synthetic event systems. Backdraft includes direct, unfiltered access to the DOM, but separates these details from program logic...once again, decreasing construction complexity  by separating concerns.
 
-      <h7>Self-contained, Minimal, and Small</h7>
+      <h6>Self-contained, Minimal, and Small</h6>
 
       Backdraft has <i>no</i> dependencies and requires <i>no</i> special tooling. It provides precisely the machinery necessary to build user-interface components quickly and efficiently, and no more. It is small and easy to grok. This makes it easy to learn and extend.
 
@@ -63,18 +66,18 @@ d:
     - ul:
         -  a <i>public interface</i>, which application logic engages to receive and present data
         -  a <i>protected implementation</i>, which creates and controls the DOM tree that actually receives input and displays output
+    - html: |
+        <div class="blockDiagram">
+            <div class="block">Application Code</div>
+            <div><div class="icon-arrow-up2"></div>
+                <div class="icon-arrow-down2"></div></div>
+            <div class="block"><div>Backdraft Component Instances</div><div class="small">(instances of a classes derived from Component)</div></div>
+            <div><div class="icon-arrow-up2"></div>
+                <div class="icon-arrow-down2"></div></div>
+            <div class="block">DOM API</div>
+            <div class="doubleArrow"></div>
+        </div>
     - >
-      <div class="blockDiagram">
-          <div class="block">Application Code</div>
-          <div><p class="icon-arrow-up2"></p>
-              <p class="icon-arrow-down2"></p></div>
-          <div class="block"><p>Backdraft Component Instances</p><p class="small">(instances of a classes derived from Component)</p></div>
-          <div><p class="icon-arrow-up2"></p>
-              <p class="icon-arrow-down2"></p></div>
-          <div class="block">DOM API</div>
-          <div class="doubleArrow"></div>
-      </div>
-
       Components define their public interface in terms that are convenient to the application logic; it is the job of the protected implementation to abstract away the details of the DOM.
 
       Let's consider the example of an application that has a function to rename something. From the application's point of view, all it cares about is the new name:
@@ -159,11 +162,11 @@ d:
 
       Taking a step back, this example demonstrates a couple of really powerful ideas!
 
-      <h7>Pure JavaScript yet easier/clearer than markup or templates</h7>
+      <h6>Pure JavaScript yet easier/clearer than markup or templates</h6>
 
       Ask yourself, is there a markup/templating system that could express the tree above more tersely? Is there a system that expresses the tree more clearly? In fact the tree's intent is <i>obvious</i> while extremely frugal. And obvious and frugal are key factors to code quality and inversely proportional to construction cost.
 
-      <h7>JavaScript is used to construct the declaration</h7>
+      <h6>JavaScript is used to construct the declaration</h6>
 
       Since the declaration itself is expressed in JavaScript, the full power of JavaScript is available to construct the declaration. Note carefully, that this is <i>different</i> than constructing the DOM/Component tree: JavaScript is used to construct the <i>description</i> of the DOM/Component tree. It is meta programming. And, again, by not introducing another system we have the full power of JavaScript at our fingertips without having to execute a built step or "escape out" of some other markup language to write JavaScript.
 
@@ -192,7 +195,7 @@ d:
     - >
       Behind the scenes, [[cs.withWatchables]] uses capabilities provided by the Backdraft mixin [[watchHub]] which is a superclass of [[c]] to make properties watchable. This is discussed in detail in ./watchableProperties.
 
-      At this point, the public interface of `HelloWorld` is complete. Next we need to build the protected implementation that presents a DOM tree with the proper translation. [[c.bdElements]] describes the `Element` tree for a particular `Component`subclass. An override to the default implementation is almost-always provided. Such is the case with HelloWorld:
+      At this point, the public interface of `HelloWorld` is complete. Next we need to build the protected implementation that presents a DOM tree with the proper translation. [[c.protected.bdElements]] describes the `Element` tree for a particular `Component`subclass. An override to the default implementation is almost-always provided. Such is the case with HelloWorld:
 
     - c: |
         export default class HelloWorld extends Component.withWatchables("language") {
@@ -334,19 +337,19 @@ d:
 
           Here's the definitive list of the lifecycle states:
 
-          <h7>unrendered</h7>
+          <h6>unrendered</h6>
 
           The component has been instantiated, but the DOM tree associated with the component has not been created (or has been created and subsequently destroyed). [[c.rendered]] and [[c.attachedToDoc]] are both false.
 
-          <h7>rendered</h7>
+          <h6>rendered</h6>
 
           The DOM tree associated with the component has been instantiated, any children in the tree have also been instantiated and rendered. It's also possible that, according to a particular component's implementation, children other than those mentioned in `bdElements` have been added to the DOM tree. [[c.rendered]] is true, but [[c.attachedToDoc]] is still false.
 
-          <h7>attached</h7>
+          <h6>attached</h6>
 
           The component is rendered as described above; further, the root of the DOM tree has been appended to a DOM node that exists in the browser document. [[c.rendered]] and [[c.attachedToDoc]] are both true.
 
-          <h7>destroyed</h7>
+          <h6>destroyed</h6>
 
           [[c.destroy]] has been applied to the component. The component is unrendered <i>and</i> all handles and resources that were collected during the lifetime of the instance have been destroyed. Typically, once destroyed, a component instance is dead forever. [[c.rendered]] and [[c.attachedToDoc]] are both false. The instance property `destroyed` is true; note that the property `destroyed` does not exist until [[c.destroy]] is applied to the instance.
 
@@ -359,7 +362,7 @@ d:
     - >
       As we've seen many times now, component instances may contain other component instances. These other instances are termed "children" and an instance that contains a child is termed the "parent" of that child.
 
-      All children mentioned in the `Element` tree given by [[c.bdElements]] are automatically instantiated and rendered when the parent component is rendered. Naturally, each child provides its own `Element` tree and children in those trees are instantiated and rendered when the child is rendered, and so on. When children instances are created and rendered implicitly like this, the root of a particular child's DOM tree is appended to the parent DOM node as given by the `Element` tree.
+      All children mentioned in the `Element` tree given by [[c.protected.bdElements]] are automatically instantiated and rendered when the parent component is rendered. Naturally, each child provides its own `Element` tree and children in those trees are instantiated and rendered when the child is rendered, and so on. When children instances are created and rendered implicitly like this, the root of a particular child's DOM tree is appended to the parent DOM node as given by the `Element` tree.
 
       [[c.insChild]] and [[c.delChild]] allow children to be explicitly inserted/deleted to/from the children collection of a parent. These methods are useful for some component classes that implement dynamic collections like lists and grids. When a child is explicitly inserted with [[c.insChild]], the child may be appended to the parents DOM tree at several different locations; see [[c.insChild]] for details.
 
@@ -374,7 +377,7 @@ d:
     - >
       By applying [[c.delChild]] with a `preserve` argument of true, the child will be preserved (not destroyed) upon removing it from the children collection. Presumably, `cachedChildren` would be used in some way by other parts of the implementation. Caching designs can be used to dramatically improve performance for certain kinds of components. We saw an example of this pattern in the home automation main program example.
 
-      [[c.insChild]] and [[c.delChild]] are most often used in classes that present collections of homogeneous child components. Since collections ofter require some kind of re-ordering functionality, `Component`provides ./reorderChildren, which allows the children of a parent to be reordered in-place. This machinery is <i>the most performant</i> design theoretically possible; hand-tuned designs will be no faster.
+      [[c.insChild]] and [[c.delChild]] are most often used in classes that present collections of homogeneous child components. Since collections ofter require some kind of re-ordering functionality, `Component`provides [[c.reorderChildren]], which allows the children of a parent to be reordered in-place. This machinery is <i>the most performant</i> design theoretically possible; hand-tuned designs will be no faster.
 
 - section:
     name: Reflection or Reaction
@@ -454,11 +457,11 @@ d:
         }
 
     - >
-      The code uses `"_foo"` for the private property name. It could just as well be another name or a symbol--really any legal property address. [[watchHub.bdMutateNotify]] applies all watchers that have been registered by [[watchHub.watch]] to watch the property "foo".
+      The code uses `"_foo"` for the private property name. It could just as well be another name or a symbol--really any legal property address. [[watchHubp.bdMutateNotify]] applies all watchers that have been registered by [[watchHub.watch]] to watch the property "foo".
 
       Notice that such getters/setters will contain exactly the same code, with the exception of the before/after-processing, no matter the property name. This would mean lots of boilerplate code for every watchable property defined by a class. Backdraft includes machinery to help with this.
 
-      [[watchHub.bdMutate]] implements the `if` statement in the setter. In its simplest form, it takes the public and private property names and the proposed new value. Here is a <i>simplified</i> sketch of `bdMutate`:
+      [[watchHubp.bdMutate]] implements the `if` statement in the setter. In its simplest form, it takes the public and private property names and the proposed new value. Here is a <i>simplified</i> sketch of `bdMutate`:
 
     - c: |
         function mutate(publicName, privateName, newValue){
@@ -492,7 +495,7 @@ d:
         }
 
     - >
-      This is much better, but still mostly boilerplate; that's where [[c.withWatchables]] comes in. It takes a list of public property names and declares a new class that has all of this boilerplate, including the keyword initializer in the constructor. If the class needs before/after-mutate processing, it can provide one or both hook methods. Here's what that looks like:
+      This is much better, but still mostly boilerplate; that's where [[c.static.withWatchables]] comes in. It takes a list of public property names and declares a new class that has all of this boilerplate, including the keyword initializer in the constructor. If the class needs before/after-mutate processing, it can provide one or both hook methods. Here's what that looks like:
 
     - c: |
         class SomeClassWithWatchableFoo extends Component.withWatchables("foo") {
@@ -514,7 +517,7 @@ d:
 
       So far the discussion of watchable properties assumes there is a shadow private property that always holds the actual value of the public property. But what is there is no such property? What is the public property is actually the value of a calculation of some internal state. In such cases, there is no need to define a shadow property: the getter is simply the value of the calculation and there is no setter.
 
-      This design does present a problem though: it seems there is no way to set up a watch on the public property. [[watchHub.bdMutateNotify]] solves this problem by applying all watchers registered for a particular public property. `bdMutateNotify` has the signature `(publicName, oldValue, newValue)`. By simply applying `bdMutateNotify` in the protected implementation any time the calculated property changes value, the public property remains watchable.
+      This design does present a problem though: it seems there is no way to set up a watch on the public property. [[watchHubp.bdMutateNotify]] solves this problem by applying all watchers registered for a particular public property. `bdMutateNotify` has the signature `(publicName, oldValue, newValue)`. By simply applying `bdMutateNotify` in the protected implementation any time the calculated property changes value, the public property remains watchable.
 
       Another problem to consider is that, so far, we've assumed that only a single property will be mutated. But in some component designs, a single action results in mutating multiple properties and the component may be in an invalid state until <i>all</i> of the properties have been mutated. For example:
 
@@ -535,7 +538,7 @@ d:
         }
 
     - >
-      [[watchHub.bdMutate]] has an alternate signature that takes a set of triples `[publicName, privateName, newValue]`. With this signature, `bdMutate` first executes all mutations, then applies all watchers. The code above would use `bdMutate` like this:
+      [[watchHubp.bdMutate]] has an alternate signature that takes a set of triples `[publicName, privateName, newValue]`. With this signature, `bdMutate` first executes all mutations, then applies all watchers. The code above would use `bdMutate` like this:
 
     - c: |
         class SomeComponent extends Component.withWatchables("foo", "bar") {
@@ -546,9 +549,9 @@ d:
         }
 
     - >
-      [[watchHub.bdMutateNotify]] has the same alternate signature.
+      [[watchHubp.bdMutateNotify]] has the same alternate signature.
 
-#      In all of the examples, we've used `_<i>public-name</i>` for the private property name. This is the default for `Component.withWatchables`. If the private name parameter is omitted when applying [[watchHub.bdMutate]] or [[watchHub.bdMutateNotify]], then the underscore name is assumed. For example `this.bdMutate("foo", newValue)` is equivalent to `this.bdMutate("foo", "_foo", newValue)`. The private name can also be omitted when multiple mutations are signaled; in the case, the parameter for each property is a pair instead of a triple.
+#      In all of the examples, we've used `_<i>public-name</i>` for the private property name. This is the default for `Component.withWatchables`. If the private name parameter is omitted when applying [[watchHubp.bdMutate]] or [[watchHubp.bdMutateNotify]], then the underscore name is assumed. For example `this.bdMutate("foo", newValue)` is equivalent to `this.bdMutate("foo", "_foo", newValue)`. The private name can also be omitted when multiple mutations are signaled; in the case, the parameter for each property is a pair instead of a triple.
 
 - section:
     name: Watchable Data
@@ -627,5 +630,5 @@ d:
         - >
           [[The viewport watcher]./docs.html#bd-core.variables.viewportWatcher]
 
-    - >
-      <div class="copyright">Copyright &copy; 2018, <a href="http://www.altoviso.com">ALTOVISO LLC</a></div>
+    - html: |
+        <div class="copyright">Copyright &copy; 2018, <a href="http://www.altoviso.com">ALTOVISO LLC</a></div>

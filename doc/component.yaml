@@ -171,7 +171,7 @@ d:
         Applying ./destroy to a `Component` instance is not strictly required to ensure garbage collection of an instance that
         is no longer in use <i>so long as all references to that instance have been deleted</i>. The most common places to
         miss references to a `Component` instance are found in event handler and watcher connections that reference the component.
-        So long as handlers and watchers are connected through ./advise and ./watch, all connections will be automatically
+        So long as handlers and watchers are connected through .../mixins.eventHub.advise and .../mixins.watchHub.watch, all connections will be automatically
         destroyed by ./destroy. This is the raison d'être for ./destroy.
 
 - section:
@@ -214,7 +214,7 @@ d:
         );
     - >
       Notice how `bdElements` in the example above describes a DOM tree <i>and</i> a set of `Component` instances used to
-      "decorate" that tree. All children mentioned in the ./Element tree given by ./protected.bdElements are automatically
+      "decorate" that tree. All children mentioned in the ../Element tree given by ./protected.bdElements are automatically
       instantiated and rendered when the parent component is rendered. Naturally, each child instance
       provides its own DOM tree and decorations and so on until the component instance is completely rendered. This
       is a good example of a `Component` subclass that is both a specialization of another `Component` subclass, namely `Dialog`,
@@ -263,7 +263,7 @@ d:
 
     - ol:
       - - >
-          An application creates, renders, and attaches a single `Component` instance with the ../render
+          An application creates, renders, and attaches a single `Component` instance with the ./render
           function:
         - c: |
             let top = render(e(TopFrame), "root");
@@ -301,7 +301,7 @@ d:
 
     - >
       Most applications use the methods demonstrated above most of the time. However, there are many additional methods
-      to create, render, unrender, attach, detach, and destroy `Component` instances. See ../render, ./constructor, ./render,
+      to create, render, unrender, attach, detach, and destroy `Component` instances. See ./constructor, ./render,
       ./unrender, ./insChild, and ./delChild for further details.
 
 - section:
@@ -309,7 +309,7 @@ d:
     id: propManagement
     d:
     - >
-     `Component` inherits the mixin class .../mixins.watchHub, which provides an interface to register property watchers and fire mutation notifications to those watchers. Here's how this works: For each <i>watchable</i> public property name, a `Component` subclass defines an associated protected name that is unlikely to clash with any potential public name--public names that may be desirable not only in the subclass being defined, but also in any potential subclasses of the subclass. All Backdraft-defined protected names begin with the prefix "bd", for example, "bdElements", "bdClassName", "bdHasFocus", and so on. The actual, protected property value is stored at the protected name. Then a getter, and, if the property is mutable, a setter are provided to give public access to the protected property. Finally, .../mixins.watchHub.bdMutate is used to detect and signal mutations. For example, here is how the public property "foo" could be implemented in an imaginary Backdraft component.
+     `Component` inherits the mixin class .../mixins.watchHub, which provides an interface to register property watchers and fire mutation notifications to those watchers. Here's how this works: For each <i>watchable</i> public property name, a `Component` subclass defines an associated protected name that is unlikely to clash with any potential public name--public names that may be desirable not only in the subclass being defined, but also in any potential subclasses of the subclass. All Backdraft-defined protected names begin with the prefix "bd", for example, "bdElements", "bdClassName", "bdHasFocus", and so on. The actual, protected property value is stored at the protected name. Then a getter, and, if the property is mutable, a setter are provided to give public access to the protected property. Finally, .../mixins.watchHub.protected.bdMutate is used to detect and signal mutations. For example, here is how the public property "foo" could be implemented in an imaginary Backdraft component.
 
     - c: |
         class SomeComponent extends Component{
@@ -374,7 +374,7 @@ d:
       - - >
           ./hasFocus
           - >
-          ./protected.bdHasFocus, automatically set by ../FocusManager
+          ./protected.bdHasFocus, automatically set by .../variables.focusManager
       - - >
           ./enabled
           - >
@@ -415,7 +415,7 @@ types:
         title?: string;
         disabled?: boolean;
         enabled?: boolean;
-        elements?: .Element | Element[] | () => (Element | Element[]);
+        elements?: Element | Element[] | () => (Element | Element[]);
         postRender?: () => (Destroyable | Destroyable[] | void);
         overrides?: Hash;
         callbacks?: Hash;
@@ -526,7 +526,7 @@ methods:
       acquired during the time the component was rendered.
     - Destroys all watchers on instance properties.
     - Destroys all handlers on instance events.
-    - Destroys all ../Destroyable instances published to ./own.
+    - Destroys all .../types.Destroyable instances published to ./own.
     - Deletes `this.kwargs`.
 - name: render
   sum: >
@@ -535,14 +535,14 @@ methods:
   sig: (callback) => void
   params:
   - name: callback
-    type: ?, () => (../Destroyable | ../Destroyable[] | void)
+    type: ?, () => (.../types.Destroyable | .../types.Destroyable[] | void)
     d: >
-      if provided, applied after the instance is rendered. Any ../Destroyable instances returned are applied to ./ownWhileRendered.
+      if provided, applied after the instance is rendered. Any .../types.Destroyable instances returned are applied to ./ownWhileRendered.
   d:
   - >
     If the instance is already in the rendered state, then no-op; otherwise:
   - ol:
-    - Generate the .../classes.Element tree(s) by applying ./protected.bdElements.
+    - Generate the ../Element tree(s) by applying ./protected.bdElements.
     - Create the DOM tree(s) decribed by the `Element` tree(s) generated in Step 1.
     - Store the new tree(s) at `bdDom.root` (see ./protected.bdDom).
     - Publish the new tree(s) in the `Component` catalog (see ./static.get).
@@ -555,7 +555,7 @@ methods:
   sig: () => handles
   params:
   - name: handles
-    type: ../Destroyable | ../Destroyable[]
+    type: .../types.Destroyable |.../types.Destroyable[]
     d: >
       see description
   d:
@@ -596,20 +596,20 @@ methods:
   sig: (...args) => void
   params:
   - name: arg
-    type: ./Destroyable
+    type: .../types.Destroyable
     d: >
-      ./Destroyable instance to be destroyed upon component destruction.
+      .../types.Destroyable instance to be destroyed upon component destruction.
   - name: arg
-    type: (./Destroyable | falsey)[]
+    type: (.../types.Destroyable | falsey)[]
     d: >
-      array of ./Destroyable instances to be destroyed upon component destruction; any falsey elements are ignored.
+      array of .../types.Destroyable instances to be destroyed upon component destruction; any falsey elements are ignored.
   - name: arg
     type: falsey
     d: >
       ignored
   d:
   - >
-    `own` simplifies management of destroyable resources (e.g., the objects returned by ./watch, ./connect, and ../connect)
+    `own` simplifies management of destroyable resources (e.g., the objects returned by .../mixins.watchHub.watch, .../mixins.eventHub.advise, .../functions.connect)
     by guaranteeing such resources are destroyed upon component destruction. All methods that return destroyable instances
     automatically apply those instances to `own`. Client code can leverage `own` to manage destroyable resources that are
     created by machinery outside of Component's implementation. For example:
@@ -634,20 +634,20 @@ methods:
   sig: (...args) => void
   params:
   - name: arg
-    type: ./Destroyable
+    type: .../types.Destroyable
     d: >
-      ./Destroyable instance to be destroyed upon component destruction.
+      .../types.Destroyable instance to be destroyed upon component destruction.
   - name: arg
-    type: (./Destroyable | falsey)[]
+    type: (.../types.Destroyable | falsey)[]
     d: >
-      array of ./Destroyable instances to be destroyed upon component destruction; any falsey elements are ignored.
+      array of .../types.Destroyable instances to be destroyed upon component destruction; any falsey elements are ignored.
   - name: arg
     type: falsey
     d: >
       ignored
   d:
   - >
-    `ownWhileRendered` functions similarly to ./own except that any ./Destroyable instances are collected and destroyed between
+    `ownWhileRendered` functions similarly to ./own except that any .../types.Destroyable instances are collected and destroyed between
     ./render and ./unrender.
 
 - name: insChild
@@ -686,7 +686,7 @@ methods:
     d: >
       a constructor function that creates an instance of Component; child to be inserted is `new ComponentSubclass(kwargs)`
   - name: kwargs
-    type: ./ConstructorKeywordArgs
+    type: ./types.ConstructorKeywordArgs
     d: >
       keyword arguments to be provided to ComponentSubclass during construction; if `kwargs` is missing, then `{}` is provided by default
   - name: child
@@ -715,7 +715,7 @@ methods:
     - >
       `this.bdChildrenAttachPoint`; see ./protected.bdChildrenAttachPoint
     - >
-      `this.bdDom.root`; see ./protected.bdDom.root
+      `this.bdDom.root`; see ./protected.bdDom
   - Note that an instance must be rendered before attempting to insert children.
 
 - name: delChild
@@ -879,6 +879,21 @@ methods:
   - >
     Applies the DOM node method `focus()` to the node in the component's DOM tree that has a non-empty `tabIndex` property.
 
+- name: reorderChildren
+  sum: >
+    reorder children in-place
+  sig:
+  - (children) => void
+  params:
+  - name: children
+    type: .../classes.Component[]
+    d: >
+      `this.children`, reordered as desired
+  d:
+  - >
+    This method requires all children passed in `children` have the same DOM node parent for their root DOM nodes. The children root DOM nodes are reordered as given by `children`.
+
+
 props:
 - name: id
   jstype: ro, string | undefined
@@ -911,6 +926,36 @@ props:
 
   sa: See ./render, ./unrender, and ./lifecycle.
 
+
+- name: enabled
+  jstype: row, boolean
+  sum:  indicates the enabled state
+  d: >
+    `true` if the instance is enabled; otherwise `false`. If true/false, the CSS class "bd-disabled" as automatically removed/added from/to ./className.
+
+  sa: See ./disabled
+
+
+- name: disabled
+  jstype: row, boolean
+  sum:  indicates the !enabled state
+  d: >
+    `false` if the instance is enabled; otherwise `true`. If false/true, the CSS class "bd-disabled" as automatically added/removed to/from ./className.
+
+  sa: See ./disabled
+
+- name: tabIndex
+  jstype: row, integer | ""
+  sum:  indicates the tabIndex value
+  d: >
+    The tabIndex value. When rendered, this value is reflected into the `tabIndex` attribute of the tabIndex node given by `bdDom.tabIndexNode`.; see ./protected.bdDom.
+
+- name: visible
+  jstype: row, boolean
+  sum:  indicates the visible state
+  d: >
+    `true` if the instance is visible; otherwise `false`. If true/false, the CSS class "bd-hidden" as automatically removed/added from/to ./className.
+
 - name: attachedToDoc
   jstype: row, boolean
   sum: indicates whether or not the instance's DOM is a descendant of `document.body`
@@ -927,7 +972,7 @@ props:
     reflected into the `title` property of the title node
   d:
   - >
-    When a component's .../classes.Element tree (as given by ./protected.bdElements) is rendered, one node in the tree is designated the "title node". A reference to this node is maintained at `bdDom.titleNode` (see ./protected.bdDom). If not explicitly set by some other means, the `bdDom.titleNode` is taken as `bdDom.root`.
+    When a component's ../Element tree (as given by ./protected.bdElements) is rendered, one node in the tree is designated the "title node". A reference to this node is maintained at `bdDom.titleNode` (see ./protected.bdDom). If not explicitly set by some other means, the `bdDom.titleNode` is taken as `bdDom.root`.
 
 - name: className
   jstype: rww, string
@@ -1170,7 +1215,7 @@ pMethods:
   - (child) => void
   params:
   - name: child
-    type: ./Component
+    type: ../Component
     d: >
       the child that is being adopted
   d:

@@ -188,9 +188,9 @@ methods:
     When the following three conditions exist:
   - ol:
       - >
-        the reference object is an instance of ../mixins/watchHub
+        the reference object is an instance of .../mixins.watchHub
       - >
-        the reference object is not ./STAR
+        the reference object is not .../variables.STAR
       - >
         `referenceObject[referenceProp]` is <i>also</i> a watchable
 

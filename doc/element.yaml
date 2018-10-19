@@ -62,7 +62,7 @@ methods:
     d: >
       `namespace` (a `string`) is a www.w3.org namespace;<br>`tag` (a `string`) gives a element tag within that namespace
   - name: component
-    type: subclass of ./Component constructor
+    type: subclass of ../Component constructor
     d: >
       component type
   - name: props
@@ -87,7 +87,7 @@ methods:
 
   - w:
     - >
-      User-defined post-processing-instructions must be added to the Backdraft post-processing-instruction catalog with .../functions.insPostProcessingFunction and/or .../functions.replacePostProcessingFunction <i>before</i> creating ./Element nodes that reference those user-defined post-processing-instructions.
+      User-defined post-processing-instructions must be added to the Backdraft post-processing-instruction catalog with .../functions.insPostProcessingFunction and/or .../functions.replacePostProcessingFunction <i>before</i> creating ../Element nodes that reference those user-defined post-processing-instructions.
 
   - n:
       Typically, the functions .../functions.e and .../functions.svg are used to create element instances.
@@ -104,7 +104,7 @@ props:
       - >
         If a `[namespace, tag]`, then namespace (a `string`) gives a www.w3.org namespace and tag (a `string`) gives the element type within that namespace, for example `["http://www.w3.org/2000/svg", "circle"]`.
       - >
-        Otherwise type is a subclass of ./Component constructor.
+        Otherwise type is a subclass of ../Component constructor.
   - n: >
       `svg(<i>node</i>, <i>args</i>)` is shorthand for `new Element(["http://www.w3.org/2000/svg", <i>node</i>], <i>args</i>)`; see .../functions.svg.
 
