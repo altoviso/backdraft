@@ -169,36 +169,40 @@ function watch(watchable, name, watcher){
 	}
 }
 
+let holdStarNotifications = false;
+
 function applyWatchers(newValue, oldValue, receiver, name){
 	let catalog = watcherCatalog.get(receiver);
 	if(catalog){
-		if(name.length === 1){
-			// leaf
+		if(name === STAR){
+			let watchers = catalog[STAR];
+			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, [STAR]));
+		}else{
 			let prop = name[0];
 			let watchers = catalog[prop];
-			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, prop));
-			(watchers = catalog[STAR]) && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, prop));
-		}else{
-			let watchers = catalog[STAR];
-			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, name));
+			watchers && watchers.slice().forEach(destroyable => destroyable.proc(receiver[prop], oldValue, receiver, name));
+			if(!holdStarNotifications){
+				(watchers = catalog[STAR]) && watchers.slice().forEach(destroyable => destroyable.proc(receiver, oldValue, receiver, name));
+			}
 		}
 	}
 	if(watch.log){
 		// eslint-disable-next-line no-console
 		console.log(name, newValue);
 	}
-	if(receiver[OWNER] !== OWNER_NULL){
+	if(!holdStarNotifications && receiver[OWNER] !== OWNER_NULL){
 		name.unshift(receiver[PROP]);
-		applyWatchers(newValue, oldValue, receiver[OWNER], name);
+		applyWatchers(newValue, UNKNOWN_OLD_VALUE, receiver[OWNER], name);
 	}
 }
 
 let pauseWatchers = false;
-let inPlaceConverting = false;
+let moving = false;
+let _silentSet = false;
 
 const watcher = {
 	set(target, prop, value, receiver){
-		if(prop === OWNER || prop === PROP){
+		if(_silentSet){
 			target[prop] = value;
 		}else{
 			let oldValue = target[prop];
@@ -206,7 +210,7 @@ const watcher = {
 				let holdPauseWatchers = pauseWatchers;
 				try{
 					pauseWatchers = true;
-					value = createWatchable(value, receiver, prop);
+					value = moving ? value : createWatchable(value, receiver, prop);
 					pauseWatchers = holdPauseWatchers;
 				}catch(e){
 					pauseWatchers = holdPauseWatchers;
@@ -223,12 +227,192 @@ const watcher = {
 	}
 };
 
+const NO_CHANGE = Symbol("splice-no-change");
+const QUICK_COPY = Symbol("slice-quick-copy");
+
+class WatchableArray extends Array {
+	// note: we can make all of these much more efficient, particularly shift and unshift.
+	// But, it's probably rare that it will matter, so we'll do it when the need arises
+
+	splice(...args){
+		let oldValues = this.slice(QUICK_COPY);
+		let changeSet = [];
+		let result;
+		try{
+			_silentSet = true;
+			result = super.splice(...args);
+			for(let i = 0, end = Math.max(oldValues.length, this.length); i < end; i++){
+				let value = this[i];
+				if(value instanceof Object){
+					if(value[OWNER]){
+						if(value[OWNER] !== this){
+							// a new item that came from another watchable
+							value = this[i] = createWatchable(value, this, i);
+							changeSet.push(value);
+						}else if(value[PROP] != i){ // INTENTIONAL !=
+							// an item that was moved within this
+							value[PROP] = i;
+							changeSet.push(value);
+						}else{
+							changeSet.push(NO_CHANGE);
+						}
+					}else{
+						// a new item that is not already a watchable
+						value = this[i] = createWatchable(value, this, i);
+						changeSet.push(value);
+					}
+				}else if(value !== oldValues[i]){
+					changeSet.push(value);
+				}else{
+					changeSet.push(NO_CHANGE);
+				}
+			}
+			_silentSet = false;
+		}catch(e){
+			try{
+				oldValues.forEach((value, i) => (this[i] = value));
+			}catch(e){
+				// eslint-disable-next-line no-console
+				console.error(e);
+			}
+			_silentSet = false;
+			throw e;
+		}
+		try{
+			holdStarNotifications = true;
+			let change = false;
+			changeSet.forEach((value, i) => {
+				if(value !== NO_CHANGE){
+					change = true;
+					applyWatchers(value, oldValues[i], this, [i]);
+				}
+			});
+			if(this.length !== oldValues.length){
+				change = true;
+				applyWatchers(this.length, oldValues.length, this, ["length"]);
+			}
+			holdStarNotifications = false;
+			if(change){
+				applyWatchers(this, UNKNOWN_OLD_VALUE, this, STAR);
+			}
+		}catch(e){
+			holdStarNotifications = false;
+			throw e;
+		}
+		return result;
+	}
+
+	pop(){
+		return fromWatchable(super.pop());
+	}
+
+	shift(){
+		return fromWatchable(this.splice(0, 1)[0]);
+	}
+
+	slice(...args){
+		return args[0] === QUICK_COPY ? super.slice() : fromWatchable(super.slice(...args));
+	}
+
+	unshift(...args){
+		this.splice(0, 0, ...args);
+	}
+
+	reverse(){
+		let oldValues = this.slice(QUICK_COPY);
+		try{
+			_silentSet = true;
+			for(let i = 0, j = this.length - 1; i < j; i++, j--){
+				let temp = this[i];
+				this[i] = this[j];
+				this[i][PROP] = i;
+				this[j] = temp;
+				temp[PROP] = j;
+			}
+			_silentSet = false;
+		}catch(e){
+			_silentSet = false;
+			throw e;
+		}
+		try{
+			holdStarNotifications = true;
+			if(this.length % 2){
+				for(let i = 0, end = Math.floor(this.length / 2); i < end; i++){
+					applyWatchers(this[i], oldValues[i], this, [i]);
+				}
+				for(let i = Math.ceil(this.length / 2), end = this.length; i < end; i++){
+					applyWatchers(this[i], oldValues[i], this, [i]);
+				}
+			}else{
+				this.forEach((value, i) => applyWatchers(value, oldValues[i], this, [i]));
+			}
+			holdStarNotifications = false;
+			if(this.length > 1){
+				applyWatchers(this, UNKNOWN_OLD_VALUE, this, STAR);
+			}
+		}catch(e){
+			holdStarNotifications = false;
+			throw e;
+		}
+	}
+
+	reorder(proc){
+		let oldValues = this.slice(QUICK_COPY);
+		let changeSet = Array(this.length).fill(false);
+		let changes = false;
+		try{
+			_silentSet = true;
+			proc(this);
+			this.forEach((value, i) => {
+				if(value[PROP] != i){ // INTENTIONAL !=
+					value[PROP] = i;
+					changeSet[i] = true;
+					changes = true;
+				}
+			});
+			_silentSet = false;
+		}catch(e){
+			_silentSet = false;
+			throw e;
+		}
+		try{
+			holdStarNotifications = true;
+			changeSet.forEach((value, i) => {
+				if(value){
+					applyWatchers(this[i], oldValues[i], this, [i]);
+				}
+			});
+			holdStarNotifications = false;
+			if(changes){
+				applyWatchers(this, UNKNOWN_OLD_VALUE, this, STAR);
+			}
+		}catch(e){
+			holdStarNotifications = false;
+			throw e;
+		}
+	}
+
+	sort(...args){
+		this.reorder(theArray => super.sort.apply(theArray, args));
+	}
+}
+
+
+
 function createWatchable(src, owner, prop){
 	let keys = Reflect.ownKeys(src);
-	let result = new Proxy(inPlaceConverting ? src : (Array.isArray(src) ? [] : {}), watcher);
-	keys.forEach(k => result[k] = src[k]);
+	let isArray = Array.isArray(src);
+	let result = new Proxy(isArray ? new WatchableArray() : {}, watcher);
+	if(isArray){
+		keys.forEach(k => k !== "length" && (result[k] = src[k]));
+	}else{
+		keys.forEach(k => (result[k] = src[k]));
+	}
+	let silentHold = _silentSet;
+	_silentSet = true;
 	result[OWNER] = owner;
-	prop && (result[PROP] = prop);
+	prop !== undefined && (result[PROP] = prop);
+	_silentSet = silentHold;
 	return result;
 }
 
@@ -238,11 +422,29 @@ function toWatchable(data){
 	}
 	try{
 		pauseWatchers = true;
-		inPlaceConverting = true;
-		return createWatchable(data, OWNER_NULL);
-	}finally{
+		data = createWatchable(data, OWNER_NULL, false);
 		pauseWatchers = false;
-		inPlaceConverting = false;
+		return data;
+	}catch(e){
+		pauseWatchers = false;
+		throw e;
+	}
+}
+
+function fromWatchable(data){
+	if(data instanceof Object){
+		if(!data){
+			return data;
+		}
+		let result = Array.isArray(data) ? Array(data.length) : {};
+		Reflect.ownKeys(data).forEach(k => {
+			if(k !== OWNER && k !== PROP){
+				result[k] = fromWatchable(data[k]);
+			}
+		});
+		return result;
+	}else{
+		return data;
 	}
 }
 
@@ -475,6 +677,7 @@ export {
 	getWatchableRef,
 	watch,
 	toWatchable,
+	fromWatchable,
 	watchHub,
 	WatchHub,
 	isWatchable,
