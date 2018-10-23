@@ -397,7 +397,16 @@ class WatchableArray extends Array {
 	}
 }
 
-
+function silentSet(watchable, prop, value){
+	try{
+		_silentSet = true;
+		watchable[prop] = value;
+		_silentSet = false;
+	}catch(e){
+		_silentSet = false;
+		throw e;
+	}
+}
 
 function createWatchable(src, owner, prop){
 	let keys = Reflect.ownKeys(src);
@@ -673,6 +682,7 @@ export {
 	OWNER,
 	OWNER_NULL,
 	PROP,
+	silentSet,
 	WatchableRef,
 	getWatchableRef,
 	watch,
