@@ -26,7 +26,9 @@ const STAR = Symbol("bd-star");
 const OWNER = Symbol("bd-owner");
 const OWNER_NULL = Symbol("bd-owner-null");
 const PROP = Symbol("bd-prop");
-const UNKNOWN_OLD_VALUE = Symbol("bd-unknown-old-value");
+const UNKNOWN_OLD_VALUE = {
+	value: "UNKNOWN_OLD_VALUE"
+};
 
 const pWatchableWatchers = Symbol("bd-pWatchableWatchers");
 const pWatchableHandles = Symbol("bd-pWatchableHandles");
