@@ -5,14 +5,20 @@ let eqlComparators = new Map();
 function eql(refValue, otherValue){
 	if(!refValue){
 		return otherValue === refValue;
-	}else{
+	}
+	if(refValue instanceof Object){
 		let comparator = eqlComparators.get(refValue.constructor);
 		if(comparator){
 			return comparator(refValue, otherValue);
-		}else{
-			return refValue === otherValue;
 		}
 	}
+	if(otherValue instanceof Object){
+		let comparator = eqlComparators.get(otherValue.constructor);
+		if(comparator){
+			return comparator(otherValue, refValue);
+		}
+	}
+	return refValue === otherValue;
 }
 
 const watcherCatalog = new WeakMap();
