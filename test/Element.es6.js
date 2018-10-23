@@ -513,7 +513,6 @@ smoke.defTest({
 					}
 
 					function exercise(test){
-						console.log(test);
 						let child = parent.insChild(new Child({test:e[test]()}));
 						let pass = parent.bdDom.root.firstChild.tagName===test.toUpperCase()
 						if(!pass){
