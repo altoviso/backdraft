@@ -46,7 +46,7 @@ smoke.defBrowserTest({
 			// Create a new instance of SomeClass and hook up some handlers. We'll remember the connection handles
 			// so we can demostrate destroying them later.
 			let instance = new SomeClass();
-			assert(c.isBdEventHub);
+			assert(instance.isBdEventHub);
 			let h1 = instance.advise("someEvent-1", handler);
 			let h2 = instance.advise("someEvent-2", handler);
 			let h3 = instance.advise("click", handler);
