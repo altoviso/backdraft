@@ -1,4 +1,4 @@
-import {watchHub} from "../lib.js";
+import {watchHub, eqlComparators} from "../lib.js";
 
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
@@ -361,23 +361,6 @@ smoke.defTest({
 			// Watchable::bdMutate compares the current value of the private data to a new value and mutates the private
 			// data if and only if the comparison indicates the values are not the same "scalar" values.
 
-			// The comparison uses this algorithm:
-			function ScalarEqual(newValue, oldValue){
-				if(!oldValue){
-					return newValue === oldValue;
-				}
-				if(!newValue){
-					return false;
-				}
-				if(newValue.eq){
-					return newValue.eq(oldValue);
-				}
-				if(oldValue.eq){
-					return oldValue.eq(newValue);
-				}
-				return newValue !== oldValue;
-			}
-
 			// To see this work, here's a little class that makes _x watchable at x.
 			class Example extends watchHub() {
 				get x(){
@@ -492,13 +475,12 @@ smoke.defTest({
 				constructor(value){
 					this.value = value;
 				}
-
-				eq(value){
-					return value instanceof MyNumber ?
-						this.value === this.value :
-						this.value === Number(value);
-				}
 			}
+			eqlComparators.set(MyNumber, (refValue, otherValue)=>{
+				return otherValue instanceof MyNumber ?
+					refValue.value === otherValue.value :
+					refValue.value === Number(otherValue);
+			});
 
 			test._x = 1;
 			test.x = new MyNumber(1);
@@ -553,7 +535,7 @@ smoke.defTest({
 			}
 
 			let c = new Coord();
-			let x = c.getWatchable("x");
+			let x = c.getWatchableRef("x");
 
 			// Watchables always reflect the current value of the member variable to which they are bound.
 			assert(x.value === 0);
