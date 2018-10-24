@@ -482,21 +482,34 @@ function fromWatchable(data){
 	}
 }
 
+let onMutateBeforeNames = {};
+let onMutateNames = {};
+
 function mutate(owner, name, privateName, newValue){
 	let oldValue = owner[privateName];
 	if(eql(oldValue, newValue)){
 		return false;
 	}else{
-		let onMutateBefore = owner[name + "OnMutateBefore"];
-		onMutateBefore && onMutateBefore.call(owner, newValue, oldValue);
+		let onMutateBeforeName, onMutateName;
+		if(typeof name !== "symbol"){
+			onMutateBeforeName = onMutateBeforeNames[name];
+			if(!onMutateBeforeName){
+				let suffix = name.substring(0, 1).toUpperCase() + name.substring(1);
+				onMutateBeforeName = onMutateBeforeNames[name] = "onMutateBefore" + suffix;
+				onMutateName = onMutateNames[name] = "onMutate" + suffix;
+			}else{
+				onMutateName = onMutateNames[name];
+			}
+		}
+
+		onMutateBeforeName && owner[onMutateBeforeName] && owner[onMutateBeforeName](newValue, oldValue);
 		if(owner.hasOwnProperty(privateName)){
 			owner[privateName] = newValue;
 		}else{
 			// not enumerable or configurable
 			Object.defineProperty(owner, privateName, {writable: true, value: newValue});
 		}
-		let onMutate = owner[name + "OnMutate"];
-		onMutate && onMutate.call(owner, newValue, oldValue);
+		onMutateName && owner[onMutateName] && owner[onMutateName](newValue, oldValue);
 		return [name, oldValue, newValue];
 	}
 }

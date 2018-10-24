@@ -95,7 +95,6 @@ smoke.defTest({
 		["test3", function(){
 			logResult.push(`data.pop()`);
 			data.pop();
-			//console.log(JSON.stringify(logResult));
 			assert(deepEql(test3));
 
 		}],
@@ -107,6 +106,7 @@ smoke.defTest({
 		["test5", function(){
 			logResult.push(`data.shift()`);
 			let item = data.shift();
+
 			assert(item.label === "A");
 			assert(item.value === 0);
 			assert(deepEql(test5));
@@ -294,7 +294,7 @@ let test4 = ["data.push({label: \"g\", value: 6})", {
 }, {
 	"(data, \"length\")": {
 		"newValue": 7,
-		"oldValue": 7,
+		"oldValue": 6,
 		"target": [{"label": "A", "value": 0}, {"label": "B", "value": 1}, {"label": "C", "value": 2}, {
 			"label": "D",
 			"value": 3
@@ -310,7 +310,7 @@ let test4 = ["data.push({label: \"g\", value: 6})", {
 			"label": "g",
 			"value": 6
 		}],
-		"oldValue": 7,
+		"oldValue": 6,
 		"target": [{"label": "A", "value": 0}, {"label": "B", "value": 1}, {"label": "C", "value": 2}, {
 			"label": "D",
 			"value": 3
@@ -318,6 +318,7 @@ let test4 = ["data.push({label: \"g\", value: 6})", {
 		"prop": ["length"]
 	}
 }];
+
 
 let test5 = ["data.shift()", {
 	"(data, 0)": {
@@ -517,6 +518,7 @@ let test6 = ["data.unshift({label: \"g\", value: 6}, {label: \"h\", value: 7})",
 		"prop": [null]
 	}
 }];
+
 
 let test7 = ["data.reverse()", {
 	"(data, 0)": {

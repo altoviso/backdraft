@@ -357,6 +357,47 @@ smoke.defTest({
 			instance = new CompleteUseless3();
 			instance.x = 1;
 		}],
+		["onmutate", function(){
+			let onMutateBeforeProp = 0;
+			let onMutatePropValue = 0;
+
+			class Example extends watchHub() {
+				onMutateBeforeProp(value){
+					onMutateBeforeProp = value;
+				}
+
+				onMutateProp(value){
+					onMutatePropValue = value;
+				}
+			}
+
+			let temp = new Example();
+			let watcherCalled = false;
+			temp.watch("prop", (newValue, oldValue) => {
+				assert(newValue === 1);
+				assert(oldValue === undefined);
+				watcherCalled = true;
+			});
+			temp.bdMutate("prop", "_prop", 1);
+			assert(onMutateBeforeProp === 1);
+			assert(onMutatePropValue === 1);
+			assert(temp._prop === 1);
+			assert(watcherCalled);
+
+			// used to hand step through to see the mutate names are already set up
+			class Example2 extends watchHub() {
+				onMutateBeforeProp(value){
+					onMutateBeforeProp = value;
+				}
+
+				onMutateProp(value){
+					onMutatePropValue = value;
+				}
+			}
+
+			temp = new Example();
+			temp.bdMutate("prop", "_prop", 1);
+		}],
 		["watcher-eq-calc", function(){
 			// Watchable::bdMutate compares the current value of the private data to a new value and mutates the private
 			// data if and only if the comparison indicates the values are not the same "scalar" values.
@@ -368,7 +409,7 @@ smoke.defTest({
 				}
 
 				set x(value){
-					Example.mutated = this.bdMutate("x", "_x", value)
+					Example.mutated = this.bdMutate("x", "_x", value);
 				}
 			}
 
@@ -476,7 +517,8 @@ smoke.defTest({
 					this.value = value;
 				}
 			}
-			eqlComparators.set(MyNumber, (refValue, otherValue)=>{
+
+			eqlComparators.set(MyNumber, (refValue, otherValue) => {
 				return otherValue instanceof MyNumber ?
 					refValue.value === otherValue.value :
 					refValue.value === Number(otherValue);
