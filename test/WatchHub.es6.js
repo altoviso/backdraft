@@ -1,4 +1,4 @@
-import {watchHub, eqlComparators} from "../lib.js";
+import {watchHub, eqlComparators, STAR, toWatchable, Component} from "../lib.js";
 
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
@@ -105,9 +105,9 @@ smoke.defTest({
 			});
 
 			// Lastly set up a watch for any change on the coord; notice the signature is different.
-			// "*" watches are always applied after specific watches, so c should == (watched_x, watched_y)
+			// start watches are always applied after specific watches, so c should == (watched_x, watched_y)
 			// when this particular watcher is applied.
-			let starWatcher = c.watch("*", (src) => {
+			let starWatcher = c.watch(STAR, (newValue, oldValue, src, prop) => {
 				starHandlerAppliedCount++;
 
 				assert(src === c);
@@ -232,7 +232,7 @@ smoke.defTest({
 
 			let applyCount_star = 0;
 
-			function starWatcher(src){
+			function starWatcher(newValue, oldValue, src, prop){
 				applyCount_star++;
 				assert(src._x === expectedX);
 				assert(src._y === expectedY);
@@ -255,7 +255,7 @@ smoke.defTest({
 			assert(applyCount_x === 2);
 			assert(applyCount_y === 2);
 
-			useless.watch("*", starWatcher);
+			useless.watch(STAR, starWatcher);
 			useless.x = expectedX = 5;
 			assert(applyCount_x === 3);
 			assert(applyCount_y === 2);
@@ -272,6 +272,107 @@ smoke.defTest({
 			assert(applyCount_x === 4);
 			assert(applyCount_y === 4);
 			assert(applyCount_star === 3);
+		}],
+		["watchSigs", function(){
+			// possible sigs:
+			// 1: name, watcher
+			// 2: name[], watcher
+			// 3: hash: name -> watcher
+			// 4: watchable, name, watcher
+			// 5: watchable, name[], watcher
+			// 6: watchable, hash: name -> watcher
+			// 7: watchable, watcher // STAR watcher
+
+			class Example extends Component.withWatchables("p1", "p2") {
+			}
+
+			let ex = new Example({p1: 10, p2: 20});
+
+			let newValues = {};
+			let called = {};
+			for(let i = 1; i <= 29; i++){
+				ex["watch" + i] = function(newValue){
+					newValues[i] = newValue;
+					called[i] = true;
+				};
+			}
+
+			function expectedValue(i, value){
+				switch (i){
+					case 7:
+					case 10:
+					case 11:
+					case 12:
+					case 13:
+					case 14:
+						return ex;
+
+					case 17:
+					case 18:
+					case 21:
+					case 24:
+					case 27:
+					case 28:
+					case 29:
+						return data;
+
+					default:
+						return value;
+
+				}
+			}
+
+			function check(touched, value){
+				for(let i = 1; i <= 29; i++){
+					if(touched.indexOf(i)!==-1){
+						assert(called[i]);
+						assert(newValues[i]===expectedValue(i, value));
+					}else{
+						assert(!called[i]);
+					}
+					called[i] = false;
+				}
+			}
+
+			let data = toWatchable({a: 30, b: 40});
+
+			ex.watch("p1", "watch1");
+			ex.watch("p1", ex.watch2.bind(ex));
+			ex.watch(["p1", "p2"], "watch3");
+			ex.watch(["p1", "p2"], ex.watch4.bind(ex));
+			ex.watch({p1: "watch5", p2: "watch6", [STAR]: "watch7"});
+			ex.watch({p1: ex.watch8.bind(ex), p2: ex.watch9.bind(ex), [STAR]: ex.watch10.bind(ex)});
+			ex.watch(STAR, "watch11");
+			ex.watch(STAR, ex.watch12.bind(ex));
+			ex.watch([STAR], "watch13");
+			ex.watch([STAR], ex.watch14.bind(ex));
+
+			ex.watch(data, "a", "watch15");
+			ex.watch(data, "a", ex.watch16.bind(ex));
+			ex.watch(data, STAR, "watch17");
+			ex.watch(data, STAR, ex.watch18.bind(ex));
+			ex.watch(data, ["a", "b"], "watch19");
+			ex.watch(data, ["a", "b"], ex.watch20.bind(ex));
+			ex.watch(data, [STAR], ex.watch21.bind(ex));
+			ex.watch(data, {a: "watch22", b: "watch23", [STAR]: "watch24"});
+			ex.watch(data, {a: ex.watch25.bind(ex), b: ex.watch26.bind(ex), [STAR]: ex.watch27.bind(ex)});
+			ex.watch(data, "watch28");
+			ex.watch(data, ex.watch29.bind(ex));
+
+			ex.p1 = 11;
+			check([1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14], 11);
+			ex.p2 = 21;
+			check([3, 4, 6, 7, 9, 10, 11, 12, 13, 14], 21);
+			data.a = 31;
+			check([15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 27, 28, 29], 31);
+			data.b = 41;
+			check([17, 18, 19, 20, 21, 23, 24, 26, 27, 28, 29], 41);
+
+			ex.destroy();
+			data.a = 32;
+			check([], 31);
+			data.b = 42;
+			check([], 42);
 		}],
 		["structure", function(){
 			// watchHubs do not define any instance variables.
