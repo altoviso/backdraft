@@ -176,7 +176,7 @@ function applyWatchers(newValue, oldValue, receiver, name){
 	if(catalog){
 		if(name === STAR){
 			let watchers = catalog[STAR];
-			watchers && watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, receiver, [STAR]));
+			watchers && watchers.slice().forEach(destroyable => destroyable.proc(receiver, oldValue, receiver, [STAR]));
 		}else{
 			let prop = name[0];
 			let watchers = catalog[prop];
@@ -192,7 +192,7 @@ function applyWatchers(newValue, oldValue, receiver, name){
 	}
 	if(!holdStarNotifications && receiver[OWNER] !== OWNER_NULL){
 		name.unshift(receiver[PROP]);
-		applyWatchers(newValue, UNKNOWN_OLD_VALUE, receiver[OWNER], name);
+		applyWatchers(receiver, UNKNOWN_OLD_VALUE, receiver[OWNER], name);
 	}
 }
 
@@ -514,6 +514,10 @@ function mutate(owner, name, privateName, newValue){
 	}
 }
 
+function getWatcher(owner, watcher) {
+	return typeof watcher === "function" ? watcher : owner[watcher].bind(owner);
+}
+
 function watchHub(superClass){
 	return class extends (superClass || class {
 	}) {
@@ -586,11 +590,12 @@ function watchHub(superClass){
 		watch(...args){
 			// possible sigs:
 			// 1: name, watcher
-			// 2: [name], watcher
+			// 2: name[], watcher
 			// 3: hash: name -> watcher
 			// 4: watchable, name, watcher
-			// 5: watchable, [names], watcher
+			// 5: watchable, name[], watcher
 			// 6: watchable, hash: name -> watcher
+			// 7: watchable, watcher // STAR watcher
 
 			if(arguments.length === 1){
 				// sig 3
@@ -599,16 +604,31 @@ function watchHub(superClass){
 			}
 			if(args[0][OWNER]){
 				// sig 4-6
-				let result = watch(...args);
+				let result;
+				if(arguments.length === 2){
+					if(typeof args[1] === "object"){
+						// sig 6
+						let hash = args[1];
+						Reflect.ownKeys(hash).map(name => (hash[name] = getWatcher(this, hash[name])));
+						result = watch(args[0], hash);
+					}else{
+						// sig 7
+						result = watch(args[0], STAR, getWatcher(this, args[1]));
+					}
+				}else{
+					// sig 4 or 5
+					result = watch(args[0], args[1], getWatcher(this, args[2]));
+				}
 				this.own && this.own(result);
 				return result;
 			}
 			if(Array.isArray(args[0])){
 				// sig 2
-				return args[0].map(name => this.watch(name, watcher));
+				return args[0].map(name => this.watch(name, getWatcher(this, args[1])));
 			}
 			// sig 1
-			let [name, watcher] = args;
+			let name = args[0];
+			let watcher = getWatcher(this, args[1]);
 			let variables = watcherCatalog.get(this);
 			if(!variables){
 				watcherCatalog.set(this, (variables = {}));
@@ -733,6 +753,3 @@ export {
 	bind,
 	biBind
 };
-
-
-
