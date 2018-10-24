@@ -200,30 +200,48 @@ let pauseWatchers = false;
 let moving = false;
 let _silentSet = false;
 
-const watcher = {
-	set(target, prop, value, receiver){
-		if(_silentSet){
-			target[prop] = value;
-		}else{
-			let oldValue = target[prop];
-			if(value instanceof Object){
-				let holdPauseWatchers = pauseWatchers;
-				try{
-					pauseWatchers = true;
-					value = moving ? value : createWatchable(value, receiver, prop);
-					pauseWatchers = holdPauseWatchers;
-				}catch(e){
-					pauseWatchers = holdPauseWatchers;
-					throw e;
-				}
-			}
-			// we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
-			// even though we haven't seen the mutation before, e.g., length in an Array instance
-			let result = Reflect.set(target, prop, value, receiver);
-			!pauseWatchers && applyWatchers(value, oldValue, receiver, [prop]);
-			return result;
-		}
+function set(target, prop, value, receiver){
+	if(_silentSet){
+		target[prop] = value;
 		return true;
+	}else{
+		let oldValue = target[prop];
+		if(value instanceof Object){
+			let holdPauseWatchers = pauseWatchers;
+			try{
+				pauseWatchers = true;
+				value = moving ? value : createWatchable(value, receiver, prop);
+				pauseWatchers = holdPauseWatchers;
+			}catch(e){
+				pauseWatchers = holdPauseWatchers;
+				throw e;
+			}
+		}
+		// we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
+		// even though we haven't seen the mutation before, e.g., length in an Array instance
+		let result = Reflect.set(target, prop, value, receiver);
+		!pauseWatchers && applyWatchers(value, oldValue, receiver, [prop]);
+		return result;
+	}
+}
+
+const watcher = {
+	set: set
+};
+
+const swapOldLength = Symbol("swapOldLength");
+const oldLength = Symbol("old-length");
+
+const arrayWatcher = {
+	set(target, prop, value, receiver){
+		if(prop === "length"){
+			let result = Reflect.set(target, prop, value, receiver);
+			let oldValue = target[swapOldLength](value);
+			!pauseWatchers && !_silentSet && applyWatchers(value, oldValue, receiver, ["length"]);
+			return result;
+		}else{
+			return set(target, prop, value, receiver);
+		}
 	}
 };
 
@@ -233,6 +251,11 @@ const QUICK_COPY = Symbol("slice-quick-copy");
 class WatchableArray extends Array {
 	// note: we can make all of these much more efficient, particularly shift and unshift.
 	// But, it's probably rare that it will matter, so we'll do it when the need arises
+	[swapOldLength](newLength){
+		let result = this[oldLength];
+		this[oldLength] = newLength;
+		return result;
+	}
 
 	splice(...args){
 		let oldValues = this.slice(QUICK_COPY);
@@ -411,12 +434,14 @@ function silentSet(watchable, prop, value){
 function createWatchable(src, owner, prop){
 	let keys = Reflect.ownKeys(src);
 	let isArray = Array.isArray(src);
-	let result = new Proxy(isArray ? new WatchableArray() : {}, watcher);
+	let result = isArray ? new Proxy(new WatchableArray(), arrayWatcher) : new Proxy({}, watcher);
 	if(isArray){
 		keys.forEach(k => k !== "length" && (result[k] = src[k]));
+		result[oldLength] = result.length;
 	}else{
 		keys.forEach(k => (result[k] = src[k]));
 	}
+
 	let silentHold = _silentSet;
 	_silentSet = true;
 	result[OWNER] = owner;
