@@ -423,7 +423,11 @@ class WatchableArray extends Array {
 function silentSet(watchable, prop, value){
 	try{
 		_silentSet = true;
-		watchable[prop] = value;
+		if(value === undefined){
+			delete watchable[prop];
+		}else{
+			watchable[prop] = value;
+		}
 		_silentSet = false;
 	}catch(e){
 		_silentSet = false;
@@ -536,23 +540,23 @@ function watchHub(superClass){
 					if(watchers){
 						oldValue = p[1];
 						newValue = p[2];
-						watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this));
+						watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this, name));
 					}
 				}
 				if(doStar){
-					let watchers = variables["*"];
+					let watchers = variables[STAR];
 					if(watchers){
-						watchers.slice().forEach(destroyable => destroyable.proc(this));
+						watchers.slice().forEach(destroyable => destroyable.proc(this, oldValue, this, name));
 					}
 				}
 			}else{
 				let watchers = variables[name];
 				if(watchers){
-					watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this));
+					watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this, name));
 				}
-				watchers = variables["*"];
+				watchers = variables[STAR];
 				if(watchers){
-					watchers.slice().forEach(destroyable => destroyable.proc(this));
+					watchers.slice().forEach(destroyable => destroyable.proc(this, oldValue, this, name));
 				}
 			}
 		}
@@ -669,7 +673,7 @@ function watchHub(superClass){
 const WatchHub = watchHub();
 
 function isWatchable(target){
-	return target && (target[OWNER] || target.isBdWatchHub);
+	return target && target[OWNER];
 }
 
 function withWatchables(superClass, ...args){
