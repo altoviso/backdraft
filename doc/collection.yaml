@@ -8,7 +8,17 @@ d:
 - >
   `Collection` defines the property ./collection (an array). When rendered, `Collection` manages a collection of homogeneous child components to ensure there is a 1-to-1, onto mapping between each item in ./collection and each child component. If the ./collection is watchable, then if/when the array changes size, the rendered children components are automatically adjusted (inserted/deleted) to maintain the 1-to-1, onto mapping.
 
-  The example [[Polygraph]http://backdraftjs.org/examples/polygraph/index.html] demonstrates Collection.
+  Collection also signals children of certain state changes in the underlying data:
+
+- ul:
+    - If the `length` of the collection changes, the the optional child method `onMutateCollectionLength` is applied (if it exists) and any watchers connected to the child's `collectionLength` property are signaled.
+    - If the `index` of the particular item to which a particular child is associated changes, then the optional child method `onMutateCollectionIndex` is applied (if it exists) and any watchers connected to the child's `collectionIndex` property are signaled.
+    - If the item to which a particular child is associated changes, then the child's `item` property is mutated.
+
+- >
+  Collection is very frugal in mutating the item associated with a child. When the underlying data is re-ordered or items are inserted/deleted, the children associated with existing items are <i>not</i> destroyed and re-created.
+
+  The Backdraft Polygraph example uses Collection data extensively. You can explore Polygraph [[in this Pen]https://codepen.io/rcgill/pen/YJLMbK] or [[load the example directly]http://backdraftjs.org/examples/polygraph/index.html] into your browser.
 
 namespaces:
 - name: protected

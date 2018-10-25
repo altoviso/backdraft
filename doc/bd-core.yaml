@@ -245,35 +245,12 @@ variables:
 - name: UNKNOWN_OLD_VALUE
   sum: special value supplied for the `oldValue` parameter when a watcher is applied consequent to nested property mutations
   def: |
-    const UNKNOWN_OLD_VALUE = Symbol("bd-unknown-old-value")
+    const UNKNOWN_OLD_VALUE = {value: "UNKNOWN_OLD_VALUE"};
+
   d:
   - >
-    When ./STAR is the watched property, `UNKNOWN_OLD_VALUE` is provided for the `oldValue` parameter when watchers are applied consequent to a mutation that is more than one level deep. Another way to visualize this concept is to notice that when the  `prop` argument applied to the watcher is an array, the `oldValue` will be `UNKNOWN_OLD_VALUE` For example:
-  - c: |
-      let level2 = toWatchable({
-          level1: {
-              p: "A"
-          }
-      });
+    See ../functions.watch for a detailed description and example.
 
-      toString = (oldValue) =>
-         oldValue===UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : oldValue;
-
-      watch(level2, STAR, (newValue, oldValue, object, prop) => {
-          console.log("level2:", prop, newValue, toString(oldValue));
-      });
-
-      watch(level2.level1, STAR, (newValue, oldValue, object, prop) => {
-          console.log("level1:", prop, newValue, toString(oldValue));
-      });
-
-      level2.level1.p = "B";
-      // output:
-      // level1: p B A
-      // level2: ["level1", "p"] B UNKNOWN_OLD_VALUE
-
-
-  - >
     In addition to the Backdraft `UNKNOWN_OLD_VALUE` export, a reference to `UNKNOWN_OLD_VALUE` is located at ../classes.WatchableRef.static.UNKNOWN_OLD_VALUE
   - sa:
     - ../mixins.watchHub
@@ -355,10 +332,10 @@ types:
 - name: Watcher
   sum: callback function signature for watchers
   def: |
-    function(newValue, oldValue, object, prop)
+    function(newValue, oldValue, target, prop)
   d:
   - >
-    `Watcher` defines the call signature used by ../mixins.watchHub and ./Watchable when they notify their connected watchers of a mutation. `prop` is the property in `object` that mutated. `newValue` is the value of the property after the mutation and `oldValue` is the value before mutation.
+    `Watcher` defines the call signature used by ../mixins.watchHub and ./Watchable when they notify their connected watchers of a mutation. `prop` is the property in `target` that mutated. `newValue` is the value of the property after the mutation and `oldValue` is the value before mutation.
   - sa:
     - >
     - ../mixins.watchHub
@@ -1182,7 +1159,7 @@ functions:
   - >
     The first signature is the only substantive signature, the remaining signatures are syntax sugar discussed at the end.
 
-    When `watch` is applied with a `prop` argument <i>other than</i> ../variables.STAR, then watcher will be applied to the following arguments:
+    When `watch` is applied with a `prop` argument <i>other than</i> ../variables.STAR and the watcher is <i>not</i> being signaled consequent to a mutation bubbling up (see below) then watcher will be applied to the following arguments:
 
   - ul:
     - >
@@ -1192,18 +1169,18 @@ functions:
     - >
       `prop`: `prop` provided when `watch` was applied to connect the watcher
     - >
-      `object`: `watchable` provided when `watch` was applied to connect the watcher
+      `target`: the just-mutated `watchable` provided when `watch` was applied to connect the watcher
   - >
-    When `watch` is applied with a `prop === `../variables.STAR, then watchers will be applied to the following arguments:
+    Otherwise, the watchers will be applied to the following arguments:
   - ul:
     - >
-      `newValue`: the value of `watchable[prop]` after mutation
+      `newValue`: same as `target`
     - >
-      `oldValue`: see ../variables.UNKNOWN_OLD_VALUE
+      `oldValue`: ../variables.UNKNOWN_OLD_VALUE
     - >
       `prop`: an array that lists the property path to the particular watchable property that mutated
     - >
-      `object`: `watchable` provided when `watch` was applied to connect the watcher
+      `target`: the just-mutated `watchable` provided when `watch` was applied to connect the watcher
   - >
     All signatures return a handle or handles to all watches that were connected.
 
@@ -1213,72 +1190,57 @@ functions:
       let target = toWatchable([{fname: "John", lname: "Doe"}]);
 
       // connect to fname
-      let h1 = watch(target[0], "fname", (newValue, oldValue, target, property) => {
+      let h1 = watch(target[0], "fname", (newValue, oldValue, target, prop) => {
           console.log(
-              `fname watcher: new value=${newValue}, old value=${oldValue}, property:`,
-               property
-          );
+              "target[0].fname watcher:",
+              "newValue=", JSON.stringify(newValue),
+              "| oldValue=", JSON.stringify(oldValue),
+              "| target=", JSON.stringify(target),
+              "| property=", prop);
+      });
+
+
+      // connect to the first item in tager
+      let h2 = watch(target, 0, (newValue, oldValue, target, prop) => {
+          console.log(
+              "target[0] watcher:",
+              "newValue=", JSON.stringify(newValue),
+              "| oldValue=", JSON.stringify(oldValue),
+              "| target=", JSON.stringify(target),
+              "| property=", prop);
       });
 
       // connect to the entire target
-      let h2 = watch(target, (newValue, oldValue, object, prop) => {
+      let h3 = watch(target, (newValue, oldValue, target, prop) => {
           console.log(
-              "object watcher:",
-              "new value=", newValue,
-              "old value=", oldValue === UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : "?",
-              "prop=", prop);
+              "target watcher:",
+              "newValue=", JSON.stringify(newValue),
+              "| oldValue=", JSON.stringify(oldValue),
+              "| target=", JSON.stringify(target),
+              "| property=", prop);
       });
 
       target[0].fname = "Joe";
-      // => fname watcher: new value=Joe, old value=John, property: fname
-      // => object watcher: new value= Joe old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "fname"]
+      // target[0].fname watcher: newValue= "Joe" | oldValue= "John" | target= {"fname":"Joe","lname":"Doe"} | property= ["fname"]
+      // target[0] watcher: newValue= {"fname":"Joe","lname":"Doe"} | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Doe"}] | property= (2) ["0", "fname"]
+      // target watcher: newValue= [{"fname":"Joe","lname":"Doe"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Doe"}] | property= (2) ["0", "fname"]
+
 
       target[0].lname = "Smith";
-      // => object watcher: new value= Smith old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "lname"]
+      // target[0] watcher: newValue= {"fname":"Joe","lname":"Smith"} | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Smith"}] | property= (2) ["0", "lname"]
+      // target watcher: newValue= [{"fname":"Joe","lname":"Smith"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Smith"}] | property= (2) ["0", "lname"]
 
       h1.destroy();
+      h2.destroy();
 
       target[0].fname = "Adam";
-      // since we destroyed the first watcher, we don't see it's output;
-      // the second watcher is still connected...
-      // = > object watcher: new value= Adam old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "fname"]
+      // since we destroyed the first two watchers, we don't see their output; the third watcher is still connected...
+      // target watcher: newValue= [{"fname":"Adam","lname":"Smith"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Adam","lname":"Smith"}] | property= (2) ["0", "fname"]
 
   - >
-    Mutation detection within an object hierarchy bubbles up through the top of the hierarchy. For example:
+    Notice that when a property within a data hierarchy is mutated, notifications of that mutation bubble up through the hierarchy. For example, mutating `data[0].fname` signals any watchers connected to `data[0].fname`, `data[0]`, and `data`. As notifications are bubbled up, newValues and oldValues provided to the watchers change. For example watchers connected to `data[0].fname` get new/old values of `data[0].fname` while watchers connected to `data[0]` and `data` get new/old values of `data[0]` and `data` respectively. This ensures the type of the new/old value is constant even though the source of the mutation may be different (for example mutating the complete `data[0]` object compared to just mutating `data[0].fname`).
 
-  - c: |
-        // imagine a deep hiearchical data structure...
-        let target = toWatchable([
-            {
-                branch: "San Francisco", departments: {
-                    engineering: {
-                        staff: {
-                            programmers: {
-                                fellows: ["Gill"]
-                            }
-                        }
-                    }
-                }
-            }
-        ]);
-
-        // watch the whole thing...
-        watch(target, (newValue, oldValue, target, property) => {
-            console.log(`new value=${newValue}, old value=${oldValue}, property:`, property);
-        });
-
-        // change an item deep in the hierarchy...
-        target[0].departments.engineering.staff.programmers.fellows.push("Russel");
-
-        // the watcher prints this:
-        // new value: Russel
-        // old value: UNKNOWN_OLD_VALUE
-        // prop: (7) ["0", "departments", "engineering", "staff", "programmers", "fellows", "1"]
-        // object: [{"branch":"San Francisco","departments":{"engineering":{"staff":{"programmers":{"fellows":["Gill","Russel"]}}}}}]
-        // new value: 2
-        // old value: UNKNOWN_OLD_VALUE
-        // prop: (7) ["0", "departments", "engineering", "staff", "programmers", "fellows", "length"]
-        // object: [{"branch":"San Francisco","departments":{"engineering":{"staff":{"programmers":{"fellows":["Gill","Russel"]}}}}}]
+    In some cases the old value is not provided, but rather a known constant, namely ./variables.UNKNOWN_OLD_VALUE, is provided. This happens when a <i>contained property</i> is mutated. For example, `fname` is contained by `data[0]` and `data`; similarly, `data[0]` is contained by  `data`. Backdraft does not supply the old value because it is computationally expensive to provide the value. Think about a data hierarchy that is an array of 10,000 items, each item is an array of 100 items (a 10,000 x 100 grid), and each item is an object with 20 properties. If the old value was provided as mutation signals bubbled up, two complete copies of the 20M item data structure would be required. This is never a problem as the old value is rarely used in watcher functions that answer to bubbled-up signals, and if some particular watcher design requires some aspect of the old value, then such watchers can understand exactly what changed by looking at the `prop` argument and cache old values as is required by the particular design.
 
 - name: toWatchable
   sum: transforms a JavaScript `Object` so that mutations to any property can be observed with a watcher

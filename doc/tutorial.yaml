@@ -5,6 +5,12 @@ refs:
   bdf:
   - ./docs.html#bd-core.functions
   - ""
+  bdt:
+  - ./docs.html#bd-core.types
+  - ""
+  bdv:
+  - ./docs.html#bd-core.variables
+  - ""
   c:
   - ./docs.html#bd-core.classes.Component
   - Component
@@ -551,54 +557,72 @@ d:
     - >
       [[watchHubp.bdMutateNotify]] has the same alternate signature.
 
-#      In all of the examples, we've used `_<i>public-name</i>` for the private property name. This is the default for `Component.withWatchables`. If the private name parameter is omitted when applying [[watchHubp.bdMutate]] or [[watchHubp.bdMutateNotify]], then the underscore name is assumed. For example `this.bdMutate("foo", newValue)` is equivalent to `this.bdMutate("foo", "_foo", newValue)`. The private name can also be omitted when multiple mutations are signaled; in the case, the parameter for each property is a pair instead of a triple.
+#      In all of the examples, we've used `_<i>public-name</i>` for the private property name. This is the default for `Component.withWatchables`. If the private name parameter is omitted when applying [[watchHub.bdMutate]] or [[watchHub.bdMutateNotify]], then the underscore name is assumed. For example `this.bdMutate("foo", newValue)` is equivalent to `this.bdMutate("foo", "_foo", newValue)`. The private name can also be omitted when multiple mutations are signaled; in the case, the parameter for each property is a pair instead of a triple.
 
 - section:
     name: Watchable Data
     id: watchableData
     d:
     - >
-      [[bdf.toWatchable]] transforms any JavaScript object (including arrays) into an object that can signal mutations to watchers connected with [[bdf.watch]]. A quick example is easier than words:
+      [[bdf.toWatchable]] transforms any JavaScript object (including arrays) into an object that can signal mutations to watchers connected with [[bdf.watch]]. `watch` has the signature `(watchable, prop, watcher)` and applying `watch` to `watchable` variable causes `watcher` to be applied whenever `prop` mutates. Here is an example
 
     - c: |
-        let bands = {
-            "Rush": {country: "Canada", rating: 7},
-            "Led Zeppelin": {country: "England", rating: 10},
-            "The Who": {country: "England", rating: 10}
-        };
+        let target = toWatchable([{fname: "John", lname: "Doe"}]);
 
-        bands = toWatchable(bands);
-
-        // watch for any changes on the object...
-        watch(bands, (newValue, oldValue, target, prop) => {
-            console.log(`first watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+        // connect to fname
+        let h1 = watch(target[0], "fname", (newValue, oldValue, target, prop) => {
+           console.log(
+               "target[0].fname watcher:",
+               "newValue=", JSON.stringify(newValue),
+               "| oldValue=", JSON.stringify(oldValue),
+               "| target=", JSON.stringify(target),
+               "| property=", prop);
         });
 
-        // watch for changes on a particular object within the object
-        watch(bands.Rush, (newValue, oldValue, target, prop) => {
-            console.log(`second watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+
+        // connect to the first item in tager
+        let h2 = watch(target, 0, (newValue, oldValue, target, prop) => {
+           console.log(
+               "target[0] watcher:",
+               "newValue=", JSON.stringify(newValue),
+               "| oldValue=", JSON.stringify(oldValue),
+               "| target=", JSON.stringify(target),
+               "| property=", prop);
         });
 
-        // watch for changes on a particular scalar
-        watch(bands.Rush, "rating", (newValue, oldValue, target, prop) => {
-            console.log(`third watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+        // connect to the entire target
+        let h3 = watch(target, (newValue, oldValue, target, prop) => {
+           console.log(
+               "target watcher:",
+               "newValue=", JSON.stringify(newValue),
+               "| oldValue=", JSON.stringify(oldValue),
+               "| target=", JSON.stringify(target),
+               "| property=", prop);
         });
 
-        // => third watcher: "rating" was changed from 7 to 11
-        // => second watcher: "rating" was changed from 7 to 11
-        // => first watcher: ["Rush","rating"] was changed from 7 to 11
+        target[0].fname = "Joe";
+        // target[0].fname watcher: newValue= "Joe" | oldValue= "John" | target= {"fname":"Joe","lname":"Doe"} | property= ["fname"]
+        // target[0] watcher: newValue= {"fname":"Joe","lname":"Doe"} | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Doe"}] | property= (2) ["0", "fname"]
+        // target watcher: newValue= [{"fname":"Joe","lname":"Doe"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Doe"}] | property= (2) ["0", "fname"]
+
+
+        target[0].lname = "Smith";
+        // target[0] watcher: newValue= {"fname":"Joe","lname":"Smith"} | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Smith"}] | property= (2) ["0", "lname"]
+        // target watcher: newValue= [{"fname":"Joe","lname":"Smith"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Smith"}] | property= (2) ["0", "lname"]
+
+        h1.destroy();
+        h2.destroy();
+
+        target[0].fname = "Adam";
+        // since we destroyed the first two watchers, we don't see their output; the third watcher is still connected...
+        // target watcher: newValue= [{"fname":"Adam","lname":"Smith"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Adam","lname":"Smith"}] | property= (2) ["0", "fname"]
 
     - >
-      There are two kinds of watches set up above:
+      Notice that when a property within a data hierarchy is mutated, notifications of that mutation bubble up through the hierarchy. For example, mutating `data[0].fname` signals any watchers connected to `data[0].fname`, `data[0]`, and `data`. As notifications are bubbled up, newValues and oldValues provided to the watchers change. For example watchers connected to `data[0].fname` get new/old values of `data[0].fname` while watchers connected to `data[0]` and `data` get new/old values of `data[0]` and `data` respectively. This ensures the type of the new/old value is constant even though the source of the mutation may be different (for example mutating the complete `data[0]` object compared to just mutating `data[0].fname`).
 
-    - ul:
-        - >
-          watches on composite objects: the first watcher watches the entire bands object; the second watcher watches the bands.Rush object.
-        - >
-          watches on scalar objects: the third watcher watches bands.Rush.rating, which is a scalar.
+      In some cases the old value is not provided, but rather a known constant, namely [[bdv.UNKNOWN_OLD_VALUE]], is provided. This happens when a <i>contained property</i> is mutated. For example, `fname` is contained by `data[0]` and `data`; similarly, `data[0]` is contained by  `data`. Backdraft does not supply the old value because it is computationally expensive to provide the value. Think about a data hierarchy that is an array of 10,000 items, each item is an array of 100 items (a 10,000 x 100 grid), and each item is an object with 20 properties. If the old value was provided as mutation signals bubbled up, two complete copies of the 20M item data structure would be required. This is never a problem as the old value is rarely used in watcher functions that answer to bubbled-up signals, and if some particular watcher design requires some aspect of the old value, then such watchers can understand exactly what changed by looking at the `prop` argument and cache old values as is required by the particular design.
 
-    - >
-      In all cases, the watcher is provided the new value, the target object, and the property name that mutated.
+      The Backdraft Polygraph example uses watchable data extensively. You can explore Polygraph [[in this Pen]https://codepen.io/rcgill/pen/YJLMbK] or [[load the example directly]http://backdraftjs.org/examples/polygraph/index.html] into your browser.
 
 - section:
     name: Next Steps

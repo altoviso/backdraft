@@ -1270,20 +1270,7 @@ sProps:
   - >
     As a best practice, all Backdraft-defined classes derived from `eventHub` define the list of event names which the class may notify. This list is a static property located at `events`.
 
-- name: withWatchables
-  jstype: mixin
-  sum: .../mixins.withWatchables with superclass===`Component`
-  d:
-  - >
-    Syntax sugar:
 
-    `class MyClass extends Component.withWatchables(<i>propertyDefs</i>) { /* ... */ }`
-
-    is equivalent to
-
-    `class MyClass extends withWatchables(Component, <i>propertyDefs</i>) { /* ... */ }`
-
-    It's not shorter, but it reads better.
 
 - name: watchables
   jstype: (string | symbol)[]
@@ -1299,3 +1286,17 @@ sMethods:
   d:
   - >
     Given a DOM node that is the root of a `Component` instance, returns that instance; undefined otherwise.
+- name: withWatchables
+  jstype: mixin
+  sum: .../mixins.withWatchables with superclass===`Component`
+  d:
+  - >
+    Syntax sugar:
+
+    `class MyClass extends Component.withWatchables(<i>propertyDefs</i>) { /* ... */ }`
+
+    is equivalent to
+
+    `class MyClass extends withWatchables(Component, <i>propertyDefs</i>) { /* ... */ }`
+
+    It's not shorter, but it reads better.

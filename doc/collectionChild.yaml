@@ -1,0 +1,125 @@
+name: CollectionChild
+owner: bd-core.classes
+type: class
+supers: [.../classes.Component]
+sum: >
+  a base class for a child of .../classes.Collection
+d:
+- >
+  `CollectionChild` provides core machinery for components intended to be used as one of a collection of homogeneous component instances created consequent to a homogeneous collection of data actualized by an array.
+
+  `CollectionChild` takes the keyword constructor arguments `parent` and `collectionIndex`. `parent` gives the component instance that is creating and will contain the `CollectionChild` instance. `CollectionChild` assumes `parent` maintains the underlying data collection at `parent.collection`. The keyword argument `collectionIndex` gives the index into `parent.collection` of the data item that is associated with the particular `CollectionChild` instance.
+
+  The core functionality of `CollectionChild` is to provide, in coordination with a parent like .../classes.Collection, the watchable properties ./collectionItem, ./collectionIndex, and ./collectionLength, which reflect the data item, data item index, and collection associated with the instance. Further, ./static.withWatchables provides machinery to automatically provide watchable properties that reflect properties in `collectionItem`.
+
+  `CollectionChild` assumes the parent will automatically signal `collectionLength` property mutations on the `CollectionChild` instance; this is the case with .../classes.Collection. If the collection array changes in the parent (that is, a different array is set compared to a mutation on the same array), the the parent is responsible for setting the ./collectionItem. Otherwise, `CollectionChild` automatically watches underlying data referenced by `collectionItem` and signals its own mutations accordingly.
+
+  The Backdraft Polygraph example uses `CollectionChild` extensively. You can explore Polygraph [[in this Pen]https://codepen.io/rcgill/pen/YJLMbK] or [[load the example directly]http://backdraftjs.org/examples/polygraph/index.html] into your browser.
+
+namespaces:
+- name: protected
+  sum: protected properties and methods
+  d:
+  - >
+    These properties and methods should only be used within the implementations of subclasses derived from `CollectionChild`.
+  n:
+  - The Backdraft Library reserves all names that begin with "bd".
+
+- name: static
+  sum: static properties and methods defined on CollectionChild
+#
+#- name: types
+#  sum: types used in Component machinery
+
+methods:
+- name: constructor
+  sum: instance initializer
+  order: 1,
+  sig: (kwargs)
+  params:
+  - name: kwargs
+    type: .../types.Hash
+    d: >
+      CollectionChild defines the keywords `parent` and `collectionIndex`. See ../Component.constructor for other keywords.
+  d:
+  - >
+    Creates a new CollectionChild instance.
+
+    Keyword argument `parent` initializes the instance's parent. Unlike the normal lifecycle sequence which sets a component's parent after the component is rendered, `CollectionChild` sets the parent at construction and the parent is immutable. The parent holds the data item to which the particular instance is associated at `parent.collection[this.collectionIndex]`.
+
+    Keyword argument `collectionIndex` gives index into `parent.collection` of the data item associated with the instance.
+props:
+- name: collectionItem
+  jstype: row, any
+  sum: the data item in `parent.collection` associated with this instance
+  d:
+  - >
+    Each CollectionChild component is associated with the data given by `this.parent.collection[this.collectionIndex]`.
+  - n:
+      The owning parent will mutate this value if the underlying collection array is replaced with a different array; the internal implementation of `CollectionChild` will mutate this value if/when this.parent.collection[this.collectionIndex] is mutated with a different object.
+- name: collectionIndex
+  jstype: row, any
+  sum: the index into `parent.collection` associated with this instance
+  d:
+  - >
+    Each CollectionChild component is associated with the data given by `this.parent.collection[this.collectionIndex]`.
+  - n:
+      The owning parent will mutate this value if the `CollectionChild` instance changes relative position within its siblings <i>without</i> changing the actual data item in collection.
+- name: collectionLength
+  jstype: row, any
+  sum: the length of `parent.collection`
+  d:
+  - >
+    Each CollectionChild component is associated with the data given by `this.parent.collection[this.collectionIndex]`.
+sMethods:
+- name: withWatchables
+  jstype: mixin
+  sum: .../mixins.withWatchables with additional property processing functionality
+  d:
+  - >
+    `CollectionChild.withWatchables` is an extension to .../mixins.withWatchables that allows the additional property specifier:
+
+    `"item: <i>prop</i> [,<i>prop</i>] [,<i>prop</i>] ..."
+
+    Each <i>prop</i>, `"pname"`, causes a watchable property `"pname"` to be implemented on the resulting subclass that reflects the the `"pname"` property in `this.parent.collection[this.collectionIndex]`.
+
+    When `CollectionChild.withWatchables` is not provided a superclass for its first argument, it assumes `CollectionChild`.
+
+    For example, given a collection defined as follows:
+
+  - c: |
+      let stats = toWatchable([
+          {label: "A", value: 100},
+          {label: "B", value: 100}
+      ]);
+
+  - >
+    `withWatchables` could be used to defined the class `StatChild`, a subclass of `CollectionChild`, that defines the watchable property `"value"` which reflects the `"value"` property of the particular item in `stats` to which a particular `StatChild` instance is associated as follows:
+
+  - c: |
+      class StatChild extends CollectionChild.withWatchables("item:value"){
+      }
+
+  - >
+    The Backdraft Polygraph example uses `CollectionChild.withWatchables` extensively. You can explore Polygraph [[in this Pen]https://codepen.io/rcgill/pen/YJLMbK] or [[load the example directly]http://backdraftjs.org/examples/polygraph/index.html] into your browser.
+
+pProps:
+- name: bdCollectionItem
+  jstype: rw, array
+  sum: >
+    the protected property that holds the actual ./collectionItem value
+  d:
+  - >
+    `bdCollectionItem` is reflected and mutated by ./collectionItem.
+  - w:
+    - This is a protected property and is not intended to be accessed by client code.
+- name: bdCollectionIndex
+  jstype: rw, array
+  sum: >
+    the protected property that holds the actual ./collectionIndex value
+  d:
+  - >
+    `bdCollectionIndex` is reflected and mutated by ./collectionIndex.
+  - w:
+    - This is a protected property and is not intended to be accessed by client code.
+

@@ -135,7 +135,7 @@ methods:
       - >
         `prop`: the same as `prop` provided when `watch` was applied to connect the watcher
       - >
-        `object`: the object to which `watch` was applied to connect the watcher
+        `target`: the object to which `watch` was applied to connect the watcher
   - >
     When `watch` is applied with a `prop === `.../variables.STAR, then watchers will be applied to the following arguments:
   - ul:
@@ -146,7 +146,7 @@ methods:
     - >
       `prop`: an array that lists the property path to the particular watchable property that mutated
     - >
-      `object`: the object to which `watch` was applied to connect the watcher
+      `target`: the object to which `watch` was applied to connect the watcher
   - >
     All signatures return a handle or handles to all watches that were connected. If `this` implements the method .../classes.Component.own, then all handles are owned. This ensures the watches are automatically terminated when the owning object is destroyed with .../classes.Component.destroy
 
