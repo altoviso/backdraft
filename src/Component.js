@@ -1,6 +1,6 @@
 import {getPostProcessingFunction, insPostProcessingFunction} from "./postProcessingCatalog.js";
 import {Element} from "./element.js";
-import {eventHub} from "./EventHub.js";
+import {eventHub} from "./eventHub.js";
 import {WatchHub, withWatchables, getWatchableRef} from "./watchUtils.js";
 
 let document = 0;

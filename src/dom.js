@@ -1,4 +1,4 @@
-import {EventHub} from "./EventHub.js";
+import {EventHub} from "./eventHub.js";
 import {getWatchableRef} from "./watchUtils.js";
 import {Component} from "./Component.js";
 import {insPostProcessingFunction} from "./postProcessingCatalog.js";

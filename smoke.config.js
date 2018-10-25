@@ -27,8 +27,8 @@
 	// such tests
 	let tests = [
 		["Element", "./test/Element.es6.js"],
-		["watchHub", "./test/WatchHub.es6.js"],
-		["eventHub", "./test/EventHub.es6.js"],
+		["watchHub", "./test/watchHub.es6.js"],
+		["eventHub", "./test/eventHub.es6.js"],
 		["Component", "./test/Component.es6.js"],
 		["post-processing", "./test/post-processing.es6.js"],
 		["render", "./test/render.es6.js"],
