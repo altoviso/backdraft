@@ -574,7 +574,7 @@ function mutate(owner, name, privateName, newValue){
 			Object.defineProperty(owner, privateName, {writable: true, value: newValue});
 		}
 		onMutateName && owner[onMutateName] && owner[onMutateName](newValue, oldValue);
-		return [name, oldValue, newValue];
+		return [name, newValue, oldValue];
 	}
 }
 
@@ -586,7 +586,7 @@ function watchHub(superClass){
 	return class extends (superClass || class {
 	}) {
 		// protected interface...
-		bdMutateNotify(name, oldValue, newValue){
+		bdMutateNotify(name, newValue, oldValue){
 			let variables = watcherCatalog.get(this);
 			if(!variables){
 				return;
@@ -598,8 +598,8 @@ function watchHub(superClass){
 					doStar = true;
 					let watchers = variables[p[0]];
 					if(watchers){
-						oldValue = p[1];
-						newValue = p[2];
+						newValue = p[1];
+						oldValue = p[2];
 						watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this, name));
 					}
 				}

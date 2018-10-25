@@ -50,7 +50,7 @@ smoke.defTest({
 					}
 					if(this._y !== value){
 						let oldValue = this._y;
-						this.bdMutateNotify("y", oldValue, this._y = value);
+						this.bdMutateNotify("y", this._y = value, oldValue);
 					}
 				}
 

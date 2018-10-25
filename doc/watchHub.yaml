@@ -211,22 +211,21 @@ pMethods:
 - name: bdMutateNotify
   sum: notify watchers of a mutation
   sig:
-  - (prop, oldValue, newValue) => void
+  - (prop, newValue, oldValue) => void
   - (list) => void
   params:
   - name: prop
     type: string | symbol
     d: >
       a property name registerable with ./watch
-  - name: oldValue
-    type: any
-    d: >
-      the value of the mutated property, before the mutation
   - name: newValue
     type: any
     d: >
       the value of the mutated property, after the mutation
-
+  - name: oldValue
+    type: any
+    d: >
+      the value of the mutated property, before the mutation
   - name: list
     type: array of [publicName, oldValue, newValue]
     d: >

@@ -451,7 +451,7 @@ d:
 
                     // do protected after-processing consequent to mutating foo
 
-                    this.bdMutateNotify("foo", oldValue, newValue);
+                    this.bdMutateNotify("foo", newValue, oldValue);
                 }
             }
         }
@@ -474,7 +474,7 @@ d:
                 this[privateName] = newValue;
                 let onMutate = this[publicName + "OnMutate"];
                 onMutate && onMutate.call(this, newValue, oldValue);
-                this.bdMutateNotify(publicName, oldValue, newValue);
+                this.bdMutateNotify(publicName, newValue, oldValue);
                 return true;
             }
         }

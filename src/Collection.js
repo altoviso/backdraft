@@ -6,7 +6,7 @@ function applyLengthWatchers(owner, newValue, oldValue){
 	if(oldValue !== newValue){
 		owner.children.forEach(child => {
 			child.onMutateCollectionLength && child.onMutateCollectionLength(newValue, oldValue);
-			child.bdMutateNotify("collectionLength", oldValue, newValue);
+			child.bdMutateNotify("collectionLength", newValue, oldValue);
 		});
 	}
 }
@@ -163,7 +163,7 @@ export class Collection extends Component {
 					child.collectionItem = collection[i];
 					if(mutateLength){
 						child.onMutateCollectionLength && child.onMutateCollectionLength(newLength, oldLength);
-						child.bdMutateNotify("collectionLength", oldLength, newLength);
+						child.bdMutateNotify("collectionLength", newLength, oldLength);
 					}
 				}
 			}
@@ -268,7 +268,7 @@ export class CollectionChild extends Component {
 			let oldValue = this.bdCollectionIndex;
 			this.bdCollectionIndex = newValue;
 			this.onMutateCollectionIndex && this.onMutateCollectionIndex(newValue, oldValue);
-			this.bdMutateNotify("collectionIndex", oldValue, newValue);
+			this.bdMutateNotify("collectionIndex", newValue, oldValue);
 			this._connectWatchers();
 		}
 	}
@@ -292,10 +292,10 @@ export class CollectionChild extends Component {
 	_applyWatchers(newValue, oldValue){
 		if(newValue !== oldValue){
 			this.onMutateCollectionItem && this.onMutateCollectionItem(newValue, oldValue);
-			this.bdMutateNotify("collectionItem", oldValue, newValue);
+			this.bdMutateNotify("collectionItem", newValue, oldValue);
 			this.constructor.itemWatchables.forEach(prop => {
 				onMutateItemWatchable(prop, this, newValue[prop], oldValue[prop]);
-				this.bdMutateNotify(prop, oldValue[prop], newValue[prop]);
+				this.bdMutateNotify(prop, newValue[prop], oldValue[prop]);
 			});
 		}
 	}
@@ -313,14 +313,14 @@ export class CollectionChild extends Component {
 					this._connectWatchers();
 				}else{
 					this.onMutateCollectionItem && this.onMutateCollectionItem(collectionItem, UNKNOWN_OLD_VALUE);
-					this.bdMutateNotify("collectionItem", UNKNOWN_OLD_VALUE, collectionItem);
+					this.bdMutateNotify("collectionItem", collectionItem, UNKNOWN_OLD_VALUE);
 				}
 			}));
 			this.constructor.itemWatchables.forEach(prop =>
 				handles.push(this.watch(collectionItem, prop, (newValue, oldValue, target, _prop) => {
 					if(this.parent.suspendWatchAdvise) return;
 					onMutateItemWatchable(prop, this, newValue, oldValue, target, _prop);
-					this.bdMutateNotify(prop, oldValue, newValue);
+					this.bdMutateNotify(prop, newValue, oldValue);
 				}))
 			);
 		}

@@ -205,7 +205,7 @@ export class Component extends eventHub(WatchHub) {
 			}
 			this.ownWhileRendered(this.postRender());
 			proc && proc.call(this);
-			this.bdMutateNotify("rendered", false, true);
+			this.bdMutateNotify("rendered", true, false);
 		}
 		return this.bdDom.root;
 	}
@@ -247,7 +247,7 @@ export class Component extends eventHub(WatchHub) {
 			delete this.bdDom;
 			delete this._dom;
 			this.bdAttachToDoc(false);
-			this.bdMutateNotify("rendered", true, false);
+			this.bdMutateNotify("rendered", false, true);
 		}
 	}
 
@@ -499,11 +499,11 @@ export class Component extends eventHub(WatchHub) {
 			if(this.rendered){
 				this.bdDom.root.setAttribute("class", calcDomClassName(this));
 			}
-			this.bdMutateNotify("className", oldValue, newValue);
+			this.bdMutateNotify("className", newValue, oldValue);
 			let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
 				newVisibleValue = newValue ? newValue.indexOf("hidden") === -1 : true;
 			if(oldVisibleValue !== newVisibleValue){
-				this.bdMutateNotify("visible", oldVisibleValue, newVisibleValue);
+				this.bdMutateNotify("visible", newVisibleValue, oldVisibleValue);
 			}
 		}
 	}
@@ -563,7 +563,7 @@ export class Component extends eventHub(WatchHub) {
 		value = !!value;
 		if(this.bdDisabled !== value){
 			this.bdDisabled = value;
-			this.bdMutateNotify([["disabled", !value, value], ["enabled", value, !value]]);
+			this.bdMutateNotify([["disabled", value, !value], ["enabled", !value, value]]);
 			this[value ? "addClassName" : "removeClassName"]("bd-disabled");
 		}
 	}
@@ -581,7 +581,7 @@ export class Component extends eventHub(WatchHub) {
 			}else{
 				this.addClassName("bd-hidden");
 			}
-			this.bdMutateNotify("visible", !value, value);
+			this.bdMutateNotify("visible", value, !value);
 		}
 	}
 
