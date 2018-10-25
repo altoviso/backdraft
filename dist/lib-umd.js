@@ -8,23 +8,28 @@
 	}
 
 	function destroyable(proc, container, onEmpty){
-		let result = {
-			proc: proc,
-			destroy(){
+		let result = {proc: proc};
+		if(container){
+			result.destroy = () => {
 				result.destroy = result.proc = noop;
 				let index = container.indexOf(result);
 				if(index !== -1){
 					container.splice(index, 1);
 				}
 				!container.length && onEmpty && onEmpty();
-			}
-		};
-		container.push(result);
+			};
+			container.push(result);
+		}else{
+			result.destroy = () => {
+				result.destroy = result.proc = noop;
+			};
+		}
+
 		return result;
 	}
 
 	function destroyAll(container){
-		for(let i= 0, end = container.length; i<end && container.length; i++){
+		for(let i = 0, end = container.length; i < end && container.length; i++){
 			container.pop().destroy();
 		}
 	}
@@ -114,14 +119,20 @@
 	function eql(refValue, otherValue){
 		if(!refValue){
 			return otherValue === refValue;
-		}else{
+		}
+		if(refValue instanceof Object){
 			let comparator = eqlComparators.get(refValue.constructor);
 			if(comparator){
 				return comparator(refValue, otherValue);
-			}else{
-				return refValue === otherValue;
 			}
 		}
+		if(otherValue instanceof Object){
+			let comparator = eqlComparators.get(otherValue.constructor);
+			if(comparator){
+				return comparator(otherValue, refValue);
+			}
+		}
+		return refValue === otherValue;
 	}
 
 	const watcherCatalog = new WeakMap();
@@ -129,7 +140,9 @@
 	const OWNER = Symbol("bd-owner");
 	const OWNER_NULL = Symbol("bd-owner-null");
 	const PROP = Symbol("bd-prop");
-	const UNKNOWN_OLD_VALUE = Symbol("bd-unknown-old-value");
+	const UNKNOWN_OLD_VALUE = {
+		value: "UNKNOWN_OLD_VALUE"
+	};
 
 	const pWatchableWatchers = Symbol("bd-pWatchableWatchers");
 	const pWatchableHandles = Symbol("bd-pWatchableHandles");
@@ -270,66 +283,347 @@
 		}
 	}
 
+	let holdStarNotifications = false;
+
 	function applyWatchers(newValue, oldValue, receiver, name){
 		let catalog = watcherCatalog.get(receiver);
 		if(catalog){
-			if(name.length === 1){
-				// leaf
+			if(name === STAR){
+				let watchers = catalog[STAR];
+				watchers && watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(receiver, oldValue, receiver, [STAR]));
+			}else{
 				let prop = name[0];
 				let watchers = catalog[prop];
-				watchers && watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(newValue, oldValue, receiver, prop));
-				(watchers = catalog[STAR]) && watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(newValue, oldValue, receiver, prop));
-			}else{
-				let watchers = catalog[STAR];
-				watchers && watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(newValue, oldValue, receiver, name));
+				watchers && watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(receiver[prop], oldValue, receiver, name));
+				if(!holdStarNotifications){
+					(watchers = catalog[STAR]) && watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(receiver, oldValue, receiver, name));
+				}
 			}
 		}
 		if(watch.log){
 			// eslint-disable-next-line no-console
 			console.log(name, newValue);
 		}
-		if(receiver[OWNER] !== OWNER_NULL){
+		if(!holdStarNotifications && receiver[OWNER] !== OWNER_NULL){
 			name.unshift(receiver[PROP]);
-			applyWatchers(newValue, oldValue, receiver[OWNER], name);
+			applyWatchers(receiver, UNKNOWN_OLD_VALUE, receiver[OWNER], name);
 		}
 	}
 
 	let pauseWatchers = false;
-	let inPlaceConverting = false;
+	let _silentSet = false;
+
+	function set(target, prop, value, receiver){
+		if(_silentSet){
+			target[prop] = value;
+			return true;
+		}else{
+			let oldValue = target[prop];
+			if(value instanceof Object){
+				let holdPauseWatchers = pauseWatchers;
+				try{
+					pauseWatchers = true;
+					value = createWatchable(value, receiver, prop);
+					pauseWatchers = holdPauseWatchers;
+				}catch(e){
+					pauseWatchers = holdPauseWatchers;
+					throw e;
+				}
+			}
+			// we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
+			// even though we haven't seen the mutation before, e.g., length in an Array instance
+			let result = Reflect.set(target, prop, value, receiver);
+			!pauseWatchers && applyWatchers(value, oldValue, receiver, [prop]);
+			return result;
+		}
+	}
 
 	const watcher = {
+		set: set
+	};
+
+	const SWAP_OLD_LENGTH = Symbol("SWAP_OLD_LENGTH");
+	const OLD_LENGTH = Symbol("old-length");
+	const NO_CHANGE = Symbol("splice-no-change");
+	const QUICK_COPY = Symbol("slice-quick-copy");
+	const BEFORE_ADVICE = Symbol("BEFORE_ADVICE");
+	const noop$1 = () => {
+	};
+
+	const arrayWatcher = {
 		set(target, prop, value, receiver){
-			if(prop === OWNER || prop === PROP){
-				target[prop] = value;
-			}else{
-				let oldValue = target[prop];
-				if(value instanceof Object){
-					let holdPauseWatchers = pauseWatchers;
-					try{
-						pauseWatchers = true;
-						value = createWatchable(value, receiver, prop);
-						pauseWatchers = holdPauseWatchers;
-					}catch(e){
-						pauseWatchers = holdPauseWatchers;
-						throw e;
-					}
-				}
-				// we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
-				// even though we haven't seen the mutation before, e.g., length in an Array instance
+			if(prop === "length"){
 				let result = Reflect.set(target, prop, value, receiver);
-				!pauseWatchers && applyWatchers(value, oldValue, receiver, [prop]);
+				let oldValue = target[SWAP_OLD_LENGTH](value);
+				!pauseWatchers && !_silentSet && applyWatchers(value, oldValue, receiver, ["length"]);
 				return result;
+			}else{
+				return set(target, prop, value, receiver);
 			}
-			return true;
 		}
 	};
 
+
+	function getAdvice(owner, method){
+		let advice = owner[BEFORE_ADVICE] && owner[BEFORE_ADVICE][method];
+		return advice && advice.map(f => f());
+	}
+
+	class WatchableArray extends Array {
+		// note: we can make all of these much more efficient, particularly shift and unshift.
+		// But, it's probably rare that it will matter, so we'll do it when the need arises
+		[SWAP_OLD_LENGTH](newLength){
+			let result = this[OLD_LENGTH];
+			this[OLD_LENGTH] = newLength;
+			return result;
+		}
+
+		before(method, proc){
+			let beforeAdvice = this[BEFORE_ADVICE];
+			if(!beforeAdvice){
+				Object.defineProperty(this, BEFORE_ADVICE, {value: {}});
+				beforeAdvice = this[BEFORE_ADVICE];
+			}
+			let stack = beforeAdvice[method] || (beforeAdvice[method] = []);
+			stack.push(proc);
+			let handle = {
+				destroy(){
+					handle.destroy = noop$1;
+					let index = stack.indexOf(proc);
+					if(index !== -1) stack.splice(index, 1);
+				}
+			};
+			return handle;
+		}
+
+		_splice(...args){
+			let oldValues = this.slice(QUICK_COPY);
+			let changeSet = [];
+			let result;
+			try{
+				_silentSet = true;
+				result = super.splice(...args);
+				for(let i = 0, end = Math.max(oldValues.length, this.length); i < end; i++){
+					let value = this[i];
+					if(value instanceof Object){
+						if(value[OWNER]){
+							if(value[OWNER] !== this){
+								// a new item that came from another watchable
+								value = this[i] = createWatchable(value, this, i);
+								changeSet.push(value);
+							}else if(value[PROP] != i){ // INTENTIONAL !=
+								// an item that was moved within this
+								value[PROP] = i;
+								changeSet.push(value);
+							}else{
+								changeSet.push(NO_CHANGE);
+							}
+						}else{
+							// a new item that is not already a watchable
+							value = this[i] = createWatchable(value, this, i);
+							changeSet.push(value);
+						}
+					}else if(value !== oldValues[i]){
+						changeSet.push(value);
+					}else{
+						changeSet.push(NO_CHANGE);
+					}
+				}
+				_silentSet = false;
+			}catch(e){
+				try{
+					oldValues.forEach((value, i) => (this[i] = value));
+				}catch(e){
+					// eslint-disable-next-line no-console
+					console.error(e);
+				}
+				_silentSet = false;
+				throw e;
+			}
+			try{
+				holdStarNotifications = true;
+				let change = false;
+				changeSet.forEach((value, i) => {
+					if(value !== NO_CHANGE){
+						change = true;
+						applyWatchers(value, oldValues[i], this, [i]);
+					}
+				});
+				if(this.length !== oldValues.length){
+					change = true;
+					applyWatchers(this.length, oldValues.length, this, ["length"]);
+				}
+				holdStarNotifications = false;
+				if(change){
+					applyWatchers(this, UNKNOWN_OLD_VALUE, this, STAR);
+				}
+			}catch(e){
+				holdStarNotifications = false;
+				throw e;
+			}
+			return result;
+		}
+
+		splice(...args){
+			let advice = getAdvice(this, "splice");
+			let result = this._splice(...args);
+			advice && advice.map(f => f && f(result));
+			return result;
+		}
+
+		pop(){
+			let advice = getAdvice(this, "pop");
+			let result = fromWatchable(super.pop());
+			advice && advice.map(f => f && f(result));
+			return result;
+		}
+
+		shift(){
+			let advice = getAdvice(this, "shift");
+			let result = fromWatchable(this._splice(0, 1)[0]);
+			advice && advice.map(f => f && f(result));
+			return result;
+		}
+
+		slice(...args){
+			return args[0] === QUICK_COPY ? super.slice() : fromWatchable(super.slice(...args));
+		}
+
+		unshift(...args){
+			let advice = getAdvice(this, "unshift");
+			this._splice(0, 0, ...args);
+			advice && advice.map(f => f && f());
+		}
+
+		reverse(){
+			let advice = getAdvice(this, "reverse");
+			let oldValues = this.slice(QUICK_COPY);
+			try{
+				_silentSet = true;
+				for(let i = 0, j = this.length - 1; i < j; i++, j--){
+					let temp = this[i];
+					this[i] = this[j];
+					this[i][PROP] = i;
+					this[j] = temp;
+					temp[PROP] = j;
+				}
+				_silentSet = false;
+			}catch(e){
+				_silentSet = false;
+				throw e;
+			}
+			try{
+				holdStarNotifications = true;
+				if(this.length % 2){
+					for(let i = 0, end = Math.floor(this.length / 2); i < end; i++){
+						applyWatchers(this[i], oldValues[i], this, [i]);
+					}
+					for(let i = Math.ceil(this.length / 2), end = this.length; i < end; i++){
+						applyWatchers(this[i], oldValues[i], this, [i]);
+					}
+				}else{
+					this.forEach((value, i) => applyWatchers(value, oldValues[i], this, [i]));
+				}
+				holdStarNotifications = false;
+				if(this.length > 1){
+					applyWatchers(this, UNKNOWN_OLD_VALUE, this, STAR);
+				}
+			}catch(e){
+				holdStarNotifications = false;
+				throw e;
+			}
+			advice && advice.map(f => f && f(this));
+			return this;
+		}
+
+		_reorder(proc){
+			let oldValues = this.slice(QUICK_COPY);
+			let changeSet = Array(this.length).fill(false);
+			let changes = false;
+			try{
+				_silentSet = true;
+				proc(this);
+				this.forEach((value, i) => {
+					if(value[PROP] != i){ // INTENTIONAL !=
+						value[PROP] = i;
+						changeSet[i] = true;
+						changes = true;
+					}
+				});
+				_silentSet = false;
+			}catch(e){
+				_silentSet = false;
+				throw e;
+			}
+			try{
+				holdStarNotifications = true;
+				changeSet.forEach((value, i) => {
+					if(value){
+						applyWatchers(this[i], oldValues[i], this, [i]);
+					}
+				});
+				holdStarNotifications = false;
+				if(changes){
+					applyWatchers(this, UNKNOWN_OLD_VALUE, this, STAR);
+				}
+			}catch(e){
+				holdStarNotifications = false;
+				throw e;
+			}
+		}
+
+		reorder(proc){
+			let advice = getAdvice(this, "reorder");
+			this._reorder(proc);
+			advice && advice.map(f => f && f(this));
+			return this;
+		}
+
+		sort(...args){
+			let advice = getAdvice(this, "sort");
+			this._reorder(theArray => super.sort.apply(theArray, args));
+			advice && advice.map(f => f && f(this));
+			return this;
+		}
+	}
+
+	function silentSet(watchable, prop, value, enumerable, configurable){
+		try{
+			_silentSet = true;
+			if(value === undefined){
+				delete watchable[prop];
+			}else if(enumerable !== undefined && !enumerable && !watchable.hasOwnProperty(prop)){
+				Object.defineProperty(watchable, prop, {
+					writable: true,
+					configurable: configurable !== undefined ? configurable : true,
+					value: value
+				});
+			}else{
+				watchable[prop] = value;
+			}
+			_silentSet = false;
+		}catch(e){
+			_silentSet = false;
+			throw e;
+		}
+	}
+
 	function createWatchable(src, owner, prop){
 		let keys = Reflect.ownKeys(src);
-		let result = new Proxy(inPlaceConverting ? src : (Array.isArray(src) ? [] : {}), watcher);
-		keys.forEach(k => result[k] = src[k]);
-		result[OWNER] = owner;
-		prop && (result[PROP] = prop);
+		let isArray = Array.isArray(src);
+		let result = isArray ? new Proxy(new WatchableArray(), arrayWatcher) : new Proxy({}, watcher);
+		if(isArray){
+			keys.forEach(k => k !== "length" && (result[k] = src[k]));
+			Object.defineProperty(result, OLD_LENGTH, {writable: true, value: result.length});
+		}else{
+			keys.forEach(k => (result[k] = src[k]));
+		}
+
+		let silentHold = _silentSet;
+		_silentSet = true;
+		Object.defineProperty(result, OWNER, {writable: true, value: owner});
+		prop !== undefined && Object.defineProperty(result, PROP, {writable: true, value: prop});
+		_silentSet = silentHold;
 		return result;
 	}
 
@@ -339,38 +633,73 @@
 		}
 		try{
 			pauseWatchers = true;
-			inPlaceConverting = true;
-			return createWatchable(data, OWNER_NULL);
-		}finally{
+			data = createWatchable(data, OWNER_NULL, false);
 			pauseWatchers = false;
-			inPlaceConverting = false;
+			return data;
+		}catch(e){
+			pauseWatchers = false;
+			throw e;
 		}
 	}
+
+	function fromWatchable(data){
+		if(data instanceof Object){
+			if(!data){
+				return data;
+			}
+			let result = Array.isArray(data) ? Array(data.length) : {};
+			Reflect.ownKeys(data).forEach(k => {
+				if(k !== OWNER && k !== PROP){
+					result[k] = fromWatchable(data[k]);
+				}
+			});
+			return result;
+		}else{
+			return data;
+		}
+	}
+
+	let onMutateBeforeNames = {};
+	let onMutateNames = {};
 
 	function mutate(owner, name, privateName, newValue){
 		let oldValue = owner[privateName];
 		if(eql(oldValue, newValue)){
 			return false;
 		}else{
-			let onMutateBefore = owner[name + "OnMutateBefore"];
-			onMutateBefore && onMutateBefore.call(owner, newValue, oldValue);
+			let onMutateBeforeName, onMutateName;
+			if(typeof name !== "symbol"){
+				onMutateBeforeName = onMutateBeforeNames[name];
+				if(!onMutateBeforeName){
+					let suffix = name.substring(0, 1).toUpperCase() + name.substring(1);
+					onMutateBeforeName = onMutateBeforeNames[name] = "onMutateBefore" + suffix;
+					onMutateName = onMutateNames[name] = "onMutate" + suffix;
+				}else{
+					onMutateName = onMutateNames[name];
+				}
+			}
+
+			onMutateBeforeName && owner[onMutateBeforeName] && owner[onMutateBeforeName](newValue, oldValue);
 			if(owner.hasOwnProperty(privateName)){
 				owner[privateName] = newValue;
 			}else{
 				// not enumerable or configurable
 				Object.defineProperty(owner, privateName, {writable: true, value: newValue});
 			}
-			let onMutate = owner[name + "OnMutate"];
-			onMutate && onMutate.call(owner, newValue, oldValue);
-			return [name, oldValue, newValue];
+			onMutateName && owner[onMutateName] && owner[onMutateName](newValue, oldValue);
+			return [name, newValue, oldValue];
 		}
+	}
+
+	function getWatcher(owner, watcher){
+		return typeof watcher === "function" ? watcher : owner[watcher].bind(owner);
 	}
 
 	function watchHub(superClass){
 		return class extends (superClass || class {
 		}) {
 			// protected interface...
-			bdMutateNotify(name, oldValue, newValue){
+			bdMutateNotify(name, newValue, oldValue){
 				let variables = watcherCatalog.get(this);
 				if(!variables){
 					return;
@@ -382,25 +711,25 @@
 						doStar = true;
 						let watchers = variables[p[0]];
 						if(watchers){
-							oldValue = p[1];
-							newValue = p[2];
-							watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(newValue, oldValue, this));
+							newValue = p[1];
+							oldValue = p[2];
+							watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(newValue, oldValue, this, name));
 						}
 					}
 					if(doStar){
-						let watchers = variables["*"];
+						let watchers = variables[STAR];
 						if(watchers){
-							watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(this));
+							watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(this, oldValue, this, name));
 						}
 					}
 				}else{
 					let watchers = variables[name];
 					if(watchers){
-						watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(newValue, oldValue, this));
+						watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(newValue, oldValue, this, name));
 					}
-					watchers = variables["*"];
+					watchers = variables[STAR];
 					if(watchers){
-						watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(this));
+						watchers.slice().forEach(destroyable$$1 => destroyable$$1.proc(this, oldValue, this, name));
 					}
 				}
 			}
@@ -438,11 +767,12 @@
 			watch(...args){
 				// possible sigs:
 				// 1: name, watcher
-				// 2: [name], watcher
+				// 2: name[], watcher
 				// 3: hash: name -> watcher
 				// 4: watchable, name, watcher
-				// 5: watchable, [names], watcher
+				// 5: watchable, name[], watcher
 				// 6: watchable, hash: name -> watcher
+				// 7: watchable, watcher // STAR watcher
 
 				if(arguments.length === 1){
 					// sig 3
@@ -451,16 +781,31 @@
 				}
 				if(args[0][OWNER]){
 					// sig 4-6
-					let result = watch(...args);
+					let result;
+					if(arguments.length === 2){
+						if(typeof args[1] === "object"){
+							// sig 6
+							let hash = args[1];
+							Reflect.ownKeys(hash).map(name => (hash[name] = getWatcher(this, hash[name])));
+							result = watch(args[0], hash);
+						}else{
+							// sig 7
+							result = watch(args[0], STAR, getWatcher(this, args[1]));
+						}
+					}else{
+						// sig 4 or 5
+						result = watch(args[0], args[1], getWatcher(this, args[2]));
+					}
 					this.own && this.own(result);
 					return result;
 				}
 				if(Array.isArray(args[0])){
 					// sig 2
-					return args[0].map(name => this.watch(name, watcher));
+					return args[0].map(name => this.watch(name, getWatcher(this, args[1])));
 				}
 				// sig 1
-				let [name, watcher] = args;
+				let name = args[0];
+				let watcher = getWatcher(this, args[1]);
 				let variables = watcherCatalog.get(this);
 				if(!variables){
 					watcherCatalog.set(this, (variables = {}));
@@ -501,7 +846,7 @@
 	const WatchHub = watchHub();
 
 	function isWatchable(target){
-		return target && (target[OWNER] || target.isBdWatchHub);
+		return target && target[OWNER];
 	}
 
 	function withWatchables(superClass, ...args){
@@ -791,7 +1136,7 @@
 		});
 	}
 
-	function noop$1(){
+	function noop$2(){
 	}
 
 	function pushHandles(dest, ...handles){
@@ -806,7 +1151,7 @@
 					if(index !== -1){
 						dest.splice(index, 1);
 					}
-					h.destroy = noop$1;
+					h.destroy = noop$2;
 				};
 				dest.push(h);
 			}
@@ -925,7 +1270,7 @@
 				}
 				this.ownWhileRendered(this.postRender());
 				proc && proc.call(this);
-				this.bdMutateNotify("rendered", false, true);
+				this.bdMutateNotify("rendered", true, false);
 			}
 			return this.bdDom.root;
 		}
@@ -967,7 +1312,7 @@
 				delete this.bdDom;
 				delete this._dom;
 				this.bdAttachToDoc(false);
-				this.bdMutateNotify("rendered", true, false);
+				this.bdMutateNotify("rendered", false, true);
 			}
 		}
 
@@ -1219,11 +1564,11 @@
 				if(this.rendered){
 					this.bdDom.root.setAttribute("class", calcDomClassName(this));
 				}
-				this.bdMutateNotify("className", oldValue, newValue);
+				this.bdMutateNotify("className", newValue, oldValue);
 				let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
 					newVisibleValue = newValue ? newValue.indexOf("hidden") === -1 : true;
 				if(oldVisibleValue !== newVisibleValue){
-					this.bdMutateNotify("visible", oldVisibleValue, newVisibleValue);
+					this.bdMutateNotify("visible", newVisibleValue, oldVisibleValue);
 				}
 			}
 		}
@@ -1283,7 +1628,7 @@
 			value = !!value;
 			if(this.bdDisabled !== value){
 				this.bdDisabled = value;
-				this.bdMutateNotify([["disabled", !value, value], ["enabled", value, !value]]);
+				this.bdMutateNotify([["disabled", value, !value], ["enabled", !value, value]]);
 				this[value ? "addClassName" : "removeClassName"]("bd-disabled");
 			}
 		}
@@ -1301,7 +1646,7 @@
 				}else{
 					this.addClassName("bd-hidden");
 				}
-				this.bdMutateNotify("visible", !value, value);
+				this.bdMutateNotify("visible", value, !value);
 			}
 		}
 
@@ -2114,11 +2459,142 @@
 	);
 	insPostProcessingFunction("bdAdvise", "bdOn");
 
-	function watchCollection(owner){
-		if(owner.bdDom.collectionWatcher){
-			owner.bdDom.collectionWatcher.destroy();
+	function applyLengthWatchers(owner, newValue, oldValue){
+		if(oldValue !== newValue){
+			owner.children.forEach(child => {
+				child.onMutateCollectionLength && child.onMutateCollectionLength(newValue, oldValue);
+				child.bdMutateNotify("collectionLength", newValue, oldValue);
+			});
 		}
-		owner.ownWhileRendered(owner.bdDom.collectionWatcher = watch(owner.bdCollection, "length", owner.bdSynchChildren.bind(owner)));
+	}
+
+	function updateChildren(collection, owner, oldLength){
+		let children = owner.children;
+		let newLength = collection.length;
+		for(let i = 0, end = newLength; i < end; i++){
+			let item = collection[i];
+			let child, j = i, childrenCount = children.length;
+			while(j < childrenCount && (child = children[j]) && child.collectionItem !== item) j++;
+			if(j >= childrenCount){
+				// new item
+				owner.insChild(i);
+			}else{
+				if(j !== i){
+					// moved child
+					Component.insertNode(child.bdDom.root, child.bdDom.root.parentNode, i);
+					children.splice(j, 1);
+					children.splice(i, 0, child);
+				}
+				// child may have moved by inserting new children before it; therefore...
+				child.collectionIndex = i;
+			}
+		}
+		children.slice(newLength).forEach(child => owner.delChild(child));
+		applyLengthWatchers(owner, newLength, oldLength);
+	}
+
+	function setSpliceAdvice(collection, owner){
+		return collection.before("splice", () => {
+			if(!owner.rendered){
+				return;
+			}
+			let oldLength = collection.length;
+			let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+			owner.suspendWatchAdvise = true;
+			return () => {
+				owner.suspendWatchAdvise = holdSuspendWatchAdvise;
+				updateChildren(collection, owner, oldLength);
+			};
+		});
+	}
+
+	function setShiftAdvice(collection, owner){
+		return collection.before("shift", () => {
+			if(!owner.rendered || !collection.length){
+				return;
+			}
+			let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+			owner.suspendWatchAdvise = true;
+			return () => {
+				owner.suspendWatchAdvise = holdSuspendWatchAdvise;
+				let children = owner.children;
+				owner.delChild(children[0]);
+				let newLength = collection.length;
+				let oldLength = newLength + 1;
+				children.forEach((child, i) => (child.collectionIndex = i));
+				applyLengthWatchers(owner, newLength, oldLength);
+			};
+		});
+	}
+
+	function setUnshiftAdvice(collection, owner){
+		return collection.before("unshift", () => {
+			if(!owner.rendered){
+				return;
+			}
+			let oldLength = collection.length;
+			let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+			owner.suspendWatchAdvise = true;
+			return () => {
+				owner.suspendWatchAdvise = holdSuspendWatchAdvise;
+				let newLength = collection.length;
+				for(let i = 0, end = newLength - oldLength; i < end; i++){
+					owner.insChild(i);
+				}
+				for(let children = owner.children, i = newLength - oldLength; i < newLength; i++){
+					children[i].collectionIndex = i;
+				}
+				applyLengthWatchers(owner, newLength, oldLength);
+			};
+		});
+	}
+
+	function setReverseAdvice(collection, owner){
+		return collection.before("reverse", () => {
+			if(!owner.rendered){
+				return;
+			}
+			let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+			owner.suspendWatchAdvise = true;
+			return () => {
+				owner.suspendWatchAdvise = holdSuspendWatchAdvise;
+				let children = owner.children;
+				for(let i = children.length - 1; i >= 0; i--){
+					let node = children[i].bdDom.root;
+					node.parentNode.appendChild(node);
+				}
+				children.reverse();
+				children.forEach((child, i) => child.collectionIndex = i);
+			};
+		});
+	}
+
+	function setSortAdvice(collection, owner){
+		return collection.before("sort", () => {
+			if(!owner.rendered){
+				return;
+			}
+			let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+			owner.suspendWatchAdvise = true;
+			return () => {
+				owner.suspendWatchAdvise = holdSuspendWatchAdvise;
+				updateChildren(collection, owner, collection.length);
+			};
+		});
+	}
+
+	function setOrderAdvice(collection, owner){
+		return collection.before("order", () => {
+			if(!owner.rendered){
+				return;
+			}
+			let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+			owner.suspendWatchAdvise = true;
+			return () => {
+				owner.suspendWatchAdvise = holdSuspendWatchAdvise;
+				updateChildren(collection, owner, collection.length);
+			};
+		});
 	}
 
 	class Collection extends Component {
@@ -2129,12 +2605,51 @@
 
 		set collection(value){
 			// always an array
-			value = value || [];
+			value = value || toWatchable([]);
 			if(this.bdMutate("collection", "bdCollection", value)){
+				this.bdSetupHandle && this.bdSetupHandle.destroy();
+
 				if(this.rendered){
-					this.children.slice().forEach(this.delChild.bind(this));
-					this.bdSynchChildren();
-					watchCollection(this);
+					let children = this.children;
+					let collection = this.bdCollection;
+					let oldLength = children.length;
+					let newLength = collection.length;
+					let mutateLength = oldLength !== newLength;
+					for(let i = 0, end = Math.min(oldLength, newLength); i < end; i++){
+						let child = children[i];
+						child.collectionItem = collection[i];
+						if(mutateLength){
+							child.onMutateCollectionLength && child.onMutateCollectionLength(newLength, oldLength);
+							child.bdMutateNotify("collectionLength", newLength, oldLength);
+						}
+					}
+				}
+
+				let collection = this.bdCollection;
+				if(isWatchable(collection) && !this.kwargs.collectionIsScalars){
+					let handles = [
+						this.watch(this.bdCollection, "length", (newValue, oldValue) => {
+							if(this.suspendWatchAdvise) return;
+							if(this.rendered){
+								this.bdSynchChildren();
+								applyLengthWatchers(this, newValue, oldValue);
+							}
+						}),
+						setSpliceAdvice(collection, this),
+						setShiftAdvice(collection, this),
+						setUnshiftAdvice(collection, this),
+						setReverseAdvice(collection, this),
+						setSortAdvice(collection, this),
+						setOrderAdvice(collection, this)
+					];
+					let setupHandle = this.bdSetupHandle  = {
+						destroy(){
+							// multiple calls imply no-op
+							setupHandle.destroy = () => 0;
+							destroyAll(handles);
+						}
+					};
+					this.own(setupHandle);
 				}
 			}
 		}
@@ -2145,38 +2660,152 @@
 
 		render(proc){
 			if(!this.bdDom){
-				super.render(proc);
+				super.render();
 				this.children = [];
 				this.bdSynchChildren();
-				watchCollection(this);
+				proc && proc();
 			}
 			return this.bdDom.root;
 		}
 
-		insChild(i){
-			let child = new this.kwargs.childType({index: i, mix: {collection: this.bdCollection}});
-			let attachPoint = this.bdChildrenAttachPoint || this.bdDom.root;
-			Component.insertNode(child.render(), attachPoint, i);
-			this.children.push(child);
-			child.bdMutate("parent", "bdParent", this);
+		insChild(collectionIndex){
+			let child = new this.kwargs.childType({parent: this, collectionIndex: collectionIndex});
+			Component.insertNode(child.render(), this.bdChildrenAttachPoint || this.bdDom.root, collectionIndex);
+			this.children.splice(collectionIndex, 0, child);
 			child.bdAttachToDoc(this.bdAttachedToDoc);
 			return child;
 		}
 
 		bdSynchChildren(){
 			let children = this.children;
-			while(children.length < this.bdCollection.length){
+			let collection = this.collection;
+			while(children.length < collection.length){
 				this.insChild(children.length);
 			}
-			while(children.length > this.bdCollection.length){
-				this.delChild(this.children[this.children.length - 1]);
+			while(children.length > collection.length){
+				this.delChild(children[children.length - 1]);
 			}
 		}
 	}
 
+	let onMutateNames$1 = {};
+
+	function onMutateItemWatchable(propName, owner, newValue, oldValue){
+		let procName = onMutateNames$1[propName];
+		if(procName === undefined){
+			if(typeof propName === "symbol"){
+				return (onMutateNames$1[propName] = false);
+			}
+			procName = onMutateNames$1[propName] = "onMutate" + propName.substring(0, 1).toUpperCase() + propName.substring(1);
+		}
+		procName && owner[procName] && owner[procName](newValue, oldValue);
+	}
+
+	class CollectionChild extends Component {
+		constructor(kwargs){
+			super(kwargs);
+			this._itemWatchHandles = [];
+			this.bdParent = kwargs.parent;
+			this.bdCollectionIndex = kwargs.collectionIndex;
+			this.bdCollectionItem = kwargs.parent.collection[kwargs.collectionIndex];
+			this.constructor.itemWatchables.forEach(prop => Object.defineProperty(this, prop, {
+				enumerable: true,
+				get: () => this.bdCollectionItem[prop]
+			}));
+			this._connectWatchers();
+		}
+
+		get collectionIndex(){
+			// watchable
+			return this.bdCollectionIndex;
+		}
+
+		set collectionIndex(newValue){
+			if(newValue !== this.bdCollectionIndex){
+				let oldValue = this.bdCollectionIndex;
+				this.bdCollectionIndex = newValue;
+				this.onMutateCollectionIndex && this.onMutateCollectionIndex(newValue, oldValue);
+				this.bdMutateNotify("collectionIndex", newValue, oldValue);
+				this._connectWatchers();
+			}
+		}
+
+		get collectionLength(){
+			// watchable iff the parent, like Collection, applies the watchers
+			return this.parent.collection.length;
+		}
+
+		get collectionItem(){
+			// watchable, see setter and _connectWatchers
+			return this.bdCollectionItem;
+		}
+
+		set collectionItem(newValue){
+			this._applyWatchers(newValue, this.bdCollectionItem);
+			this.bdCollectionItem = newValue;
+			this._connectWatchers();
+		}
+
+		_applyWatchers(newValue, oldValue){
+			if(newValue !== oldValue){
+				this.onMutateCollectionItem && this.onMutateCollectionItem(newValue, oldValue);
+				this.bdMutateNotify("collectionItem", newValue, oldValue);
+				this.constructor.itemWatchables.forEach(prop => {
+					onMutateItemWatchable(prop, this, newValue[prop], oldValue[prop]);
+					this.bdMutateNotify(prop, newValue[prop], oldValue[prop]);
+				});
+			}
+		}
+
+		_connectWatchers(){
+			this._itemWatchHandles.forEach(h => h.destroy());
+			let handles = this._itemWatchHandles = [];
+			if(isWatchable(this.parent.collection)){
+				let collectionItem = this.bdCollectionItem;
+				handles.push(this.watch(this.parent.collection, this.collectionIndex, (newValue, oldValue, target, prop) => {
+					if(this.parent.suspendWatchAdvise) return;
+					if(prop.length === 1){
+						// the whole item changed; therefore, reset the watch
+						this._applyWatchers(newValue, oldValue);
+						this._connectWatchers();
+					}else{
+						this.onMutateCollectionItem && this.onMutateCollectionItem(collectionItem, UNKNOWN_OLD_VALUE);
+						this.bdMutateNotify("collectionItem", collectionItem, UNKNOWN_OLD_VALUE);
+					}
+				}));
+				this.constructor.itemWatchables.forEach(prop =>
+					handles.push(this.watch(collectionItem, prop, (newValue, oldValue, target, _prop) => {
+						if(this.parent.suspendWatchAdvise) return;
+						onMutateItemWatchable(prop, this, newValue, oldValue, target, _prop);
+						this.bdMutateNotify(prop, newValue, oldValue);
+					}))
+				);
+			}
+
+		}
+	}
+
+	CollectionChild.itemWatchables = [];
+
+	CollectionChild.withWatchables = function(...args){
+		let superclass = typeof args[0] === "function" ? args.shift() : CollectionChild;
+		let itemWatchables = [];
+		args = args.filter(prop => {
+			let match = prop.match(/^item:(.+)/);
+			if(match){
+				itemWatchables = itemWatchables.concat(match[1].split(",").map(p => p.trim()).filter(p => !!p));
+				return false;
+			}
+			return true;
+		});
+		let result = withWatchables(superclass, ...args);
+		result.itemWatchables = itemWatchables;
+		return result;
+	};
+
 	initialize(document, create, insert);
 
-	const version = "2.3.0";
+	const version = "2.3.1";
 
 	exports.e = element;
 	exports.version = version;
@@ -2198,10 +2827,12 @@
 	exports.OWNER = OWNER;
 	exports.OWNER_NULL = OWNER_NULL;
 	exports.PROP = PROP;
+	exports.silentSet = silentSet;
 	exports.WatchableRef = WatchableRef;
 	exports.getWatchableRef = getWatchableRef;
 	exports.watch = watch;
 	exports.toWatchable = toWatchable;
+	exports.fromWatchable = fromWatchable;
 	exports.watchHub = watchHub;
 	exports.WatchHub = WatchHub;
 	exports.isWatchable = isWatchable;
@@ -2212,6 +2843,7 @@
 	exports.Component = Component;
 	exports.render = render;
 	exports.Collection = Collection;
+	exports.CollectionChild = CollectionChild;
 	exports.getAttributeValueFromEvent = getAttributeValueFromEvent;
 	exports.setAttr = setAttr;
 	exports.getAttr = getAttr;
