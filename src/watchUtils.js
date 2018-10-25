@@ -247,6 +247,14 @@ const arrayWatcher = {
 
 const NO_CHANGE = Symbol("splice-no-change");
 const QUICK_COPY = Symbol("slice-quick-copy");
+const BEFORE_ADVICE = Symbol("BEFORE_ADVICE");
+const noop = () => {
+};
+
+function getAdvice(owner, method){
+	let advice = owner[BEFORE_ADVICE] && owner[BEFORE_ADVICE][method];
+	return advice && advice.map(f=>f());
+}
 
 class WatchableArray extends Array {
 	// note: we can make all of these much more efficient, particularly shift and unshift.
@@ -257,7 +265,25 @@ class WatchableArray extends Array {
 		return result;
 	}
 
-	splice(...args){
+	before(method, proc){
+		let beforeAdvice = this[BEFORE_ADVICE];
+		if(!beforeAdvice){
+			Object.defineProperty(this, BEFORE_ADVICE, {value: {}});
+			beforeAdvice = this[BEFORE_ADVICE];
+		}
+		let stack = beforeAdvice[method] || (beforeAdvice[method] = []);
+		stack.push(proc);
+		let handle = {
+			destroy(){
+				handle.destroy = noop;
+				let index = stack.indexOf(proc);
+				if(index !== -1) stack.splice(index, 1);
+			}
+		};
+		return handle;
+	}
+
+	_splice(...args){
 		let oldValues = this.slice(QUICK_COPY);
 		let changeSet = [];
 		let result;
@@ -325,12 +351,25 @@ class WatchableArray extends Array {
 		return result;
 	}
 
+	splice(...args){
+		let advice = getAdvice(this, "splice");
+		let result = this._splice(...args);
+		advice && advice.map(f=>f && f(result));
+		return result;
+	}
+
 	pop(){
-		return fromWatchable(super.pop());
+		let advice = getAdvice(this, "pop");
+		let result = fromWatchable(super.pop());
+		advice && advice.map(f=>f && f(result));
+		return result;
 	}
 
 	shift(){
-		return fromWatchable(this.splice(0, 1)[0]);
+		let advice = getAdvice(this, "shift");
+		let result = fromWatchable(this._splice(0, 1)[0]);
+		advice && advice.map(f=>f && f(result));
+		return result;
 	}
 
 	slice(...args){
@@ -338,10 +377,14 @@ class WatchableArray extends Array {
 	}
 
 	unshift(...args){
-		this.splice(0, 0, ...args);
+		let advice = getAdvice(this, "unshift");
+		this._splice(0, 0, ...args);
+		advice && advice.map(f=>f && f());
+		return;
 	}
 
 	reverse(){
+		let advice = getAdvice(this, "reverse");
 		let oldValues = this.slice(QUICK_COPY);
 		try{
 			_silentSet = true;
@@ -377,9 +420,11 @@ class WatchableArray extends Array {
 			holdStarNotifications = false;
 			throw e;
 		}
+		advice && advice.map(f=>f && f(this));
+		return this;
 	}
 
-	reorder(proc){
+	_reorder(proc){
 		let oldValues = this.slice(QUICK_COPY);
 		let changeSet = Array(this.length).fill(false);
 		let changes = false;
@@ -415,8 +460,18 @@ class WatchableArray extends Array {
 		}
 	}
 
+	reorder(proc){
+		let advice = getAdvice(this, "reorder");
+		this._reorder(proc)
+		advice && advice.map(f=>f && f(this));
+		return this;
+	}
+
 	sort(...args){
-		this.reorder(theArray => super.sort.apply(theArray, args));
+		let advice = getAdvice(this, "sort");
+		this._reorder(theArray => super.sort.apply(theArray, args));
+		advice && advice.map(f=>f && f(this));
+		return this;
 	}
 }
 
@@ -518,7 +573,7 @@ function mutate(owner, name, privateName, newValue){
 	}
 }
 
-function getWatcher(owner, watcher) {
+function getWatcher(owner, watcher){
 	return typeof watcher === "function" ? watcher : owner[watcher].bind(owner);
 }
 
