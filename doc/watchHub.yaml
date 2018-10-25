@@ -227,7 +227,7 @@ pMethods:
     d: >
       the value of the mutated property, before the mutation
   - name: list
-    type: array of [publicName, oldValue, newValue]
+    type: array of [publicName, newValue, oldValue]
     d: >
       see description
   d:

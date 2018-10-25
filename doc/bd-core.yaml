@@ -173,7 +173,7 @@ d:
     id: requirments
     d:
     - >
-      Backdraft is 100% modern Javascript (ES6). It requires a modern browser:
+      Backdraft is built with 100% modern Javascript (ES6). It requires a modern browser:
 
     - ul:
         - Chrome v69+
@@ -210,13 +210,13 @@ d:
   - >
     [[Support]./support.html]
   - >
-    [[Tests]https://github.com/altoviso/backdraft/tree/v2.3.0/test]
+    [[Tests]https://github.com/altoviso/backdraft/tree/v2.3.1/test]
 
 variables:
 - name: version
   sum: version number of the Backdraft library
   def: |
-    const version = "2.3.0"
+    const version = "2.3.1"
   d:
   - >
     The version number of the Backdraft library.
