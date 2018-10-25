@@ -475,11 +475,17 @@ class WatchableArray extends Array {
 	}
 }
 
-function silentSet(watchable, prop, value){
+function silentSet(watchable, prop, value, enumerable, configurable){
 	try{
 		_silentSet = true;
 		if(value === undefined){
 			delete watchable[prop];
+		}else if(enumerable !== undefined && !enumerable && !watchable.hasOwnProperty(prop)){
+			Object.defineProperty(watchable, prop, {
+				writable: true,
+				configurable: configurable !== undefined ? configurable : true,
+				value: value
+			});
 		}else{
 			watchable[prop] = value;
 		}
@@ -496,15 +502,15 @@ function createWatchable(src, owner, prop){
 	let result = isArray ? new Proxy(new WatchableArray(), arrayWatcher) : new Proxy({}, watcher);
 	if(isArray){
 		keys.forEach(k => k !== "length" && (result[k] = src[k]));
-		result[oldLength] = result.length;
+		Object.defineProperty(result, oldLength, {writable: true, value: result.length});
 	}else{
 		keys.forEach(k => (result[k] = src[k]));
 	}
 
 	let silentHold = _silentSet;
 	_silentSet = true;
-	result[OWNER] = owner;
-	prop !== undefined && (result[PROP] = prop);
+	Object.defineProperty(result, OWNER, {writable: true, value: owner});
+	prop !== undefined && Object.defineProperty(result, PROP, {writable: true, value: prop});
 	_silentSet = silentHold;
 	return result;
 }
