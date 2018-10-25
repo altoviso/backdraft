@@ -229,14 +229,19 @@ const watcher = {
 	set: set
 };
 
-const swapOldLength = Symbol("swapOldLength");
-const oldLength = Symbol("old-length");
+const SWAP_OLD_LENGTH = Symbol("SWAP_OLD_LENGTH");
+const OLD_LENGTH = Symbol("old-length");
+const NO_CHANGE = Symbol("splice-no-change");
+const QUICK_COPY = Symbol("slice-quick-copy");
+const BEFORE_ADVICE = Symbol("BEFORE_ADVICE");
+const noop = () => {
+};
 
 const arrayWatcher = {
 	set(target, prop, value, receiver){
 		if(prop === "length"){
 			let result = Reflect.set(target, prop, value, receiver);
-			let oldValue = target[swapOldLength](value);
+			let oldValue = target[SWAP_OLD_LENGTH](value);
 			!pauseWatchers && !_silentSet && applyWatchers(value, oldValue, receiver, ["length"]);
 			return result;
 		}else{
@@ -245,23 +250,18 @@ const arrayWatcher = {
 	}
 };
 
-const NO_CHANGE = Symbol("splice-no-change");
-const QUICK_COPY = Symbol("slice-quick-copy");
-const BEFORE_ADVICE = Symbol("BEFORE_ADVICE");
-const noop = () => {
-};
 
 function getAdvice(owner, method){
 	let advice = owner[BEFORE_ADVICE] && owner[BEFORE_ADVICE][method];
-	return advice && advice.map(f=>f());
+	return advice && advice.map(f => f());
 }
 
 class WatchableArray extends Array {
 	// note: we can make all of these much more efficient, particularly shift and unshift.
 	// But, it's probably rare that it will matter, so we'll do it when the need arises
-	[swapOldLength](newLength){
-		let result = this[oldLength];
-		this[oldLength] = newLength;
+	[SWAP_OLD_LENGTH](newLength){
+		let result = this[OLD_LENGTH];
+		this[OLD_LENGTH] = newLength;
 		return result;
 	}
 
@@ -354,21 +354,21 @@ class WatchableArray extends Array {
 	splice(...args){
 		let advice = getAdvice(this, "splice");
 		let result = this._splice(...args);
-		advice && advice.map(f=>f && f(result));
+		advice && advice.map(f => f && f(result));
 		return result;
 	}
 
 	pop(){
 		let advice = getAdvice(this, "pop");
 		let result = fromWatchable(super.pop());
-		advice && advice.map(f=>f && f(result));
+		advice && advice.map(f => f && f(result));
 		return result;
 	}
 
 	shift(){
 		let advice = getAdvice(this, "shift");
 		let result = fromWatchable(this._splice(0, 1)[0]);
-		advice && advice.map(f=>f && f(result));
+		advice && advice.map(f => f && f(result));
 		return result;
 	}
 
@@ -379,8 +379,7 @@ class WatchableArray extends Array {
 	unshift(...args){
 		let advice = getAdvice(this, "unshift");
 		this._splice(0, 0, ...args);
-		advice && advice.map(f=>f && f());
-		return;
+		advice && advice.map(f => f && f());
 	}
 
 	reverse(){
@@ -420,7 +419,7 @@ class WatchableArray extends Array {
 			holdStarNotifications = false;
 			throw e;
 		}
-		advice && advice.map(f=>f && f(this));
+		advice && advice.map(f => f && f(this));
 		return this;
 	}
 
@@ -462,15 +461,15 @@ class WatchableArray extends Array {
 
 	reorder(proc){
 		let advice = getAdvice(this, "reorder");
-		this._reorder(proc)
-		advice && advice.map(f=>f && f(this));
+		this._reorder(proc);
+		advice && advice.map(f => f && f(this));
 		return this;
 	}
 
 	sort(...args){
 		let advice = getAdvice(this, "sort");
 		this._reorder(theArray => super.sort.apply(theArray, args));
-		advice && advice.map(f=>f && f(this));
+		advice && advice.map(f => f && f(this));
 		return this;
 	}
 }
@@ -502,7 +501,7 @@ function createWatchable(src, owner, prop){
 	let result = isArray ? new Proxy(new WatchableArray(), arrayWatcher) : new Proxy({}, watcher);
 	if(isArray){
 		keys.forEach(k => k !== "length" && (result[k] = src[k]));
-		Object.defineProperty(result, oldLength, {writable: true, value: result.length});
+		Object.defineProperty(result, OLD_LENGTH, {writable: true, value: result.length});
 	}else{
 		keys.forEach(k => (result[k] = src[k]));
 	}
