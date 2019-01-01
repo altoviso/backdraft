@@ -324,7 +324,6 @@ export class CollectionChild extends Component {
 				}))
 			);
 		}
-
 	}
 }
 
