@@ -269,41 +269,18 @@ function destroyDomNode(node){
 	node && node.parentNode && node.parentNode.removeChild(node);
 }
 
-let hasTouchEvents = "ontouchstart" in document,
-	touchMap = {
-		mousedown: "touchstart",
-		mousemove: "touchmove",
-		mouseup: "touchend"
-	};
-
 function connect(target, type, listener, useCapture){
-	// if you don't want to register touch events, set useCapture to either true or false
-	let touchEvent = touchMap[type],
-		destroyed = false;
-	if(touchEvent && hasTouchEvents && useCapture === undefined){
-		target.addEventListener(type, listener);
-		target.addEventListener(touchEvent, listener);
-		return {
-			destroy: function(){
-				if(!destroyed){
-					destroyed = true;
-					target.removeEventListener(type, listener);
-					target.removeEventListener(touchEvent, listener);
-				}
+	let destroyed = false;
+	useCapture = !!useCapture;
+	target.addEventListener(type, listener, useCapture);
+	return {
+		destroy: function(){
+			if(!destroyed){
+				destroyed = true;
+				target.removeEventListener(type, listener, useCapture);
 			}
-		};
-	}else{
-		useCapture = !!useCapture;
-		target.addEventListener(type, listener, useCapture);
-		return {
-			destroy: function(){
-				if(!destroyed){
-					destroyed = true;
-					target.removeEventListener(type, listener, useCapture);
-				}
-			}
-		};
-	}
+		}
+	};
 }
 
 function stopEvent(event){
@@ -457,7 +434,7 @@ insPostProcessingFunction("bdReflect",
 		if(prop === null && value instanceof Object && !Array.isArray(value)){
 			// e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
 			return value;
-		}else if (prop){
+		}else if(prop){
 			// e.g., bdReflect_someProp: [refObject, ] prop [, someFormatter]
 			return {[prop]: value};
 		}else{
