@@ -86,8 +86,8 @@ function getStyles(node, ...styleNames){
 
 	let result = {};
 	styles.forEach((property) => {
-		let result = lastComputedStyle[property];
-		result[property] = (typeof result === "string" && /px$/.test(result)) ? parseFloat(result) : result;
+		let value = lastComputedStyle[property];
+		result[property] = (typeof value === "string" && /px$/.test(value)) ? parseFloat(value) : value;
 	});
 	return result;
 }
