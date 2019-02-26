@@ -38,7 +38,7 @@
 
 	if(isNode){
 		tests.map(item => smoke.defBrowserTestRef(item[0]));
-		config.capabilities = isNode ? require("./test/capabilities") : []
+		config.capabilities = isNode ? require("./test/capabilities") : [];
 	}else if(isAmd){
 		// TODO
 	}else{
