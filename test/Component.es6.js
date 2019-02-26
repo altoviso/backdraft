@@ -1453,9 +1453,9 @@ smoke.defBrowserTest({
 			}
 
 			let timer = new smoke.Timer();
-			render(BigComponent, {rows: 10000, cols: 10}, "bd-smoke-root");
+			let bc = render(BigComponent, {rows: 10000, cols: 10}, "bd-smoke-root");
 			console.log("timer: ", timer.time / 1000);
-
+			bc.destroy();
 		}],
 		["perf2-dom", function(){
 			class BigComponent extends Component {
@@ -1484,9 +1484,9 @@ smoke.defBrowserTest({
 			}
 
 			let timer = new smoke.Timer();
-			render(BigComponent, {rows: 10000, cols: 10}, "bd-smoke-root");
+			let bc = render(BigComponent, {rows: 10000, cols: 10}, "bd-smoke-root");
 			console.log("timer: ", timer.time / 1000);
-
+			bc.destroy();
 		}]
 	]
 });
