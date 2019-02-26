@@ -21,7 +21,7 @@ function conditionClassNameArgs(args){
 	return args.reduce((acc, item) => {
 		if(item instanceof RegExp){
 			acc.push(item);
-		}else{
+		}else if(item){
 			acc = acc.concat(item.split(" ").map(s => s.trim()).filter(s => !!s));
 		}
 		return acc;
