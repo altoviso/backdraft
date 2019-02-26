@@ -19,7 +19,7 @@
 	"author": "Rawld Gill",
 	"license": "BSD-3-Clause",
 	"devDependencies": {
-		"bd-smoke": "^1.0.1",
+		"bd-smoke": "^1.1.0",
 		"eslint": "^5.5.0",
 		"rollup": "^0.65.0"
 	},
