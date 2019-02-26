@@ -93,7 +93,7 @@ class WatchableRef {
 						if(this[pWatchableHandles].length === 2){
 							this[pWatchableHandles].pop().destroy();
 						}
-						if(newValue[OWNER]){
+						if(newValue && newValue[OWNER]){
 							// value is a watchable
 							this[pWatchableHandles].push(watch(newValue, (newValue, oldValue, receiver, referenceProp) => {
 								callback(receiver, UNKNOWN_OLD_VALUE, referenceObject, referenceProp);
@@ -534,9 +534,12 @@ function fromWatchable(data){
 		if(!data){
 			return data;
 		}
+		if(!data[OWNER]){
+			return data;
+		}
 		let result = Array.isArray(data) ? Array(data.length) : {};
 		Reflect.ownKeys(data).forEach(k => {
-			if(k !== OWNER && k !== PROP){
+			if(k !== OWNER && k !== PROP && k!=OLD_LENGTH){
 				result[k] = fromWatchable(data[k]);
 			}
 		});
