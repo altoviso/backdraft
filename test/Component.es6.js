@@ -1,4 +1,4 @@
-import {e, Component, render} from "../lib.js"
+import {e, Component, render} from "../lib.js";
 
 const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
 const assert = smoke.assert;
@@ -12,7 +12,7 @@ class Component_ extends Component {
 	}
 
 	bdElements(){
-		return e("div", this.id)
+		return e("div", this.id);
 	}
 }
 
@@ -60,7 +60,8 @@ smoke.defBrowserTest({
 			assert(c.kwargs === undefined);
 
 			class NoSpace extends Component {
-			};
+			}
+
 			NoSpace.noKwargs = true;
 			c = new NoSpace({});
 			assert(Reflect.ownKeys(c).length === 0);
@@ -109,7 +110,6 @@ smoke.defBrowserTest({
 			c.destroy();
 		}],
 		["className-manipulation", function(){
-			let elements = e("div");
 			let c = new Component({
 				elements: e("div", {className: "test1"}),
 				className: "test2",
@@ -1424,6 +1424,69 @@ smoke.defBrowserTest({
 			assert(child2.attachedToDoc === true);
 			assert(child11.attachedToDoc === true);
 			c.destroy();
+		}],
+		["perf-dom", function(){
+			class BigComponent extends Component {
+				constructor(kwargs){
+					super(kwargs);
+					this.columnCount = kwargs.cols || 10;
+					this.rowCount = kwargs.rows || 10;
+				}
+
+				bdElements(){
+					let columns = (rowId) => {
+						let result = [e("td", rowId + ""), e("td", Math.floor(Math.random() * this.rowCount) + "")];
+						for(let i = 0; i < this.columnCount; i++){
+							result.push(e("td", "column-" + i));
+						}
+						return result;
+					};
+
+					let rows = [];
+
+					for(let i = 0, count = this.rowCount; i < count; i++){
+						rows.push(e("tr", columns(i)));
+					}
+
+					return e("table", e("tbody", rows));
+				}
+			}
+
+			let timer = new smoke.Timer();
+			render(BigComponent, {rows: 10000, cols: 10}, "bd-smoke-root");
+			console.log("timer: ", timer.time / 1000);
+
+		}],
+		["perf2-dom", function(){
+			class BigComponent extends Component {
+				constructor(kwargs){
+					super(kwargs);
+					this.columnCount = kwargs.cols || 10;
+					this.rowCount = kwargs.rows || 10;
+				}
+
+				bdElements(){
+					let columns = (rowId) => {
+						let result = `<td>${rowId}</td><td>${Math.floor(Math.random() * this.rowCount)}</td>`;
+						for(let i = 0; i < this.columnCount; i++){
+							result+= `<td>column-${i}</td>`;
+						}
+						return result;
+					};
+
+					let rows = "";
+					for(let i = 0, count = this.rowCount; i < count; i++){
+						rows += `<tr>${columns(i)}</tr>`;
+					}
+
+					return e("table", e("tbody", {innerHTML:rows}));
+				}
+			}
+
+			let timer = new smoke.Timer();
+			render(BigComponent, {rows: 10000, cols: 10}, "bd-smoke-root");
+			console.log("timer: ", timer.time / 1000);
+
 		}]
 	]
 });

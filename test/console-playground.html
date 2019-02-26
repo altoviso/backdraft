@@ -10,7 +10,7 @@
 <script src="../dist/lib-umd.js"></script>
 <script>
 	Reflect.ownKeys(bd).forEach(k => window[k] = bd[k]);
-	if(1){
+	if(0){
 		let data = toWatchable([{a: 1, b: 2}, {c: 3, d: 4}]);
 		let ref = new WatchableRef(data, value => {
 			console.log("in formatter", value === data);
@@ -42,34 +42,65 @@
 		// [1, "c"]
 	}
 
-	if(0){
+	if(1){
 		let target = toWatchable([{fname: "John", lname: "Doe"}]);
 
 		// connect to fname
-		let h1 = watch(target[0], "fname", (newValue, oldValue, target, property) => {
-			console.log(`fname watcher: new value=${newValue}, old value=${oldValue}, property:`, property);
+		let h1 = watch(target[0], "fname", (newValue, oldValue, target, prop) => {
+			console.log(
+				"target[0].fname watcher:",
+                "newValue=", JSON.stringify(newValue),
+                "| oldValue=", JSON.stringify(oldValue),
+                "| target=", JSON.stringify(target),
+                "| property=", prop);
+		});
+
+
+		// connect to the first item in tager
+		let h2 = watch(target, 0, (newValue, oldValue, target, prop) => {
+			console.log(
+				"target[0] watcher:",
+				"newValue=", JSON.stringify(newValue),
+				"| oldValue=", JSON.stringify(oldValue),
+				"| target=", JSON.stringify(target),
+				"| property=", prop);
+
 		});
 
 		// connect to the entire target
-		let h2 = watch(target, (newValue, oldValue, object, prop) => {
-			console.log("object watcher:",
-				"new value=", newValue,
-				"old value=", oldValue === UNKNOWN_OLD_VALUE ? "UNKNOWN_OLD_VALUE" : "?",
-				"prop=", prop);
+		let h3 = watch(target, (newValue, oldValue, target, prop) => {
+			console.log(
+				"target watcher:",
+				"newValue=", JSON.stringify(newValue),
+				"| oldValue=", JSON.stringify(oldValue),
+				"| target=", JSON.stringify(target),
+				"| property=", prop);
 		});
 
+		console.log('*** target[0].fname = "Joe"');
 		target[0].fname = "Joe";
-		// => fname watcher: new value=Joe, old value=John, property: fname
-		// => object watcher: new value= Joe old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "fname"]
+		console.log(" ");
+	    // *** target[0].fname = "Joe"
+		// target[0].fname watcher: newValue= "Joe" | oldValue= "John" | target= {"fname":"Joe","lname":"Doe"} | property= ["fname"]
+		// target[0] watcher: newValue= {"fname":"Joe","lname":"Doe"} | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Doe"}] | property= (2) ["0", "fname"]
+		// target watcher: newValue= [{"fname":"Joe","lname":"Doe"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Doe"}] | property= (2) ["0", "fname"]
 
+
+		console.log('*** target[0].lname = "Smith"');
 		target[0].lname = "Smith";
-		// => object watcher: new value= Smith old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "lname"]
+		console.log(" ");
+        // *** target[0].lname = "Smith"
+        // target[0] watcher: newValue= {"fname":"Joe","lname":"Smith"} | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Smith"}] | property= (2) ["0", "lname"]
+        // target watcher: newValue= [{"fname":"Joe","lname":"Smith"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Joe","lname":"Smith"}] | property= (2) ["0", "lname"]
 
 		h1.destroy();
+		h2.destroy();
 
+		console.log('*** target[0].fname = "Adam"');
 		target[0].fname = "Adam";
-		// since we destroyed the first watcher, we don't see it's output; the second watcher is still connected...
-		// = > object watcher: new value= Adam old value= UNKNOWN_OLD_VALUE prop= (2) ["0", "fname"]
+		// since we destroyed the first two watchers, we don't see their output; the third watcher is still connected...
+        // *** target[0].fname = "Adam"
+        // target watcher: newValue= [{"fname":"Adam","lname":"Smith"}] | oldValue= {"value":"UNKNOWN_OLD_VALUE"} | target= [{"fname":"Adam","lname":"Smith"}] | property= (2) ["0", "fname"]
 	}
 
 	if(0){
@@ -132,17 +163,17 @@
 
 		// watch for any changes on the object...
 		watch(bands, (newValue, oldValue, target, prop) => {
-			console.log(`first watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+			console.log(`first watcher: ${JSON.stringify(prop)} was changed from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`);
 		});
 
 		// watch for changes on a particular object within the object
 		watch(bands.Rush, (newValue, oldValue, target, prop) => {
-			console.log(`second watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+			console.log(`second watcher: ${JSON.stringify(prop)} was changed from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`);
 		});
 
 		// watch for changes on a particular scalar
 		watch(bands.Rush, "rating", (newValue, oldValue, target, prop) => {
-			console.log(`third watcher: ${JSON.stringify(prop)} was changed from ${oldValue} to ${newValue}`);
+			console.log(`third watcher: ${JSON.stringify(prop)} was changed from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`);
 		});
 
 		// Rush is awesome!!
