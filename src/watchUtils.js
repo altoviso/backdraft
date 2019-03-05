@@ -569,7 +569,12 @@ function mutate(owner, name, privateName, newValue){
 			}
 		}
 
-		onMutateBeforeName && owner[onMutateBeforeName] && owner[onMutateBeforeName](newValue, oldValue);
+		if(onMutateBeforeName && owner[onMutateBeforeName]){
+			if(owner[onMutateBeforeName](newValue, oldValue)===false){
+				// the proposed mutation is illegal
+				return false;
+			}
+		}
 		if(owner.hasOwnProperty(privateName)){
 			owner[privateName] = newValue;
 		}else{
