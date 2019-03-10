@@ -698,13 +698,13 @@ Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
 
 insPostProcessingFunction("bdAttach",
-	function(ppfOwner, ppfTarget, name){
+	function (ppfOwner, ppfTarget, name){
 		if(typeof name === "function"){
-			name(ppfTarget);
+			ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
 		}else{
 			ppfOwner[name] = ppfTarget;
 			ppfOwner.ownWhileRendered({
-				destroy: function(){
+				destroy: function (){
 					delete ppfOwner[name];
 				}
 			});
