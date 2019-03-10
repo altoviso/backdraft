@@ -401,6 +401,8 @@ export class Component extends eventHub(WatchHub) {
 			if(!preserve){
 				child.destroy();
 				child = false;
+			}else if(preserve === "unrender"){
+				child.unrender();
 			}
 			return child;
 		}
