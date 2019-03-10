@@ -496,6 +496,50 @@ export class Component extends eventHub(WatchHub) {
 		return this;
 	}
 
+	get classList(){
+		if(!this._classList){
+			let self = this;
+			this._classList = {
+				get: function (value){
+					return self.className;
+				},
+
+				set: function (value){
+					return self.className = value;
+				},
+
+				add: function (...values){
+					return self.addClassName(...values);
+				},
+
+				ins: function (...values){
+					return self.addClassName(...values);
+				},
+
+				remove: function (...values){
+					return self.removeClassName(...values);
+				},
+
+				del: function (...values){
+					return self.removeClassName(...values);
+				},
+
+				toggle: function (...values){
+					return self.toggleClassName(...values);
+				},
+
+				contains: function (...values){
+					return self.containsClassName(...values);
+				},
+
+				has: function (...values){
+					return self.containsClassName(...values);
+				}
+			};
+		}
+		return this._classList;
+	}
+
 	bdSetClassName(newValue, oldValue){
 		if(newValue !== oldValue){
 			this.bdClassName = newValue;
