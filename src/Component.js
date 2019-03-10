@@ -283,6 +283,9 @@ export class Component extends eventHub(WatchHub) {
 
 	bdAttachToDoc(value){
 		if(this.bdMutate("attachedToDoc", "bdAttachedToDoc", !!value)){
+			if(value && this.resize){
+				this.resize();
+			}
 			this.children && this.children.forEach(child => child.bdAttachToDoc(value));
 			return true;
 		}else{
