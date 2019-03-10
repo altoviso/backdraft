@@ -502,7 +502,7 @@ export class Component extends eventHub(WatchHub){
 		if(!this._classList){
 			let self = this;
 			this._classList = {
-				get: function (value){
+				get: function (){
 					return self.className;
 				},
 
