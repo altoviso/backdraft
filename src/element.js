@@ -16,7 +16,7 @@ function flattenChildren(children){
 	return result;
 }
 
-export class Element {
+export class Element{
 	constructor(type, props, ...children){
 		if(type instanceof Element){
 			// copy constructor

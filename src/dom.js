@@ -37,7 +37,6 @@ function setAttr(node, name, value){
 	}
 }
 
-
 function getAttr(node, name){
 	node = normalizeNodeArg(node);
 	if(name in node && node instanceof HTMLElement){
@@ -274,7 +273,7 @@ function connect(target, type, listener, useCapture){
 	useCapture = !!useCapture;
 	target.addEventListener(type, listener, useCapture);
 	return {
-		destroy: function(){
+		destroy: function (){
 			if(!destroyed){
 				destroyed = true;
 				target.removeEventListener(type, listener, useCapture);
@@ -297,7 +296,7 @@ let focusedComponent = null,
 	previousFocusedComponent = null,
 	previousFocusedNode = null;
 
-class FocusManager extends EventHub {
+class FocusManager extends EventHub{
 	get focusedComponent(){
 		return focusedComponent;
 	}
@@ -378,7 +377,7 @@ function processNode(node){
 	focusManager.bdNotify({type: "focusedComponent", component: focusedComponent_});
 }
 
-connect(document.body, "focusin", function(e){
+connect(document.body, "focusin", function (e){
 	let node = e.target;
 	if(!node || node.parentNode == null || node === self[focusedNode]){
 		return;
@@ -387,14 +386,14 @@ connect(document.body, "focusin", function(e){
 });
 
 // eslint-disable-next-line no-unused-vars
-connect(document.body, "focusout", function(){
+connect(document.body, "focusout", function (){
 	// If the blur event isn't followed by a focus event, it means the user clicked on something unfocusable,
 	// so clear focus.
 	if(focusWatcher){
 		clearTimeout(focusWatcher);
 	}
 
-	focusWatcher = setTimeout(function(){
+	focusWatcher = setTimeout(function (){
 		processNode(null);
 	}, 5);
 });
@@ -404,11 +403,11 @@ let viewportWatcher = new EventHub;
 let scrollTimeoutHandle = 0;
 
 // eslint-disable-next-line no-unused-vars
-connect(window, "scroll", function(){
+connect(window, "scroll", function (){
 	if(scrollTimeoutHandle){
 		clearTimeout(scrollTimeoutHandle);
 	}
-	scrollTimeoutHandle = setTimeout(function(){
+	scrollTimeoutHandle = setTimeout(function (){
 		scrollTimeoutHandle = 0;
 		viewportWatcher.bdNotify({type: "scroll"});
 	}, 10);
@@ -418,11 +417,11 @@ connect(window, "scroll", function(){
 let resizeTimeoutHandle = 0;
 
 // eslint-disable-next-line no-unused-vars
-connect(window, "resize", function(){
+connect(window, "resize", function (){
 	if(resizeTimeoutHandle){
 		clearTimeout(resizeTimeoutHandle);
 	}
-	resizeTimeoutHandle = setTimeout(function(){
+	resizeTimeoutHandle = setTimeout(function (){
 		resizeTimeoutHandle = 0;
 		viewportWatcher.bdNotify({type: "resize"});
 	}, 10);
@@ -430,7 +429,7 @@ connect(window, "resize", function(){
 
 
 insPostProcessingFunction("bdReflect",
-	function(prop, value){
+	function (prop, value){
 		if(prop === null && value instanceof Object && !Array.isArray(value)){
 			// e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
 			return value;
@@ -442,11 +441,11 @@ insPostProcessingFunction("bdReflect",
 			return {innerHTML: value};
 		}
 	},
-	function(ppfOwner, ppfTarget, props){
+	function (ppfOwner, ppfTarget, props){
 		// props is a hash from property in ppfTarget to a list of ([refObject, ] property, [, formatter])...
 		let install, watchable;
 		if(ppfTarget instanceof Component){
-			install = function(destProp, refObject, prop, formatter){
+			install = function (destProp, refObject, prop, formatter){
 				ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
 				ppfTarget[destProp] = watchable.value;
 				ppfOwner.ownWhileRendered(watchable.watch(newValue => {
@@ -454,7 +453,7 @@ insPostProcessingFunction("bdReflect",
 				}));
 			};
 		}else{
-			install = function(destProp, refObject, prop, formatter){
+			install = function (destProp, refObject, prop, formatter){
 				ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
 				setAttr(ppfTarget, destProp, watchable.value);
 				ppfOwner.ownWhileRendered(watchable.watch(newValue => {
@@ -481,7 +480,7 @@ insPostProcessingFunction("bdReflect",
 );
 
 insPostProcessingFunction("bdAdvise", true,
-	function(ppfOwner, ppfTarget, listeners){
+	function (ppfOwner, ppfTarget, listeners){
 		Reflect.ownKeys(listeners).forEach(eventType => {
 			let listener = listeners[eventType];
 			if(typeof listener !== "function"){

@@ -34,7 +34,7 @@ const pWatchableWatchers = Symbol("bd-pWatchableWatchers");
 const pWatchableHandles = Symbol("bd-pWatchableHandles");
 const pWatchableSetup = Symbol("bd-pWatchableSetup");
 
-class WatchableRef {
+class WatchableRef{
 	constructor(referenceObject, referenceProp, formatter){
 		if(typeof referenceProp === "function"){
 			// no referenceProp,...star watcher
@@ -44,7 +44,7 @@ class WatchableRef {
 
 		Object.defineProperty(this, "value", {
 			enumerable: true,
-			get: (function(){
+			get: (function (){
 				if(formatter){
 					if(referenceProp === STAR){
 						return () => formatter(referenceObject);
@@ -76,7 +76,7 @@ class WatchableRef {
 			}
 		};
 
-		this[pWatchableSetup] = function(){
+		this[pWatchableSetup] = function (){
 			cValue = this.value;
 			if(referenceObject[OWNER]){
 				this[pWatchableHandles] = [watch(referenceObject, referenceProp, (newValue, oldValue, receiver, _prop) => {
@@ -256,7 +256,7 @@ function getAdvice(owner, method){
 	return advice && advice.map(f => f());
 }
 
-class WatchableArray extends Array {
+class WatchableArray extends Array{
 	// note: we can make all of these much more efficient, particularly shift and unshift.
 	// But, it's probably rare that it will matter, so we'll do it when the need arises
 	[SWAP_OLD_LENGTH](newLength){
@@ -539,7 +539,7 @@ function fromWatchable(data){
 		}
 		let result = Array.isArray(data) ? Array(data.length) : {};
 		Reflect.ownKeys(data).forEach(k => {
-			if(k !== OWNER && k !== PROP && k!=OLD_LENGTH){
+			if(k !== OWNER && k !== PROP && k != OLD_LENGTH){
 				result[k] = fromWatchable(data[k]);
 			}
 		});
@@ -570,7 +570,7 @@ function mutate(owner, name, privateName, newValue){
 		}
 
 		if(onMutateBeforeName && owner[onMutateBeforeName]){
-			if(owner[onMutateBeforeName](newValue, oldValue)===false){
+			if(owner[onMutateBeforeName](newValue, oldValue) === false){
 				// the proposed mutation is illegal
 				return false;
 			}
@@ -591,8 +591,8 @@ function getWatcher(owner, watcher){
 }
 
 function watchHub(superClass){
-	return class extends (superClass || class {
-	}) {
+	return class extends (superClass || class{
+	}){
 		// protected interface...
 		bdMutateNotify(name, newValue, oldValue){
 			let variables = watcherCatalog.get(this);
@@ -759,10 +759,10 @@ function withWatchables(superClass, ...args){
 		publicPropNames.push(name);
 		Object.defineProperty(prototype, name, {
 			enumerable: true,
-			get: function(){
+			get: function (){
 				return this[pname];
 			},
-			set: function(value){
+			set: function (value){
 				this.bdMutate(name, pname, value);
 			}
 		});
@@ -776,7 +776,7 @@ function withWatchables(superClass, ...args){
 		});
 	}
 
-	let result = class extends superClass {
+	let result = class extends superClass{
 		constructor(kwargs){
 			kwargs = kwargs || {};
 			super(kwargs);

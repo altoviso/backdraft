@@ -80,7 +80,7 @@ function pushHandles(dest, ...handles){
 			pushHandles(dest, ...h);
 		}else if(h){
 			let destroy = h.destroy.bind(h);
-			h.destroy = function(){
+			h.destroy = function (){
 				destroy();
 				let index = dest.indexOf(h);
 				if(index !== -1){
@@ -96,7 +96,7 @@ function pushHandles(dest, ...handles){
 const ownedHandlesCatalog = new WeakMap();
 const domNodeToComponent = new Map();
 
-export class Component extends eventHub(WatchHub) {
+export class Component extends eventHub(WatchHub){
 	constructor(kwargs = {}){
 		// notice that this class requires only the per-instance data actually used by its subclass/instance
 		super();
@@ -713,7 +713,7 @@ insPostProcessingFunction("bdAttach",
 );
 
 insPostProcessingFunction("bdWatch", true,
-	function(ppfOwner, ppfTarget, watchers){
+	function (ppfOwner, ppfTarget, watchers){
 		Reflect.ownKeys(watchers).forEach(eventType => {
 			let watcher = watchers[eventType];
 			if(typeof watcher !== "function"){
@@ -725,7 +725,7 @@ insPostProcessingFunction("bdWatch", true,
 );
 
 insPostProcessingFunction("bdExec",
-	function(ppfOwner, ppfTarget, ...args){
+	function (ppfOwner, ppfTarget, ...args){
 		for(let i = 0; i < args.length;){
 			let f = args[i++];
 			if(typeof f === "function"){
@@ -749,25 +749,25 @@ insPostProcessingFunction("bdExec",
 );
 
 insPostProcessingFunction("bdTitleNode",
-	function(ppfOwner, ppfTarget){
+	function (ppfOwner, ppfTarget){
 		ppfOwner.bdDom.titleNode = ppfTarget;
 	}
 );
 
 insPostProcessingFunction("bdParentAttachPoint",
-	function(ppfOwner, ppfTarget, propertyName){
+	function (ppfOwner, ppfTarget, propertyName){
 		ppfTarget.bdParentAttachPoint = propertyName;
 	}
 );
 
 insPostProcessingFunction("bdChildrenAttachPoint",
-	function(ppfOwner, ppfTarget){
+	function (ppfOwner, ppfTarget){
 		ppfOwner.bdChildrenAttachPoint = ppfTarget;
 	}
 );
 
 insPostProcessingFunction("bdReflectClass",
-	function(ppfOwner, ppfTarget, ...args){
+	function (ppfOwner, ppfTarget, ...args){
 		// args is a list of ([owner, ] property, [, formatter])...
 		// very much like bdReflect, except we're adding/removing components (words) from this.classname
 

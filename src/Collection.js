@@ -140,7 +140,7 @@ function setOrderAdvice(collection, owner){
 	});
 }
 
-export class Collection extends Component {
+export class Collection extends Component{
 	constructor(kwargs){
 		super(kwargs);
 		this.collection = kwargs.collection;
@@ -185,7 +185,7 @@ export class Collection extends Component {
 					setSortAdvice(collection, this),
 					setOrderAdvice(collection, this)
 				];
-				let setupHandle = this.bdSetupHandle  = {
+				let setupHandle = this.bdSetupHandle = {
 					destroy(){
 						// multiple calls imply no-op
 						setupHandle.destroy = () => 0;
@@ -244,7 +244,7 @@ function onMutateItemWatchable(propName, owner, newValue, oldValue){
 	procName && owner[procName] && owner[procName](newValue, oldValue);
 }
 
-export class CollectionChild extends Component {
+export class CollectionChild extends Component{
 	constructor(kwargs){
 		super(kwargs);
 		this._itemWatchHandles = [];
@@ -329,7 +329,7 @@ export class CollectionChild extends Component {
 
 CollectionChild.itemWatchables = [];
 
-CollectionChild.withWatchables = function(...args){
+CollectionChild.withWatchables = function (...args){
 	let superclass = typeof args[0] === "function" ? args.shift() : CollectionChild;
 	let itemWatchables = [];
 	args = args.filter(prop => {

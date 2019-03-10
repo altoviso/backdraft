@@ -3,7 +3,8 @@ import {destroyable} from "./destroyable.js";
 const listenerCatalog = new WeakMap();
 
 export function eventHub(superClass){
-	return class extends (superClass || class {}) {
+	return class extends (superClass || class{
+	}){
 		// protected interface...
 		bdNotify(e){
 			let events = listenerCatalog.get(this);
@@ -51,7 +52,7 @@ export function eventHub(superClass){
 				if(!events){
 					listenerCatalog.set(this, (events = {}));
 				}
-				let result= destroyable(handler, events[eventName] || (events[eventName] = []));
+				let result = destroyable(handler, events[eventName] || (events[eventName] = []));
 				this.own && this.own(result);
 				return result;
 			}
