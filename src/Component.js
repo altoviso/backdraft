@@ -411,16 +411,18 @@ export class Component extends eventHub(WatchHub){
 
 	reorderChildren(children){
 		let thisChildren = this.children;
-		let node = this.children[0].bdDom.root.parentNode;
+		if(thisChildren && thisChildren.length){
+			let node = this.children[0].bdDom.root.parentNode;
 
-		children.forEach((child, i) => {
-			if(thisChildren[i] !== child){
-				let index = thisChildren.indexOf(child, i + 1);
-				thisChildren.splice(index, 1);
-				node.insertBefore(child.bdDom.root, thisChildren[i].bdDom.root);
-				thisChildren.splice(i, 0, child);
-			}
-		});
+			children.forEach((child, i) => {
+				if(thisChildren[i] !== child){
+					let index = thisChildren.indexOf(child, i + 1);
+					thisChildren.splice(index, 1);
+					node.insertBefore(child.bdDom.root, thisChildren[i].bdDom.root);
+					thisChildren.splice(i, 0, child);
+				}
+			});
+		}
 	}
 
 	get staticClassName(){
