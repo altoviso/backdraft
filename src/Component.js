@@ -420,7 +420,14 @@ export class Component extends eventHub(WatchHub) {
         return false;
     }
 
+    delChildren(preserve) {
+        return this.children.slice().map(child => this.delChild(child, preserve));
+    }
+
     reorderChildren(children) {
+        if (children === this.children) {
+            children = this.children.slice();
+        }
         let thisChildren = this.children;
         if (thisChildren && thisChildren.length) {
             let node = this.children[0].bdDom.root.parentNode;
