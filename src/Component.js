@@ -569,8 +569,8 @@ export class Component extends eventHub(WatchHub) {
                 this.bdDom.root.setAttribute("class", calcDomClassName(this));
             }
             this.bdMutateNotify("className", newValue, oldValue);
-            let oldVisibleValue = oldValue ? oldValue.indexOf("hidden") === -1 : true,
-                newVisibleValue = newValue ? newValue.indexOf("hidden") === -1 : true;
+            let oldVisibleValue = oldValue ? oldValue.indexOf("bd-hidden") === -1 : true,
+                newVisibleValue = newValue ? newValue.indexOf("bd-hidden") === -1 : true;
             if (oldVisibleValue !== newVisibleValue) {
                 this.bdMutateNotify("visible", newVisibleValue, oldVisibleValue);
             }
