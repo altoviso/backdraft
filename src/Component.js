@@ -127,6 +127,10 @@ export class Component extends eventHub(WatchHub) {
             this.disabled = true;
         }
 
+        if (kwargs.visible !== undefined) {
+            this.visible = kwargs.visible;
+        }
+
         if (kwargs.elements) {
             if (typeof kwargs.elements === "function") {
                 this.bdElements = kwargs.elements;
@@ -204,8 +208,12 @@ export class Component extends eventHub(WatchHub) {
                 if (this.bdTitle !== undefined) {
                     (this.bdDom.titleNode || this.bdDom.root).title = this.bdTitle;
                 }
-
                 this[this.bdDisabled ? "addClassName" : "removeClassName"]("bd-disabled");
+                if (!this.visible) {
+                    this._hiddenDisplayStyle = root.style.display;
+                    root.style.display = "none";
+                }
+
             }
             this.ownWhileRendered(this.postRender());
             proc && proc.call(this);
@@ -248,6 +256,7 @@ export class Component extends eventHub(WatchHub) {
             destroyAll(this.bdDom.handles);
             delete this.bdDom;
             delete this._dom;
+            delete this._hiddenDisplayStyle;
             this.bdAttachToDoc(false);
             this.bdMutateNotify("rendered", false, true);
         }
@@ -630,9 +639,19 @@ export class Component extends eventHub(WatchHub) {
         if (value !== !this.containsClassName("bd-hidden")) {
             if (value) {
                 this.removeClassName("bd-hidden");
+                if (this._hiddenDisplayStyle !== undefined) {
+                    this.bdDom.root.style.display = this._hiddenDisplayStyle;
+                    delete this._hiddenDisplayStyle;
+                }
+                let rootNode = this.bdDom && this.bdDom.root;
                 this.resize && this.resize();
             } else {
                 this.addClassName("bd-hidden");
+                let node = this.bdDom && this.bdDom.root;
+                if (node) {
+                    this._hiddenDisplayStyle = node.style.display;
+                    node.style.display = "none";
+                }
             }
             this.bdMutateNotify("visible", value, !value);
         }
