@@ -629,6 +629,9 @@ export class Component extends eventHub(WatchHub) {
         }
     }
 
+    get uid() {
+        return this.bdUid || (this.bdUid = Symbol("component-instance-uid"));
+    }
 
     get tabIndex() {
         if (this.rendered) {
