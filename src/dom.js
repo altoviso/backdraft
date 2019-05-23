@@ -160,7 +160,7 @@ function setPosit(node, posit) {
                 node.style.zIndex = posit.z === false ? "" : posit.z;
                 break;
             default:
-            // ignore...this allows clients to stuff other properties into posit for other reasons
+                // ignore...this allows clients to stuff other properties into posit for other reasons
         }
     }
 }
