@@ -80,7 +80,6 @@ export class Element {
                 this.ctorProps = {};
             }
 
-
             let flattenedChildren = flattenChildren(children);
             if (flattenedChildren.length === 1) {
                 let child = flattenedChildren[0];
