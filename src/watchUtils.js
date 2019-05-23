@@ -564,8 +564,8 @@ function mutate(owner, name, privateName, newValue) {
             onMutateBeforeName = onMutateBeforeNames[name];
             if (!onMutateBeforeName) {
                 const suffix = name.substring(0, 1).toUpperCase() + name.substring(1);
-                onMutateBeforeName = onMutateBeforeNames[name] = "onMutateBefore" + suffix;
-                onMutateName = onMutateNames[name] = "onMutate" + suffix;
+                onMutateBeforeName = onMutateBeforeNames[name] = `onMutateBefore${suffix}`;
+                onMutateName = onMutateNames[name] = `onMutate${suffix}`;
             } else {
                 onMutateName = onMutateNames[name];
             }
@@ -750,7 +750,6 @@ function isWatchable(target) {
 }
 
 function withWatchables(superClass, ...args) {
-    let prototype;
     const publicPropNames = [];
 
     function def(name) {
@@ -759,7 +758,7 @@ function withWatchables(superClass, ...args) {
             pname = name[1];
             name = name[0];
         } else {
-            pname = "_" + name;
+            pname = `_${name}`;
         }
         publicPropNames.push(name);
         Object.defineProperty(prototype, name, {
@@ -788,7 +787,7 @@ function withWatchables(superClass, ...args) {
             init(this, kwargs);
         }
     };
-    prototype = result.prototype;
+    const prototype = result.prototype;
     args.forEach(def);
     result.watchables = publicPropNames.concat(superClass.watchables || []);
     return result;

@@ -242,7 +242,7 @@ function onMutateItemWatchable(propName, owner, newValue, oldValue) {
         if (typeof propName === "symbol") {
             return (onMutateNames[propName] = false);
         }
-        procName = onMutateNames[propName] = "onMutate" + propName.substring(0, 1).toUpperCase() + propName.substring(1);
+        procName = onMutateNames[propName] = `onMutate${propName.substring(0, 1).toUpperCase()}${propName.substring(1)}`;
     }
     procName && owner[procName] && owner[procName](newValue, oldValue);
 }

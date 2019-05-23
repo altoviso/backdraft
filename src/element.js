@@ -32,7 +32,7 @@ export class Element {
                 this.type = type;
             } else if (type) {
                 // leave this.isComponentType === undefined
-                this.type = Array.isArray(type) ? type : type + "";
+                this.type = Array.isArray(type) ? type : `${type}`;
             } else {
                 throw new Error("type is required");
             }
@@ -83,9 +83,9 @@ export class Element {
             const flattenedChildren = flattenChildren(children);
             if (flattenedChildren.length === 1) {
                 const child = flattenedChildren[0];
-                this.children = child instanceof Element ? child : child + "";
+                this.children = child instanceof Element ? child : `${child}`;
             } else if (flattenedChildren.length) {
-                this.children = flattenedChildren.map(child => (child instanceof Element ? child : child + ""));
+                this.children = flattenedChildren.map(child => (child instanceof Element ? child : `${child}`));
                 Object.freeze(this.children);
             }// else children.length===0; therefore, no children
         }

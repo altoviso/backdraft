@@ -224,7 +224,7 @@ function insert(node, refNode, position) {
 }
 
 function create(tag, props) {
-    const result = Array.isArray(tag) ? document.createElementNS(tag[0] + "", tag[1]) : document.createElement(tag);
+    const result = Array.isArray(tag) ? document.createElementNS(`${tag[0]}`, tag[1]) : document.createElement(tag);
     if (props) {
         Reflect.ownKeys(props).forEach(p => setAttr(result, p, props[p]));
     }

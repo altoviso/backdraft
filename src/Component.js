@@ -30,13 +30,13 @@ function conditionClassNameArgs(args) {
 }
 
 function classValueToRegExp(v, args) {
-    return v instanceof RegExp ? v : RegExp(" " + v + " ", args);
+    return v instanceof RegExp ? v : RegExp(` ${v} `, args);
 }
 
 function calcDomClassName(component) {
     const staticClassName = component.staticClassName;
     const className = component.bdClassName;
-    return staticClassName && className ? (staticClassName + " " + className) : (staticClassName || className);
+    return staticClassName && className ? (`${staticClassName} ${className}`) : (staticClassName || className);
 }
 
 function addChildToDomNode(parent, domNode, child, childIsComponent) {
@@ -108,7 +108,7 @@ export class Component extends eventHub(WatchHub) {
 
         // id, if provided, is read-only
         if (kwargs.id) {
-            Object.defineProperty(this, "id", {value: kwargs.id + "", enumerable: true});
+            Object.defineProperty(this, "id", {value: `${kwargs.id}`, enumerable: true});
         }
 
         if (kwargs.className) {
@@ -484,14 +484,14 @@ export class Component extends eventHub(WatchHub) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 
         value = cleanClassName(value);
-        return (" " + (this.bdClassName || "") + " ").indexOf(value) !== -1;
+        return (` ${this.bdClassName || ""} `).indexOf(value) !== -1;
     }
 
     addClassName(...values) {
         const current = this.bdClassName || "";
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
-            return classValueToRegExp(value).test(className) ? className : className + value + " ";
-        }, " " + current + " ").trim(), current);
+            return classValueToRegExp(value).test(className) ? className : `${className + value} `;
+        }, ` ${current} `).trim(), current);
         return this;
     }
 
@@ -500,7 +500,7 @@ export class Component extends eventHub(WatchHub) {
         const current = this.bdClassName || "";
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
             return className.replace(classValueToRegExp(value, "g"), " ");
-        }, " " + current + " ").trim(), current);
+        }, ` ${current} `).trim(), current);
         return this;
     }
 
@@ -511,9 +511,9 @@ export class Component extends eventHub(WatchHub) {
             if (classValueToRegExp(value).test(className)) {
                 return className.replace(classValueToRegExp(value, "g"), " ");
             } else {
-                return className + value + " ";
+                return `${className + value} `;
             }
-        }, " " + current + " ").trim(), current);
+        }, ` ${current} `).trim(), current);
         return this;
     }
 
@@ -617,7 +617,8 @@ export class Component extends eventHub(WatchHub) {
 
     removeItem(...args) {
         let data = this.bdData;
-        for (let i = 0, end = args.length - 1; data !== undefined && i < end;) {
+        const i = 0;
+        for (const end = args.length - 1; data !== undefined && i < end;) {
             data = data[args[i]++];
         }
         if (data) {
@@ -845,7 +846,7 @@ insPostProcessingFunction(
         // very much like bdReflect, except we're adding/removing components (words) from this.classname
 
         function normalize(value) {
-            return !value ? "" : value + "";
+            return !value ? "" : `${value}`;
         }
 
         function install(owner, prop, formatter) {
