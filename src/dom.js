@@ -399,8 +399,10 @@ function processNode(node) {
     // signal blur from the path end to the first identical component (not including the first identical component)
     for (j = i; j < oldStackLength; j++) {
         component = focusStack.pop();
-        component.bdOnBlur();
-        focusManager.bdNotify({type: "blurComponent", component: component});
+        if (!component.destroyed) {
+            component.bdOnBlur();
+            focusManager.bdNotify({type: "blurComponent", component: component});
+        }
     }
 
     // signal focus for all new components that just gained the focus
