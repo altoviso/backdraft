@@ -1,8 +1,9 @@
 import {destroyable} from "./destroyable.js";
+import {STAR} from "./symbols.js";
 
 const listenerCatalog = new WeakMap();
 
-export function eventHub(superClass){
+function eventHub(superClass){
 	return class extends (superClass || class{
 	}){
 		// protected interface...
@@ -32,6 +33,9 @@ export function eventHub(superClass){
 			}
 
 			if(handlers){
+				handlers.slice().forEach(destroyable => destroyable.proc(e));
+			}
+			if((handlers = events[STAR])){
 				handlers.slice().forEach(destroyable => destroyable.proc(e));
 			}
 		}
@@ -79,4 +83,9 @@ export function eventHub(superClass){
 	};
 }
 
-export const EventHub = eventHub();
+const EventHub = eventHub();
+
+export {
+	eventHub,
+	EventHub
+}

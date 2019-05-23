@@ -1,4 +1,5 @@
 import {destroyable, destroyAll} from "./destroyable.js";
+import {STAR} from "./symbols.js";
 
 let eqlComparators = new Map();
 
@@ -22,7 +23,6 @@ function eql(refValue, otherValue){
 }
 
 const watcherCatalog = new WeakMap();
-const STAR = Symbol("bd-star");
 const OWNER = Symbol("bd-owner");
 const OWNER_NULL = Symbol("bd-owner-null");
 const PROP = Symbol("bd-prop");
@@ -808,7 +808,6 @@ export {
 	eqlComparators,
 	eql,
 	UNKNOWN_OLD_VALUE,
-	STAR,
 	OWNER,
 	OWNER_NULL,
 	PROP,
