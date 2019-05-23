@@ -845,14 +845,26 @@ insPostProcessingFunction("bdReflectClass",
             let watchable = getWatchableRef(owner, prop, formatter);
             ppfOwner.ownWhileRendered(watchable);
             let value = normalize(watchable.value);
-            value && ppfOwner.addClassName(value);
+            if (value) {
+                if (ppfOwner.bdDom.root === ppfTarget) {
+                    // mutating className on the root node of a component
+                    ppfOwner.addClassName(value);
+                } else {
+                    ppfTarget.classList.add(value);
+                }
+            }
             ppfOwner.ownWhileRendered(watchable.watch((newValue, oldValue) => {
                 newValue = normalize(newValue);
                 oldValue = normalize(oldValue);
                 if (newValue !== oldValue) {
-                    oldValue && ppfOwner.removeClassName(oldValue);
-                    newValue && ppfOwner.addClassName(newValue);
-
+                    if (ppfOwner.bdDom.root === ppfTarget) {
+                        // mutating className on the root node of a component
+                        oldValue && ppfOwner.removeClassName(oldValue);
+                        newValue && ppfOwner.addClassName(newValue);
+                    } else {
+                        oldValue && ppfTarget.classList.remove(oldValue);
+                        newValue && ppfTarget.classList.add(newValue);
+                    }
                 }
             }));
         }
