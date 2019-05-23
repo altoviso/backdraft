@@ -785,6 +785,7 @@ function withWatchables(superClass, ...args) {
     };
     prototype = result.prototype;
     args.forEach(def);
+    result.watchables = publicPropNames.concat(superClass.watchables || []);
     return result;
 }
 
