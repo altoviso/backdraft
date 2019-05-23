@@ -559,7 +559,8 @@ function mutate(owner, name, privateName, newValue) {
     if (eql(oldValue, newValue)) {
         return false;
     } else {
-        let onMutateBeforeName, onMutateName;
+        let onMutateBeforeName,
+            onMutateName;
         if (typeof name !== "symbol") {
             onMutateBeforeName = onMutateBeforeNames[name];
             if (!onMutateBeforeName) {

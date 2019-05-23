@@ -46,7 +46,8 @@ export class Element {
                     const ctorProps = {};
                     const ppFuncs = {};
                     let ppFuncsExist = false;
-                    let match, ppf;
+                    let match,
+                        ppf;
                     const setPpFuncs = (ppKey, value) => {
                         if (ppFuncs[ppKey]) {
                             const dest = ppFuncs[ppKey];

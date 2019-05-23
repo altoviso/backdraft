@@ -263,7 +263,10 @@ function show(...nodes) {
 function getMaxZIndex(parent) {
     const children = parent.childNodes;
     const end = children.length;
-    let node, cs, max = 0, i = 0;
+    let node,
+        cs,
+        max = 0,
+        i = 0;
     while (i < end) {
         node = children[i++];
         cs = node && node.nodeType === 1 && getComputedStyle(node);
@@ -406,7 +409,8 @@ class FocusManager extends withWatchables(
         const newStackLength = stack.length;
         const oldStackLength = focusStack.length;
         let i = 0,
-            j, component;
+            j,
+            component;
         while (i < newStackLength && i < oldStackLength && stack[i] === focusStack[i]) {
             i++;
         }
@@ -497,7 +501,8 @@ insPostProcessingFunction(
     },
     (ppfOwner, ppfTarget, props) => {
         // props is a hash from property in ppfTarget to a list of ([refObject, ] property, [, formatter])...
-        let install, watchable;
+        let install,
+            watchable;
         if (ppfTarget instanceof Component) {
             install = function (destProp, refObject, prop, formatter) {
                 ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
@@ -518,7 +523,8 @@ insPostProcessingFunction(
 
         Reflect.ownKeys(props).forEach(destProp => {
             const args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
-            let refObject, prop;
+            let refObject,
+                prop;
             while (args.length) {
                 refObject = args.shift();
                 if (typeof refObject === "string" || typeof refObject === "symbol") {

@@ -878,7 +878,8 @@ insPostProcessingFunction(
         }
 
         args = args.slice();
-        let owner, prop;
+        let owner,
+            prop;
         while (args.length) {
             owner = args.shift();
             if (typeof owner === "string" || typeof owner === "symbol") {
