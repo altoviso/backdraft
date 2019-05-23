@@ -766,7 +766,7 @@ Component.withWatchables = (...args) => withWatchables(Component, ...args);
 
 insPostProcessingFunction(
     "bdAttach",
-    function (ppfOwner, ppfTarget, name) {
+    (ppfOwner, ppfTarget, name) => {
         if (typeof name === "function") {
             ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
         } else {
@@ -782,7 +782,7 @@ insPostProcessingFunction(
 
 insPostProcessingFunction(
     "bdWatch", true,
-    function (ppfOwner, ppfTarget, watchers) {
+    (ppfOwner, ppfTarget, watchers) => {
         Reflect.ownKeys(watchers).forEach(eventType => {
             let watcher = watchers[eventType];
             if (typeof watcher !== "function") {
@@ -795,7 +795,7 @@ insPostProcessingFunction(
 
 insPostProcessingFunction(
     "bdExec",
-    function (ppfOwner, ppfTarget, ...args) {
+    (ppfOwner, ppfTarget, ...args) => {
         for (let i = 0; i < args.length;) {
             const f = args[i++];
             if (typeof f === "function") {
@@ -820,28 +820,28 @@ insPostProcessingFunction(
 
 insPostProcessingFunction(
     "bdTitleNode",
-    function (ppfOwner, ppfTarget) {
+    (ppfOwner, ppfTarget) => {
         ppfOwner.bdDom.titleNode = ppfTarget;
     }
 );
 
 insPostProcessingFunction(
     "bdParentAttachPoint",
-    function (ppfOwner, ppfTarget, propertyName) {
+    (ppfOwner, ppfTarget, propertyName) => {
         ppfTarget.bdParentAttachPoint = propertyName;
     }
 );
 
 insPostProcessingFunction(
     "bdChildrenAttachPoint",
-    function (ppfOwner, ppfTarget) {
+    (ppfOwner, ppfTarget) => {
         ppfOwner.bdChildrenAttachPoint = ppfTarget;
     }
 );
 
 insPostProcessingFunction(
     "bdReflectClass",
-    function (ppfOwner, ppfTarget, ...args) {
+    (ppfOwner, ppfTarget, ...args) => {
         // args is a list of ([owner, ] property, [, formatter])...
         // very much like bdReflect, except we're adding/removing components (words) from this.classname
 

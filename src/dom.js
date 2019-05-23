@@ -302,7 +302,7 @@ function animate(node, className, onComplete) {
     if (isComponent && !node.rendered) {
         return;
     }
-    const h = connect(isComponent ? node.bdDom.root : node, "animationend", function (e) {
+    const h = connect(isComponent ? node.bdDom.root : node, "animationend", (e) => {
         if (e.animationName === className) {
             h.destroy();
             if (isComponent) {
@@ -483,7 +483,7 @@ const viewportWatcher = new ViewportWatcher();
 
 insPostProcessingFunction(
     "bdReflect",
-    function (prop, value) {
+    (prop, value) => {
         if (prop === null && value instanceof Object && !Array.isArray(value)) {
             // e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
             return value;
@@ -495,7 +495,7 @@ insPostProcessingFunction(
             return {innerHTML: value};
         }
     },
-    function (ppfOwner, ppfTarget, props) {
+    (ppfOwner, ppfTarget, props) => {
         // props is a hash from property in ppfTarget to a list of ([refObject, ] property, [, formatter])...
         let install, watchable;
         if (ppfTarget instanceof Component) {
@@ -535,7 +535,7 @@ insPostProcessingFunction(
 
 insPostProcessingFunction(
     "bdAdvise", true,
-    function (ppfOwner, ppfTarget, listeners) {
+    (ppfOwner, ppfTarget, listeners) => {
         Reflect.ownKeys(listeners).forEach(eventType => {
             let listener = listeners[eventType];
             if (typeof listener !== "function") {
