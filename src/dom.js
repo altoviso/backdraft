@@ -293,6 +293,33 @@ function connect(target, type, listener, useCapture) {
     };
 }
 
+function animate(node, className, onComplete) {
+    let isComponent = node instanceof Component;
+    if (isComponent && !node.rendered) {
+        return;
+    }
+    let h = connect(isComponent ? node.bdDom.root : node, "animationend", function (e) {
+        if (e.animationName === className) {
+            h.destroy();
+            if (isComponent) {
+                !node.destroyed && node.removeClassName(className);
+            } else {
+                node.classList.remove(className);
+            }
+            if (onComplete) {
+                onComplete.destroy ? onComplete.destroy() : onComplete();
+            }
+        }
+    });
+    if (isComponent) {
+        if (!node.containsClassName(className)) {
+            node.addClassName(className);
+        }
+    } else {
+        node.classList.add(className);
+    }
+}
+
 function stopEvent(event) {
     if (event && event.preventDefault) {
         event.preventDefault();
@@ -521,6 +548,7 @@ export {
     destroyDomChildren,
     destroyDomNode,
     connect,
+    animate,
     stopEvent,
     focusManager,
     viewportWatcher
