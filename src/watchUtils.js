@@ -1,20 +1,20 @@
 import {destroyable, destroyAll} from "./destroyable.js";
 import {STAR} from "./symbols.js";
 
-let eqlComparators = new Map();
+const eqlComparators = new Map();
 
 function eql(refValue, otherValue) {
     if (!refValue) {
         return otherValue === refValue;
     }
     if (refValue instanceof Object) {
-        let comparator = eqlComparators.get(refValue.constructor);
+        const comparator = eqlComparators.get(refValue.constructor);
         if (comparator) {
             return comparator(refValue, otherValue);
         }
     }
     if (otherValue instanceof Object) {
-        let comparator = eqlComparators.get(otherValue.constructor);
+        const comparator = eqlComparators.get(otherValue.constructor);
         if (comparator) {
             return comparator(otherValue, refValue);
         }
@@ -61,12 +61,12 @@ class WatchableRef {
 
         // if (referenceObject[OWNER] && referenceProp === STAR), then we cValue===newValue===referenceObject...
         // therefore can't detect internal mutations to referenceObject, so don't try
-        let cannotDetectMutations = referenceProp === STAR && referenceObject[OWNER];
+        const cannotDetectMutations = referenceProp === STAR && referenceObject[OWNER];
 
         this[pWatchableWatchers] = [];
 
         let cValue;
-        let callback = (newValue, oldValue, target, referenceProp) => {
+        const callback = (newValue, oldValue, target, referenceProp) => {
             if (formatter) {
                 oldValue = oldValue === UNKNOWN_OLD_VALUE ? oldValue : formatter(oldValue);
                 newValue = formatter(newValue);
@@ -101,7 +101,7 @@ class WatchableRef {
                         }
                     })
                 ];
-                let value = referenceObject[referenceProp];
+                const value = referenceObject[referenceProp];
                 if (value && value[OWNER]) {
                     // value is a watchable
                     this[pWatchableHandles].push(watch(value, (newValue, oldValue, receiver, referenceProp) => {
@@ -158,9 +158,9 @@ function watch(watchable, name, watcher) {
         watcherCatalog.set(watchable, (variables = {}));
     }
 
-    let insWatcher = (name, watcher) => destroyable(watcher, variables[name] || (variables[name] = []));
+    const insWatcher = (name, watcher) => destroyable(watcher, variables[name] || (variables[name] = []));
     if (!watcher) {
-        let hash = name;
+        const hash = name;
         return Reflect.ownKeys(hash).map(name => insWatcher(name, hash[name]));
     } else if (Array.isArray(name)) {
         return name.map(name => insWatcher(name, watcher));
@@ -172,13 +172,13 @@ function watch(watchable, name, watcher) {
 let holdStarNotifications = false;
 
 function applyWatchers(newValue, oldValue, receiver, name) {
-    let catalog = watcherCatalog.get(receiver);
+    const catalog = watcherCatalog.get(receiver);
     if (catalog) {
         if (name === STAR) {
-            let watchers = catalog[STAR];
+            const watchers = catalog[STAR];
             watchers && watchers.slice().forEach(destroyable => destroyable.proc(receiver, oldValue, receiver, [STAR]));
         } else {
-            let prop = name[0];
+            const prop = name[0];
             let watchers = catalog[prop];
             watchers && watchers.slice().forEach(destroyable => destroyable.proc(receiver[prop], oldValue, receiver, name));
             if (!holdStarNotifications) {
@@ -197,7 +197,7 @@ function applyWatchers(newValue, oldValue, receiver, name) {
 }
 
 let pauseWatchers = false;
-let moving = false;
+const moving = false;
 let _silentSet = false;
 
 function set(target, prop, value, receiver) {
@@ -205,9 +205,9 @@ function set(target, prop, value, receiver) {
         target[prop] = value;
         return true;
     } else {
-        let oldValue = target[prop];
+        const oldValue = target[prop];
         if (value instanceof Object) {
-            let holdPauseWatchers = pauseWatchers;
+            const holdPauseWatchers = pauseWatchers;
             try {
                 pauseWatchers = true;
                 value = moving ? value : createWatchable(value, receiver, prop);
@@ -219,7 +219,7 @@ function set(target, prop, value, receiver) {
         }
         // we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
         // even though we haven't seen the mutation before, e.g., length in an Array instance
-        let result = Reflect.set(target, prop, value, receiver);
+        const result = Reflect.set(target, prop, value, receiver);
         !pauseWatchers && applyWatchers(value, oldValue, receiver, [prop]);
         return result;
     }
@@ -240,8 +240,8 @@ const noop = () => {
 const arrayWatcher = {
     set(target, prop, value, receiver) {
         if (prop === "length") {
-            let result = Reflect.set(target, prop, value, receiver);
-            let oldValue = target[SWAP_OLD_LENGTH](value);
+            const result = Reflect.set(target, prop, value, receiver);
+            const oldValue = target[SWAP_OLD_LENGTH](value);
             !pauseWatchers && !_silentSet && applyWatchers(value, oldValue, receiver, ["length"]);
             return result;
         } else {
@@ -252,7 +252,7 @@ const arrayWatcher = {
 
 
 function getAdvice(owner, method) {
-    let advice = owner[BEFORE_ADVICE] && owner[BEFORE_ADVICE][method];
+    const advice = owner[BEFORE_ADVICE] && owner[BEFORE_ADVICE][method];
     return advice && advice.map(f => f());
 }
 
@@ -260,7 +260,7 @@ class WatchableArray extends Array {
     // note: we can make all of these much more efficient, particularly shift and unshift.
     // But, it's probably rare that it will matter, so we'll do it when the need arises
     [SWAP_OLD_LENGTH](newLength) {
-        let result = this[OLD_LENGTH];
+        const result = this[OLD_LENGTH];
         this[OLD_LENGTH] = newLength;
         return result;
     }
@@ -271,12 +271,12 @@ class WatchableArray extends Array {
             Object.defineProperty(this, BEFORE_ADVICE, {value: {}});
             beforeAdvice = this[BEFORE_ADVICE];
         }
-        let stack = beforeAdvice[method] || (beforeAdvice[method] = []);
+        const stack = beforeAdvice[method] || (beforeAdvice[method] = []);
         stack.push(proc);
-        let handle = {
+        const handle = {
             destroy() {
                 handle.destroy = noop;
-                let index = stack.indexOf(proc);
+                const index = stack.indexOf(proc);
                 if (index !== -1) stack.splice(index, 1);
             }
         };
@@ -284,8 +284,8 @@ class WatchableArray extends Array {
     }
 
     _splice(...args) {
-        let oldValues = this.slice(QUICK_COPY);
-        let changeSet = [];
+        const oldValues = this.slice(QUICK_COPY);
+        const changeSet = [];
         let result;
         try {
             _silentSet = true;
@@ -353,22 +353,22 @@ class WatchableArray extends Array {
     }
 
     splice(...args) {
-        let advice = getAdvice(this, "splice");
-        let result = this._splice(...args);
+        const advice = getAdvice(this, "splice");
+        const result = this._splice(...args);
         advice && advice.map(f => f && f(result));
         return result;
     }
 
     pop() {
-        let advice = getAdvice(this, "pop");
-        let result = fromWatchable(super.pop());
+        const advice = getAdvice(this, "pop");
+        const result = fromWatchable(super.pop());
         advice && advice.map(f => f && f(result));
         return result;
     }
 
     shift() {
-        let advice = getAdvice(this, "shift");
-        let result = fromWatchable(this._splice(0, 1)[0]);
+        const advice = getAdvice(this, "shift");
+        const result = fromWatchable(this._splice(0, 1)[0]);
         advice && advice.map(f => f && f(result));
         return result;
     }
@@ -378,18 +378,18 @@ class WatchableArray extends Array {
     }
 
     unshift(...args) {
-        let advice = getAdvice(this, "unshift");
+        const advice = getAdvice(this, "unshift");
         this._splice(0, 0, ...args);
         advice && advice.map(f => f && f());
     }
 
     reverse() {
-        let advice = getAdvice(this, "reverse");
-        let oldValues = this.slice(QUICK_COPY);
+        const advice = getAdvice(this, "reverse");
+        const oldValues = this.slice(QUICK_COPY);
         try {
             _silentSet = true;
             for (let i = 0, j = this.length - 1; i < j; i++, j--) {
-                let temp = this[i];
+                const temp = this[i];
                 this[i] = this[j];
                 this[i][PROP] = i;
                 this[j] = temp;
@@ -425,8 +425,8 @@ class WatchableArray extends Array {
     }
 
     _reorder(proc) {
-        let oldValues = this.slice(QUICK_COPY);
-        let changeSet = Array(this.length).fill(false);
+        const oldValues = this.slice(QUICK_COPY);
+        const changeSet = Array(this.length).fill(false);
         let changes = false;
         try {
             _silentSet = true;
@@ -462,14 +462,14 @@ class WatchableArray extends Array {
     }
 
     reorder(proc) {
-        let advice = getAdvice(this, "reorder");
+        const advice = getAdvice(this, "reorder");
         this._reorder(proc);
         advice && advice.map(f => f && f(this));
         return this;
     }
 
     sort(...args) {
-        let advice = getAdvice(this, "sort");
+        const advice = getAdvice(this, "sort");
         this._reorder(theArray => super.sort.apply(theArray, args));
         advice && advice.map(f => f && f(this));
         return this;
@@ -498,9 +498,9 @@ function silentSet(watchable, prop, value, enumerable, configurable) {
 }
 
 function createWatchable(src, owner, prop) {
-    let keys = Reflect.ownKeys(src);
-    let isArray = Array.isArray(src);
-    let result = isArray ? new Proxy(new WatchableArray(), arrayWatcher) : new Proxy({}, watcher);
+    const keys = Reflect.ownKeys(src);
+    const isArray = Array.isArray(src);
+    const result = isArray ? new Proxy(new WatchableArray(), arrayWatcher) : new Proxy({}, watcher);
     if (isArray) {
         keys.forEach(k => k !== "length" && (result[k] = src[k]));
         Object.defineProperty(result, OLD_LENGTH, {writable: true, value: result.length});
@@ -508,7 +508,7 @@ function createWatchable(src, owner, prop) {
         keys.forEach(k => (result[k] = src[k]));
     }
 
-    let silentHold = _silentSet;
+    const silentHold = _silentSet;
     _silentSet = true;
     Object.defineProperty(result, OWNER, {writable: true, value: owner});
     prop !== undefined && Object.defineProperty(result, PROP, {writable: true, value: prop});
@@ -539,7 +539,7 @@ function fromWatchable(data) {
         if (!data[OWNER]) {
             return data;
         }
-        let result = Array.isArray(data) ? Array(data.length) : {};
+        const result = Array.isArray(data) ? Array(data.length) : {};
         Reflect.ownKeys(data).forEach(k => {
             if (k !== OWNER && k !== PROP && k !== OLD_LENGTH) {
                 result[k] = fromWatchable(data[k]);
@@ -551,11 +551,11 @@ function fromWatchable(data) {
     }
 }
 
-let onMutateBeforeNames = {};
-let onMutateNames = {};
+const onMutateBeforeNames = {};
+const onMutateNames = {};
 
 function mutate(owner, name, privateName, newValue) {
-    let oldValue = owner[privateName];
+    const oldValue = owner[privateName];
     if (eql(oldValue, newValue)) {
         return false;
     } else {
@@ -563,7 +563,7 @@ function mutate(owner, name, privateName, newValue) {
         if (typeof name !== "symbol") {
             onMutateBeforeName = onMutateBeforeNames[name];
             if (!onMutateBeforeName) {
-                let suffix = name.substring(0, 1).toUpperCase() + name.substring(1);
+                const suffix = name.substring(0, 1).toUpperCase() + name.substring(1);
                 onMutateBeforeName = onMutateBeforeNames[name] = "onMutateBefore" + suffix;
                 onMutateName = onMutateNames[name] = "onMutate" + suffix;
             } else {
@@ -597,7 +597,7 @@ function watchHub(superClass) {
     }) {
         // protected interface...
         bdMutateNotify(name, newValue, oldValue) {
-            let variables = watcherCatalog.get(this);
+            const variables = watcherCatalog.get(this);
             if (!variables) {
                 return;
             }
@@ -607,7 +607,7 @@ function watchHub(superClass) {
                 name.forEach(p => {
                     if (p) {
                         doStar = true;
-                        let watchers = variables[p[0]];
+                        const watchers = variables[p[0]];
                         if (watchers) {
                             newValue = p[1];
                             oldValue = p[2];
@@ -616,7 +616,7 @@ function watchHub(superClass) {
                     }
                 });
                 if (doStar) {
-                    let watchers = variables[STAR];
+                    const watchers = variables[STAR];
                     if (watchers) {
                         watchers.slice().forEach(destroyable => destroyable.proc(this, oldValue, this, name));
                     }
@@ -636,11 +636,11 @@ function watchHub(superClass) {
         bdMutate(name, privateName, newValue) {
             if (arguments.length > 3) {
                 let i = 0;
-                let results = [];
+                const results = [];
                 let mutateOccurred = false;
                 while (i < arguments.length) {
                     // eslint-disable-next-line prefer-rest-params
-                    let mutateResult = mutate(this, arguments[i++], arguments[i++], arguments[i++]);
+                    const mutateResult = mutate(this, arguments[i++], arguments[i++], arguments[i++]);
                     mutateOccurred = mutateOccurred || mutateResult;
                     results.push(mutateResult);
                 }
@@ -650,7 +650,7 @@ function watchHub(superClass) {
                 }
                 return false;
             } else {
-                let result = mutate(this, name, privateName, newValue);
+                const result = mutate(this, name, privateName, newValue);
                 if (result) {
                     this.bdMutateNotify(...result);
                     return result;
@@ -676,7 +676,7 @@ function watchHub(superClass) {
 
             if (arguments.length === 1) {
                 // sig 3
-                let hash = args[0];
+                const hash = args[0];
                 return Reflect.ownKeys(hash).map(name => this.watch(name, hash[name]));
             }
             if (args[0][OWNER]) {
@@ -685,7 +685,7 @@ function watchHub(superClass) {
                 if (arguments.length === 2) {
                     if (typeof args[1] === "object") {
                         // sig 6
-                        let hash = args[1];
+                        const hash = args[1];
                         Reflect.ownKeys(hash).map(name => (hash[name] = getWatcher(this, hash[name])));
                         result = watch(args[0], hash);
                     } else {
@@ -704,19 +704,19 @@ function watchHub(superClass) {
                 return args[0].map(name => this.watch(name, getWatcher(this, args[1])));
             }
             // sig 1
-            let name = args[0];
-            let watcher = getWatcher(this, args[1]);
+            const name = args[0];
+            const watcher = getWatcher(this, args[1]);
             let variables = watcherCatalog.get(this);
             if (!variables) {
                 watcherCatalog.set(this, (variables = {}));
             }
-            let result = destroyable(watcher, variables[name] || (variables[name] = []));
+            const result = destroyable(watcher, variables[name] || (variables[name] = []));
             this.own && this.own(result);
             return result;
         }
 
         destroyWatch(name) {
-            let variables = watcherCatalog.get(this);
+            const variables = watcherCatalog.get(this);
 
             function destroyList(list) {
                 if (list) {
@@ -736,7 +736,7 @@ function watchHub(superClass) {
         }
 
         getWatchableRef(name, formatter) {
-            let result = new WatchableRef(this, name, formatter);
+            const result = new WatchableRef(this, name, formatter);
             this.own && this.own(result);
             return result;
         }
@@ -751,7 +751,7 @@ function isWatchable(target) {
 
 function withWatchables(superClass, ...args) {
     let prototype;
-    let publicPropNames = [];
+    const publicPropNames = [];
 
     function def(name) {
         let pname;
@@ -781,7 +781,7 @@ function withWatchables(superClass, ...args) {
         });
     }
 
-    let result = class extends superClass {
+    const result = class extends superClass {
         constructor(kwargs) {
             kwargs = kwargs || {};
             super(kwargs);

@@ -34,14 +34,14 @@ function classValueToRegExp(v, args) {
 }
 
 function calcDomClassName(component) {
-    let staticClassName = component.staticClassName;
-    let className = component.bdClassName;
+    const staticClassName = component.staticClassName;
+    const className = component.bdClassName;
     return staticClassName && className ? (staticClassName + " " + className) : (staticClassName || className);
 }
 
 function addChildToDomNode(parent, domNode, child, childIsComponent) {
     if (childIsComponent) {
-        let childDomRoot = child.bdDom.root;
+        const childDomRoot = child.bdDom.root;
         if (Array.isArray(childDomRoot)) {
             childDomRoot.forEach((node) => insertNode(node, domNode));
         } else {
@@ -63,7 +63,7 @@ function validateElements(elements) {
 
 function postProcess(ppFuncs, owner, target) {
     Reflect.ownKeys(ppFuncs).forEach(ppf => {
-        let args = ppFuncs[ppf];
+        const args = ppFuncs[ppf];
         if (Array.isArray(args)) {
             getPostProcessingFunction(ppf)(owner, target, ...args);
         } else {
@@ -80,10 +80,10 @@ function pushHandles(dest, ...handles) {
         if (Array.isArray(h)) {
             pushHandles(dest, ...h);
         } else if (h) {
-            let destroy = h.destroy.bind(h);
+            const destroy = h.destroy.bind(h);
             h.destroy = function () {
                 destroy();
-                let index = dest.indexOf(h);
+                const index = dest.indexOf(h);
                 if (index !== -1) {
                     dest.splice(index, 1);
                 }
@@ -148,7 +148,7 @@ export class Component extends eventHub(WatchHub) {
         }
 
         if (kwargs.callbacks) {
-            let events = this.constructor.events;
+            const events = this.constructor.events;
             Reflect.ownKeys(kwargs.callbacks).forEach(key => {
                 if (events.indexOf(key) !== -1) {
                     this.advise(key, kwargs.callbacks[key]);
@@ -163,7 +163,7 @@ export class Component extends eventHub(WatchHub) {
         if (!this.destroyed) {
             this.destroyed = "in-prog";
             this.unrender();
-            let handles = ownedHandlesCatalog.get(this);
+            const handles = ownedHandlesCatalog.get(this);
             if (handles) {
                 destroyAll(handles);
                 ownedHandlesCatalog.delete(this);
@@ -179,10 +179,10 @@ export class Component extends eventHub(WatchHub) {
         proc // [function, optional] called after this class's render work is done, called in context of this
     ) {
         if (!this.bdDom) {
-            let dom = this.bdDom = this._dom = {};
-            let elements = this.bdElements();
+            const dom = this.bdDom = this._dom = {};
+            const elements = this.bdElements();
             validateElements(elements);
-            let root = dom.root = this.constructor.renderElements(this, elements);
+            const root = dom.root = this.constructor.renderElements(this, elements);
             if (Array.isArray(root)) {
                 root.forEach((node) => domNodeToComponent.set(node, this));
             } else {
@@ -191,7 +191,7 @@ export class Component extends eventHub(WatchHub) {
                     root.id = this.id;
                 }
                 this.addClassName(root.getAttribute("class") || "");
-                let className = calcDomClassName(this);
+                const className = calcDomClassName(this);
                 if (className) {
                     root.setAttribute("class", className);
                 }
@@ -242,7 +242,7 @@ export class Component extends eventHub(WatchHub) {
             }
             delete this.children;
 
-            let root = this.bdDom.root;
+            const root = this.bdDom.root;
             if (Array.isArray(root)) {
                 root.forEach((node) => {
                     domNodeToComponent.delete(node);
@@ -342,7 +342,7 @@ export class Component extends eventHub(WatchHub) {
                 }
             } else if (position !== undefined) {
                 // attachPoint must be a child Component
-                let index = this.children ? this.children.indexOf(attachPoint) : -1;
+                const index = this.children ? this.children.indexOf(attachPoint) : -1;
                 if (index !== -1) {
                     // attachPoint is a child
                     attachPoint = attachPoint.bdDom.root;
@@ -381,9 +381,9 @@ export class Component extends eventHub(WatchHub) {
             }
         }
 
-        let childRoot = child.bdDom.root;
+        const childRoot = child.bdDom.root;
         if (Array.isArray(childRoot)) {
-            let firstChildNode = childRoot[0];
+            const firstChildNode = childRoot[0];
             unrender(insertNode(firstChildNode, attachPoint, position));
             childRoot.slice(1).reduce((prevNode, node) => {
                 insertNode(node, prevNode, "after");
@@ -398,10 +398,10 @@ export class Component extends eventHub(WatchHub) {
     }
 
     delChild(child, preserve) {
-        let index = this.children ? this.children.indexOf(child) : -1;
+        const index = this.children ? this.children.indexOf(child) : -1;
         if (index !== -1) {
-            let root = child.bdDom && child.bdDom.root;
-            let removeNode = (node) => {
+            const root = child.bdDom && child.bdDom.root;
+            const removeNode = (node) => {
                 node.parentNode && node.parentNode.removeChild(node);
             };
             Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
@@ -427,13 +427,13 @@ export class Component extends eventHub(WatchHub) {
         if (children === this.children) {
             children = this.children.slice();
         }
-        let thisChildren = this.children;
+        const thisChildren = this.children;
         if (thisChildren && thisChildren.length) {
-            let node = this.children[0].bdDom.root.parentNode;
+            const node = this.children[0].bdDom.root.parentNode;
 
             children.forEach((child, i) => {
                 if (thisChildren[i] !== child) {
-                    let index = thisChildren.indexOf(child, i + 1);
+                    const index = thisChildren.indexOf(child, i + 1);
                     thisChildren.splice(index, 1);
                     node.insertBefore(child.bdDom.root, thisChildren[i].bdDom.root);
                     thisChildren.splice(i, 0, child);
@@ -456,7 +456,7 @@ export class Component extends eventHub(WatchHub) {
                 root = root[0];
             }
             let className = root.className;
-            let staticClassName = this.staticClassName;
+            const staticClassName = this.staticClassName;
             if (staticClassName) {
                 staticClassName.split(" ").forEach(s => (className = className.replace(s, "")));
             }
@@ -488,7 +488,7 @@ export class Component extends eventHub(WatchHub) {
     }
 
     addClassName(...values) {
-        let current = this.bdClassName || "";
+        const current = this.bdClassName || "";
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
             return classValueToRegExp(value).test(className) ? className : className + value + " ";
         }, " " + current + " ").trim(), current);
@@ -497,7 +497,7 @@ export class Component extends eventHub(WatchHub) {
 
     removeClassName(...values) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-        let current = this.bdClassName || "";
+        const current = this.bdClassName || "";
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
             return className.replace(classValueToRegExp(value, "g"), " ");
         }, " " + current + " ").trim(), current);
@@ -506,7 +506,7 @@ export class Component extends eventHub(WatchHub) {
 
     toggleClassName(...values) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-        let current = this.bdClassName || "";
+        const current = this.bdClassName || "";
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
             if (classValueToRegExp(value).test(className)) {
                 return className.replace(classValueToRegExp(value, "g"), " ");
@@ -519,7 +519,7 @@ export class Component extends eventHub(WatchHub) {
 
     get classList() {
         if (!this._classList) {
-            let self = this;
+            const self = this;
             this._classList = {
                 get() {
                     return self.className;
@@ -568,7 +568,7 @@ export class Component extends eventHub(WatchHub) {
                 this.bdDom.root.setAttribute("class", calcDomClassName(this));
             }
             this.bdMutateNotify("className", newValue, oldValue);
-            let oldVisibleValue = oldValue ? oldValue.indexOf("bd-hidden") === -1 : true,
+            const oldVisibleValue = oldValue ? oldValue.indexOf("bd-hidden") === -1 : true,
                 newVisibleValue = newValue ? newValue.indexOf("bd-hidden") === -1 : true;
             if (oldVisibleValue !== newVisibleValue) {
                 this.bdMutateNotify("visible", newVisibleValue, oldVisibleValue);
@@ -598,7 +598,8 @@ export class Component extends eventHub(WatchHub) {
 
     setItem(...args) {
         let data = this.bdData || {};
-        let i = 0, end = args.length - 2;
+        let i = 0;
+        const end = args.length - 2;
         while (i < end) {
             data = data[args[i]] || (data[args[i]] = {});
             i++;
@@ -620,7 +621,7 @@ export class Component extends eventHub(WatchHub) {
             data = data[args[i]++];
         }
         if (data) {
-            let result = data[args[i]];
+            const result = data[args[i]];
             delete data[args[i]];
             return result;
         } else {
@@ -681,7 +682,7 @@ export class Component extends eventHub(WatchHub) {
         if (value !== !this.containsClassName("bd-hidden")) {
             if (value) {
                 this.removeClassName("bd-hidden");
-                let node = this.bdDom && this.bdDom.root;
+                const node = this.bdDom && this.bdDom.root;
                 if (this._hiddenDisplayStyle !== undefined) {
                     node && (node.style.display = this._hiddenDisplayStyle);
                     delete this._hiddenDisplayStyle;
@@ -689,7 +690,7 @@ export class Component extends eventHub(WatchHub) {
                 this.resize && this.resize();
             } else {
                 this.addClassName("bd-hidden");
-                let node = this.bdDom && this.bdDom.root;
+                const node = this.bdDom && this.bdDom.root;
                 if (node) {
                     this._hiddenDisplayStyle = node.style.display;
                     node.style.display = "none";
@@ -724,11 +725,11 @@ export class Component extends eventHub(WatchHub) {
             const {Type, ctorProps, ppFuncs, children} = e;
             let result;
             if (e.isComponentType) {
-                let componentInstance = result = new Type(ctorProps);
+                const componentInstance = result = new Type(ctorProps);
                 componentInstance.render();
                 ppFuncs && postProcess(ppFuncs, owner, componentInstance);
                 if (children) {
-                    let renderedChildren = Component.renderElements(owner, children);
+                    const renderedChildren = Component.renderElements(owner, children);
                     if (Array.isArray(renderedChildren)) {
                         renderedChildren.forEach((child) => result.insChild(child));
                     } else {
@@ -736,13 +737,13 @@ export class Component extends eventHub(WatchHub) {
                     }
                 }
             } else {
-                let domNode = result = createNode(Type, ctorProps);
+                const domNode = result = createNode(Type, ctorProps);
                 if ("tabIndex" in ctorProps && ctorProps.tabIndex !== false) {
                     owner.bdDom.tabIndexNode = domNode;
                 }
                 ppFuncs && postProcess(ppFuncs, owner, domNode);
                 if (children) {
-                    let renderedChildren = Component.renderElements(owner, children);
+                    const renderedChildren = Component.renderElements(owner, children);
                     if (Array.isArray(renderedChildren)) {
                         renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType));
                     } else {
@@ -795,7 +796,7 @@ insPostProcessingFunction(
     "bdExec",
     function (ppfOwner, ppfTarget, ...args) {
         for (let i = 0; i < args.length;) {
-            let f = args[i++];
+            const f = args[i++];
             if (typeof f === "function") {
                 f(ppfOwner, ppfTarget);
             } else if (typeof f === "string") {
@@ -848,9 +849,9 @@ insPostProcessingFunction(
         }
 
         function install(owner, prop, formatter) {
-            let watchable = getWatchableRef(owner, prop, formatter);
+            const watchable = getWatchableRef(owner, prop, formatter);
             ppfOwner.ownWhileRendered(watchable);
-            let value = normalize(watchable.value);
+            const value = normalize(watchable.value);
             if (value) {
                 if (ppfOwner.bdDom.root === ppfTarget) {
                     // mutating className on the root node of a component
@@ -942,7 +943,7 @@ function decodeRender(args) {
     //
     // for signatures 3-6, an Element is manufactured given the arguments
 
-    let [arg1, arg2, arg3, arg4] = args;
+    const [arg1, arg2, arg3, arg4] = args;
     if (arg1 instanceof Element || arg1 instanceof Component) {
         // [1] or [2] || [7] or [8]
         return {src: arg1, attachPoint: arg2, position: arg3};
@@ -970,7 +971,7 @@ function decodeRender(args) {
 
 function unrender(node) {
     function unrender_(n) {
-        let component = domNodeToComponent.get(n);
+        const component = domNodeToComponent.get(n);
         if (component) {
             component.destroy();
         }
@@ -1000,9 +1001,9 @@ export function render(...args) {
     }
 
     if (attachPoint) {
-        let root = result.bdDom.root;
+        const root = result.bdDom.root;
         if (Array.isArray(root)) {
-            let firstChildNode = root[0];
+            const firstChildNode = root[0];
             unrender(insertNode(firstChildNode, attachPoint, position));
             root.slice(1).reduce((prevNode, node) => {
                 insertNode(node, prevNode, "after");

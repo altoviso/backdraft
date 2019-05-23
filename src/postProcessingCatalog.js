@@ -1,4 +1,4 @@
-let postProcessingFuncs = Object.create(null);
+const postProcessingFuncs = Object.create(null);
 
 function insPostProcessingFunction(name, transform, func) {
     if (typeof transform === "string") {

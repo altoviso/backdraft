@@ -2,11 +2,11 @@ function noop() {
 }
 
 function destroyable(proc, container, onEmpty) {
-    let result = {proc};
+    const result = {proc};
     if (container) {
         result.destroy = () => {
             result.destroy = result.proc = noop;
-            let index = container.indexOf(result);
+            const index = container.indexOf(result);
             if (index !== -1) {
                 container.splice(index, 1);
             }

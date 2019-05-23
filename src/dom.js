@@ -59,7 +59,7 @@ function getStyle(node, property) {
     if (lastComputedStyleNode !== node) {
         lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
     }
-    let result = lastComputedStyle[property];
+    const result = lastComputedStyle[property];
     return (typeof result === "string" && /px$/.test(result)) ? parseFloat(result) : result;
 }
 
@@ -81,9 +81,9 @@ function getStyles(node, ...styleNames) {
         }
     });
 
-    let result = {};
+    const result = {};
     styles.forEach((property) => {
-        let value = lastComputedStyle[property];
+        const value = lastComputedStyle[property];
         result[property] = (typeof value === "string" && /px$/.test(value)) ? parseFloat(value) : value;
     });
     return result;
@@ -106,7 +106,7 @@ function setStyle(node, property, value) {
 }
 
 function getPosit(node) {
-    let result = normalizeNodeArg(node).getBoundingClientRect();
+    const result = normalizeNodeArg(node).getBoundingClientRect();
     result.t = result.top;
     result.b = result.bottom;
     result.l = result.left;
@@ -169,7 +169,7 @@ function insertBefore(node, refNode) {
 }
 
 function insertAfter(node, refNode) {
-    let parent = refNode.parentNode;
+    const parent = refNode.parentNode;
     if (parent.lastChild === refNode) {
         parent.appendChild(node);
     } else {
@@ -193,7 +193,7 @@ function insert(node, refNode, position) {
                 refNode.parentNode.replaceChild(node, refNode);
                 return (refNode);
             case "only": {
-                let result = [];
+                const result = [];
                 while (refNode.firstChild) {
                     result.push(refNode.removeChild(refNode.firstChild));
                 }
@@ -209,7 +209,7 @@ function insert(node, refNode, position) {
                 break;
             default:
                 if (typeof position === "number") {
-                    let children = refNode.childNodes;
+                    const children = refNode.childNodes;
                     if (!children.length || children.length <= position) {
                         refNode.appendChild(node);
                     } else {
@@ -224,7 +224,7 @@ function insert(node, refNode, position) {
 }
 
 function create(tag, props) {
-    let result = Array.isArray(tag) ? document.createElementNS(tag[0] + "", tag[1]) : document.createElement(tag);
+    const result = Array.isArray(tag) ? document.createElementNS(tag[0] + "", tag[1]) : document.createElement(tag);
     if (props) {
         Reflect.ownKeys(props).forEach(p => setAttr(result, p, props[p]));
     }
@@ -261,7 +261,9 @@ function show(...nodes) {
 }
 
 function getMaxZIndex(parent) {
-    let node, cs, max = 0, children = parent.childNodes, i = 0, end = children.length;
+    const children = parent.childNodes;
+    const end = children.length;
+    let node, cs, max = 0, i = 0;
     while (i < end) {
         node = children[i++];
         cs = node && node.nodeType === 1 && getComputedStyle(node);
@@ -296,11 +298,11 @@ function connect(target, type, listener, useCapture) {
 }
 
 function animate(node, className, onComplete) {
-    let isComponent = node instanceof Component;
+    const isComponent = node instanceof Component;
     if (isComponent && !node.rendered) {
         return;
     }
-    let h = connect(isComponent ? node.bdDom.root : node, "animationend", function (e) {
+    const h = connect(isComponent ? node.bdDom.root : node, "animationend", function (e) {
         if (e.animationName === className) {
             h.destroy();
             if (isComponent) {
@@ -344,7 +346,7 @@ class FocusManager extends withWatchables(
         let focusWatcher = 0;
 
         connect(document.body, "focusin", e => {
-            let node = e.target;
+            const node = e.target;
             if (!node || node.parentNode || node === this.focusedNode) {
                 return;
             }
@@ -377,7 +379,7 @@ class FocusManager extends withWatchables(
     }
 
     processNode(node) {
-        let previousFocusedNode = this.focusedNode,
+        const previousFocusedNode = this.focusedNode,
             focusedNode = node;
         if (previousFocusedNode === focusedNode) {
             return;
@@ -391,7 +393,7 @@ class FocusManager extends withWatchables(
         }
         this._nextFocusedComponent = nextFocusedComponent;
 
-        let stack = [];
+        const stack = [];
         if (nextFocusedComponent) {
             let p = nextFocusedComponent;
             while (p) {
@@ -400,10 +402,10 @@ class FocusManager extends withWatchables(
             }
         }
 
-        let focusStack = this._focusedStack,
-            newStackLength = stack.length,
-            oldStackLength = focusStack.length,
-            i = 0,
+        const focusStack = this._focusedStack;
+        const newStackLength = stack.length;
+        const oldStackLength = focusStack.length;
+        let i = 0,
             j, component;
         while (i < newStackLength && i < oldStackLength && stack[i] === focusStack[i]) {
             i++;
@@ -432,7 +434,7 @@ class FocusManager extends withWatchables(
     }
 }
 
-let focusManager = new FocusManager();
+const focusManager = new FocusManager();
 
 
 class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
@@ -464,8 +466,8 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
             }
             resizeTimeoutHandle = setTimeout(() => {
                 resizeTimeoutHandle = 0;
-                let vh = document.documentElement.clientHeight;
-                let vw = document.documentElement.clientWidth;
+                const vh = document.documentElement.clientHeight;
+                const vw = document.documentElement.clientWidth;
                 this.bdMutate(
                     "vh", "_vh", vh,
                     "vw", "_vw", vw
@@ -476,7 +478,7 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
     }
 }
 
-let viewportWatcher = new ViewportWatcher();
+const viewportWatcher = new ViewportWatcher();
 
 
 insPostProcessingFunction(
@@ -515,7 +517,7 @@ insPostProcessingFunction(
         }
 
         Reflect.ownKeys(props).forEach(destProp => {
-            let args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
+            const args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
             let refObject, prop;
             while (args.length) {
                 refObject = args.shift();

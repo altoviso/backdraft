@@ -8,7 +8,7 @@ function eventHub(superClass) {
     }) {
         // protected interface...
         bdNotify(e) {
-            let events = listenerCatalog.get(this);
+            const events = listenerCatalog.get(this);
             if (!events) {
                 return;
             }
@@ -48,7 +48,7 @@ function eventHub(superClass) {
 
         advise(eventName, handler) {
             if (!handler) {
-                let hash = eventName;
+                const hash = eventName;
                 return Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
             } else if (Array.isArray(eventName)) {
                 return eventName.map(name => this.advise(name, handler));
@@ -57,19 +57,19 @@ function eventHub(superClass) {
                 if (!events) {
                     listenerCatalog.set(this, (events = {}));
                 }
-                let result = destroyable(handler, events[eventName] || (events[eventName] = []));
+                const result = destroyable(handler, events[eventName] || (events[eventName] = []));
                 this.own && this.own(result);
                 return result;
             }
         }
 
         destroyAdvise(eventName) {
-            let events = listenerCatalog.get(this);
+            const events = listenerCatalog.get(this);
             if (!events) {
                 return;
             }
             if (eventName) {
-                let handlers = events[eventName];
+                const handlers = events[eventName];
                 if (handlers) {
                     handlers.forEach(h => h.destroy());
                     delete events[eventName];

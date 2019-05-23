@@ -12,11 +12,12 @@ function applyLengthWatchers(owner, newValue, oldValue) {
 }
 
 function updateChildren(collection, owner, oldLength) {
-    let children = owner.children;
-    let newLength = collection.length;
+    const children = owner.children;
+    const newLength = collection.length;
     for (let i = 0, end = newLength; i < end; i++) {
-        let item = collection[i];
-        let child, j = i, childrenCount = children.length;
+        const item = collection[i];
+        const childrenCount = children.length;
+        let child, j = i;
         // eslint-disable-next-line no-cond-assign
         while (j < childrenCount && (child = children[j]) && child.collectionItem !== item) j++;
         if (j >= childrenCount) {
@@ -42,8 +43,8 @@ function setSpliceAdvice(collection, owner) {
         if (!owner.rendered) {
             return;
         }
-        let oldLength = collection.length;
-        let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+        const oldLength = collection.length;
+        const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
         return () => {
             owner.suspendWatchAdvise = holdSuspendWatchAdvise;
@@ -57,14 +58,14 @@ function setShiftAdvice(collection, owner) {
         if (!owner.rendered || !collection.length) {
             return;
         }
-        let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+        const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
         return () => {
             owner.suspendWatchAdvise = holdSuspendWatchAdvise;
-            let children = owner.children;
+            const children = owner.children;
             owner.delChild(children[0]);
-            let newLength = collection.length;
-            let oldLength = newLength + 1;
+            const newLength = collection.length;
+            const oldLength = newLength + 1;
             children.forEach((child, i) => (child.collectionIndex = i));
             applyLengthWatchers(owner, newLength, oldLength);
         };
@@ -76,12 +77,12 @@ function setUnshiftAdvice(collection, owner) {
         if (!owner.rendered) {
             return;
         }
-        let oldLength = collection.length;
-        let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+        const oldLength = collection.length;
+        const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
         return () => {
             owner.suspendWatchAdvise = holdSuspendWatchAdvise;
-            let newLength = collection.length;
+            const newLength = collection.length;
             for (let i = 0, end = newLength - oldLength; i < end; i++) {
                 owner.insChild(i);
             }
@@ -98,13 +99,13 @@ function setReverseAdvice(collection, owner) {
         if (!owner.rendered) {
             return;
         }
-        let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+        const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
         return () => {
             owner.suspendWatchAdvise = holdSuspendWatchAdvise;
-            let children = owner.children;
+            const children = owner.children;
             for (let i = children.length - 1; i >= 0; i--) {
-                let node = children[i].bdDom.root;
+                const node = children[i].bdDom.root;
                 node.parentNode.appendChild(node);
             }
             children.reverse();
@@ -118,7 +119,7 @@ function setSortAdvice(collection, owner) {
         if (!owner.rendered) {
             return;
         }
-        let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+        const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
         return () => {
             owner.suspendWatchAdvise = holdSuspendWatchAdvise;
@@ -132,7 +133,7 @@ function setOrderAdvice(collection, owner) {
         if (!owner.rendered) {
             return;
         }
-        let holdSuspendWatchAdvise = owner.suspendWatchAdvise;
+        const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
         return () => {
             owner.suspendWatchAdvise = holdSuspendWatchAdvise;
@@ -154,13 +155,13 @@ export class Collection extends Component {
             this.bdSetupHandle && this.bdSetupHandle.destroy();
 
             if (this.rendered) {
-                let children = this.children;
-                let collection = this.bdCollection;
-                let oldLength = children.length;
-                let newLength = collection.length;
-                let mutateLength = oldLength !== newLength;
+                const children = this.children;
+                const collection = this.bdCollection;
+                const oldLength = children.length;
+                const newLength = collection.length;
+                const mutateLength = oldLength !== newLength;
                 for (let i = 0, end = Math.min(oldLength, newLength); i < end; i++) {
-                    let child = children[i];
+                    const child = children[i];
                     child.collectionItem = collection[i];
                     if (mutateLength) {
                         child.onMutateCollectionLength && child.onMutateCollectionLength(newLength, oldLength);
@@ -169,9 +170,9 @@ export class Collection extends Component {
                 }
             }
 
-            let collection = this.bdCollection;
+            const collection = this.bdCollection;
             if (isWatchable(collection) && !this.kwargs.collectionIsScalars) {
-                let handles = [
+                const handles = [
                     this.watch(this.bdCollection, "length", (newValue, oldValue) => {
                         if (this.suspendWatchAdvise) return;
                         if (this.rendered) {
@@ -186,7 +187,7 @@ export class Collection extends Component {
                     setSortAdvice(collection, this),
                     setOrderAdvice(collection, this)
                 ];
-                let setupHandle = this.bdSetupHandle = {
+                const setupHandle = this.bdSetupHandle = {
                     destroy() {
                         // multiple calls imply no-op
                         setupHandle.destroy = () => 0;
@@ -214,7 +215,7 @@ export class Collection extends Component {
 
     insChild(collectionIndex) {
         // eslint-disable-next-line new-cap
-        let child = new this.kwargs.childType({parent: this, collectionIndex});
+        const child = new this.kwargs.childType({parent: this, collectionIndex});
         Component.insertNode(child.render(), this.bdChildrenAttachPoint || this.bdDom.root, collectionIndex);
         this.children.splice(collectionIndex, 0, child);
         child.bdAttachToDoc(this.bdAttachedToDoc);
@@ -222,8 +223,8 @@ export class Collection extends Component {
     }
 
     bdSynchChildren() {
-        let children = this.children;
-        let collection = this.collection;
+        const children = this.children;
+        const collection = this.collection;
         while (children.length < collection.length) {
             this.insChild(children.length);
         }
@@ -233,7 +234,7 @@ export class Collection extends Component {
     }
 }
 
-let onMutateNames = {};
+const onMutateNames = {};
 
 function onMutateItemWatchable(propName, owner, newValue, oldValue) {
     let procName = onMutateNames[propName];
@@ -267,7 +268,7 @@ export class CollectionChild extends Component {
 
     set collectionIndex(newValue) {
         if (newValue !== this.bdCollectionIndex) {
-            let oldValue = this.bdCollectionIndex;
+            const oldValue = this.bdCollectionIndex;
             this.bdCollectionIndex = newValue;
             this.onMutateCollectionIndex && this.onMutateCollectionIndex(newValue, oldValue);
             this.bdMutateNotify("collectionIndex", newValue, oldValue);
@@ -304,9 +305,9 @@ export class CollectionChild extends Component {
 
     _connectWatchers() {
         this._itemWatchHandles.forEach(h => h.destroy());
-        let handles = this._itemWatchHandles = [];
+        const handles = this._itemWatchHandles = [];
         if (isWatchable(this.parent.collection)) {
-            let collectionItem = this.bdCollectionItem;
+            const collectionItem = this.bdCollectionItem;
             handles.push(this.watch(this.parent.collection, this.collectionIndex, (newValue, oldValue, target, prop) => {
                 if (this.parent.suspendWatchAdvise) return;
                 if (prop.length === 1) {
@@ -331,17 +332,17 @@ export class CollectionChild extends Component {
 CollectionChild.itemWatchables = [];
 
 CollectionChild.withWatchables = function (...args) {
-    let superclass = typeof args[0] === "function" ? args.shift() : CollectionChild;
+    const superclass = typeof args[0] === "function" ? args.shift() : CollectionChild;
     let itemWatchables = [];
     args = args.filter(prop => {
-        let match = prop.match(/^item:(.+)/);
+        const match = prop.match(/^item:(.+)/);
         if (match) {
             itemWatchables = itemWatchables.concat(match[1].split(",").map(p => p.trim()).filter(p => !!p));
             return false;
         }
         return true;
     });
-    let result = withWatchables(superclass, ...args);
+    const result = withWatchables(superclass, ...args);
     result.itemWatchables = itemWatchables;
     return result;
 };

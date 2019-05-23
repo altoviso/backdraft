@@ -2,7 +2,7 @@ import {getPostProcessingFunction} from "./postProcessingCatalog.js";
 
 function flattenChildren(children) {
     // single children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
-    let result = [];
+    const result = [];
 
     function flatten_(child) {
         if (Array.isArray(child)) {
@@ -43,13 +43,13 @@ export class Element {
                     children.unshift(props);
                     this.ctorProps = {};
                 } else if (props instanceof Object) {
-                    let ctorProps = {};
-                    let ppFuncs = {};
+                    const ctorProps = {};
+                    const ppFuncs = {};
                     let ppFuncsExist = false;
                     let match, ppf;
-                    let setPpFuncs = (ppKey, value) => {
+                    const setPpFuncs = (ppKey, value) => {
                         if (ppFuncs[ppKey]) {
-                            let dest = ppFuncs[ppKey];
+                            const dest = ppFuncs[ppKey];
                             Reflect.ownKeys(value).forEach(k => (dest[k] = value[k]));
                         } else {
                             ppFuncsExist = true;
@@ -58,11 +58,11 @@ export class Element {
                     };
                     Reflect.ownKeys(props).forEach((k) => {
                         if ((ppf = getPostProcessingFunction(k))) {
-                            let value = ppf.bdTransform(null, props[k]);
+                            const value = ppf.bdTransform(null, props[k]);
                             setPpFuncs(k, value);
                         } else if ((match = k.match(/^([A-Za-z0-9$]+)_(.+)$/)) && (ppf = getPostProcessingFunction(match[1]))) {
-                            let ppKey = match[1];
-                            let value = ppf.bdTransform(match[2], props[k]);
+                            const ppKey = match[1];
+                            const value = ppf.bdTransform(match[2], props[k]);
                             setPpFuncs(ppKey, value);
                         } else {
                             ctorProps[k] = props[k];
@@ -80,9 +80,9 @@ export class Element {
                 this.ctorProps = {};
             }
 
-            let flattenedChildren = flattenChildren(children);
+            const flattenedChildren = flattenChildren(children);
             if (flattenedChildren.length === 1) {
-                let child = flattenedChildren[0];
+                const child = flattenedChildren[0];
                 this.children = child instanceof Element ? child : child + "";
             } else if (flattenedChildren.length) {
                 this.children = flattenedChildren.map(child => (child instanceof Element ? child : child + ""));
@@ -98,7 +98,7 @@ export function element(type, props, ...children) {
     return new Element(type, props, children);
 }
 
-let addElementType = element.addElementType = function (type) {
+const addElementType = element.addElementType = function (type) {
     if (typeof type === "function") {
         if (type.name in element) {
             console.error(type.name, "already in element");
