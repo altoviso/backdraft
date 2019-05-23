@@ -213,7 +213,6 @@ export class Component extends eventHub(WatchHub) {
                     this._hiddenDisplayStyle = root.style.display;
                     root.style.display = "none";
                 }
-
             }
             this.ownWhileRendered(this.postRender());
             proc && proc.call(this);
@@ -682,11 +681,11 @@ export class Component extends eventHub(WatchHub) {
         if (value !== !this.containsClassName("bd-hidden")) {
             if (value) {
                 this.removeClassName("bd-hidden");
+                let node = this.bdDom && this.bdDom.root;
                 if (this._hiddenDisplayStyle !== undefined) {
-                    this.bdDom.root.style.display = this._hiddenDisplayStyle;
+                    node && (node.style.display = this._hiddenDisplayStyle);
                     delete this._hiddenDisplayStyle;
                 }
-                let rootNode = this.bdDom && this.bdDom.root;
                 this.resize && this.resize();
             } else {
                 this.addClassName("bd-hidden");
