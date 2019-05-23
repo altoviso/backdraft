@@ -458,7 +458,7 @@ export class Component extends eventHub(WatchHub) {
             let className = root.className;
             let staticClassName = this.staticClassName;
             if (staticClassName) {
-                staticClassName.split(" ").forEach(s => className = className.replace(s, ""));
+                staticClassName.split(" ").forEach(s => (className = className.replace(s, "")));
             }
             return cleanClassName(className);
         } else {
@@ -526,7 +526,7 @@ export class Component extends eventHub(WatchHub) {
                 },
 
                 set: function (value) {
-                    return self.className = value;
+                    return (self.className = value);
                 },
 
                 add: function (...values) {
@@ -721,10 +721,10 @@ export class Component extends eventHub(WatchHub) {
         if (Array.isArray(e)) {
             return e.map((e) => Component.renderElements(owner, e));
         } else if (e instanceof Element) {
-            const {type, ctorProps, ppFuncs, children} = e;
+            const {Type, ctorProps, ppFuncs, children} = e;
             let result;
             if (e.isComponentType) {
-                let componentInstance = result = new type(ctorProps);
+                let componentInstance = result = new Type(ctorProps);
                 componentInstance.render();
                 ppFuncs && postProcess(ppFuncs, owner, componentInstance);
                 if (children) {
@@ -736,7 +736,7 @@ export class Component extends eventHub(WatchHub) {
                     }
                 }
             } else {
-                let domNode = result = createNode(type, ctorProps);
+                let domNode = result = createNode(Type, ctorProps);
                 if ("tabIndex" in ctorProps && ctorProps.tabIndex !== false) {
                     owner.bdDom.tabIndexNode = domNode;
                 }
@@ -762,7 +762,8 @@ Component.watchables = ["rendered", "parent", "attachedToDoc", "className", "has
 Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
 
-insPostProcessingFunction("bdAttach",
+insPostProcessingFunction(
+    "bdAttach",
     function (ppfOwner, ppfTarget, name) {
         if (typeof name === "function") {
             ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
@@ -777,7 +778,8 @@ insPostProcessingFunction("bdAttach",
     }
 );
 
-insPostProcessingFunction("bdWatch", true,
+insPostProcessingFunction(
+    "bdWatch", true,
     function (ppfOwner, ppfTarget, watchers) {
         Reflect.ownKeys(watchers).forEach(eventType => {
             let watcher = watchers[eventType];
@@ -789,7 +791,8 @@ insPostProcessingFunction("bdWatch", true,
     }
 );
 
-insPostProcessingFunction("bdExec",
+insPostProcessingFunction(
+    "bdExec",
     function (ppfOwner, ppfTarget, ...args) {
         for (let i = 0; i < args.length;) {
             let f = args[i++];
@@ -813,25 +816,29 @@ insPostProcessingFunction("bdExec",
     }
 );
 
-insPostProcessingFunction("bdTitleNode",
+insPostProcessingFunction(
+    "bdTitleNode",
     function (ppfOwner, ppfTarget) {
         ppfOwner.bdDom.titleNode = ppfTarget;
     }
 );
 
-insPostProcessingFunction("bdParentAttachPoint",
+insPostProcessingFunction(
+    "bdParentAttachPoint",
     function (ppfOwner, ppfTarget, propertyName) {
         ppfTarget.bdParentAttachPoint = propertyName;
     }
 );
 
-insPostProcessingFunction("bdChildrenAttachPoint",
+insPostProcessingFunction(
+    "bdChildrenAttachPoint",
     function (ppfOwner, ppfTarget) {
         ppfOwner.bdChildrenAttachPoint = ppfTarget;
     }
 );
 
-insPostProcessingFunction("bdReflectClass",
+insPostProcessingFunction(
+    "bdReflectClass",
     function (ppfOwner, ppfTarget, ...args) {
         // args is a list of ([owner, ] property, [, formatter])...
         // very much like bdReflect, except we're adding/removing components (words) from this.classname
@@ -891,50 +898,50 @@ const prototypeOfObject = Object.getPrototypeOf({});
 
 function decodeRender(args) {
     // eight signatures...
-    //     Signatures 1-2 render an element, 3-6 render a Component, 7-8 render an instance of a Component
+    // Signatures 1-2 render an element, 3-6 render a Component, 7-8 render an instance of a Component
     //
-    //     Each of the above groups may or may not have the args node:domNode[, position:Position="last"]
-    //     which indicate where to attach the rendered Component instance (or not).
+    // Each of the above groups may or may not have the args node:domNode[, position:Position="last"]
+    // which indicate where to attach the rendered Component instance (or not).
     //
-    //     when this decode routine is used by Component::insertChild, then node can be a string | symbol, indicating
-    //     an instance property that holds the node
+    // when this decode routine is used by Component::insertChild, then node can be a string | symbol, indicating
+    // an instance property that holds the node
     //
-    //     1. render(e:Element)
-    //     => isComponentDerivedCtor(e.type), then render e.type(e.props); otherwise, render Component({elements:e})
+    // 1. render(e:Element)
+    // => isComponentDerivedCtor(e.type), then render e.type(e.props); otherwise, render Component({elements:e})
     //
-    //     2. render(e:Element, node:domNode[, position:Position="last"])
-    // 	   => [1] with attach information
+    // 2. render(e:Element, node:domNode[, position:Position="last"])
+    //    => [1] with attach information
     //
-    //     3. render(C:Component)
-    //     => render(C, {})
+    // 3. render(C:Component)
+    // => render(C, {})
     //
-    //     4. render(C:Component, args:kwargs)
-    //     => render(C, args)
-    //     // note: args is kwargs for C's constructor; therefore, postprocessing instructions are meaningless unless C's
-    //     // construction defines some usage for them (atypical)
+    // 4. render(C:Component, args:kwargs)
+    // => render(C, args)
+    // // note: args is kwargs for C's constructor; therefore, postprocessing instructions are meaningless unless C's
+    // // construction defines some usage for them (atypical)
     //
-    //     5. render(C:Component, node:domNode[, position:Position="last"])
-    //     => [3] with attach information
+    // 5. render(C:Component, node:domNode[, position:Position="last"])
+    // => [3] with attach information
     //
-    //     6. render(C:Component, args:kwargs, node:domNode[, position:Position="last"])
-    //     => [4] with attach information
+    // 6. render(C:Component, args:kwargs, node:domNode[, position:Position="last"])
+    // => [4] with attach information
     //
-    //     7. render(c:instanceof Component)
-    //     => c.render()
+    // 7. render(c:instanceof Component)
+    // => c.render()
     //
-    //     8. render(c:instanceof Component, node:domNode[, position:Position="last"])
-    // 	   => [7] with attach information
+    // 8. render(c:instanceof Component, node:domNode[, position:Position="last"])
+    //    => [7] with attach information
     //
-    //     Position one of "first", "last", "before", "after", "replace", "only"; see dom::insert
+    // Position one of "first", "last", "before", "after", "replace", "only"; see dom::insert
     //
-    //     returns {
-    //	       src: instanceof Component | Element
-    //		   attachPoint: node | string | undefined
-    //		   position: string | undefined
-    //     }
+    // returns {
+    //        src: instanceof Component | Element
+    //        attachPoint: node | string | undefined
+    //        position: string | undefined
+    // }
     //
-    //     for signatures 3-6, an Element is manufactured given the arguments
-    //
+    // for signatures 3-6, an Element is manufactured given the arguments
+
     let [arg1, arg2, arg3, arg4] = args;
     if (arg1 instanceof Element || arg1 instanceof Component) {
         // [1] or [2] || [7] or [8]
@@ -948,6 +955,7 @@ function decodeRender(args) {
             return {src: new Element(arg1)};
         } else {
             // more than one argument; the second argument is either props or not
+            // eslint-disable-next-line no-lonely-if
             if (Object.getPrototypeOf(arg2) === prototypeOfObject) {
                 // [4] or [6]
                 // WARNING: this signature requires kwargs to be a plain Javascript Object (which is should be!)
@@ -961,8 +969,8 @@ function decodeRender(args) {
 }
 
 function unrender(node) {
-    function unrender_(node) {
-        let component = domNodeToComponent.get(node);
+    function unrender_(n) {
+        let component = domNodeToComponent.get(n);
         if (component) {
             component.destroy();
         }
@@ -976,6 +984,7 @@ export function render(...args) {
     let {src, attachPoint, position} = decodeRender(args);
     if (src instanceof Element) {
         if (src.isComponentType) {
+            // eslint-disable-next-line new-cap
             result = new src.type(src.ctorProps);
         } else {
             result = new Component({elements: src});
@@ -1006,4 +1015,3 @@ export function render(...args) {
     }
     return result;
 }
-

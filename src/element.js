@@ -45,14 +45,14 @@ export class Element {
                 } else if (props instanceof Object) {
                     let ctorProps = {};
                     let ppFuncs = {};
-                    let ppFuncCount = 0;
+                    let ppFuncsExist = false;
                     let match, ppf;
                     let setPpFuncs = (ppKey, value) => {
                         if (ppFuncs[ppKey]) {
                             let dest = ppFuncs[ppKey];
-                            Reflect.ownKeys(value).forEach(k => dest[k] = value[k]);
+                            Reflect.ownKeys(value).forEach(k => (dest[k] = value[k]));
                         } else {
-                            ppFuncCount++;
+                            ppFuncsExist = true;
                             ppFuncs[ppKey] = value;
                         }
                     };
@@ -69,7 +69,7 @@ export class Element {
                         }
                     });
                     this.ctorProps = Object.freeze(ctorProps);
-                    if (ppFuncCount) {
+                    if (ppFuncsExist) {
                         this.ppFuncs = Object.freeze(ppFuncs);
                     }
                 } else {
@@ -108,10 +108,11 @@ let addElementType = element.addElementType = function (type) {
             };
         }
     } else {
+        // eslint-disable-next-line no-lonely-if
         if (type in element) {
             console.error(type, "already in element");
         } else {
-            element[type] = function div(props, ...children) {
+            element[type] = function (props, ...children) {
                 return new Element(type, props, children);
             };
         }

@@ -298,6 +298,7 @@ class WatchableArray extends Array {
                             // a new item that came from another watchable
                             value = this[i] = createWatchable(value, this, i);
                             changeSet.push(value);
+                            // eslint-disable-next-line eqeqeq
                         } else if (value[PROP] != i) { // INTENTIONAL !=
                             // an item that was moved within this
                             value[PROP] = i;
@@ -431,6 +432,7 @@ class WatchableArray extends Array {
             _silentSet = true;
             proc(this);
             this.forEach((value, i) => {
+                // eslint-disable-next-line eqeqeq
                 if (value[PROP] != i) { // INTENTIONAL !=
                     value[PROP] = i;
                     changeSet[i] = true;
@@ -539,7 +541,7 @@ function fromWatchable(data) {
         }
         let result = Array.isArray(data) ? Array(data.length) : {};
         Reflect.ownKeys(data).forEach(k => {
-            if (k !== OWNER && k !== PROP && k != OLD_LENGTH) {
+            if (k !== OWNER && k !== PROP && k !== OLD_LENGTH) {
                 result[k] = fromWatchable(data[k]);
             }
         });
@@ -602,15 +604,17 @@ function watchHub(superClass) {
             if (Array.isArray(name)) {
                 // each element in name is either a triple ([name, oldValue, newValue]) or false
                 let doStar = false;
-                for (const p of name) if (p) {
-                    doStar = true;
-                    let watchers = variables[p[0]];
-                    if (watchers) {
-                        newValue = p[1];
-                        oldValue = p[2];
-                        watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this, name));
+                name.forEach(p => {
+                    if (p) {
+                        doStar = true;
+                        let watchers = variables[p[0]];
+                        if (watchers) {
+                            newValue = p[1];
+                            oldValue = p[2];
+                            watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this, name));
+                        }
                     }
-                }
+                });
                 if (doStar) {
                     let watchers = variables[STAR];
                     if (watchers) {
@@ -635,6 +639,7 @@ function watchHub(superClass) {
                 let results = [];
                 let mutateOccurred = false;
                 while (i < arguments.length) {
+                    // eslint-disable-next-line prefer-rest-params
                     let mutateResult = mutate(this, arguments[i++], arguments[i++], arguments[i++]);
                     mutateOccurred = mutateOccurred || mutateResult;
                     results.push(mutateResult);
@@ -792,9 +797,9 @@ function withWatchables(superClass, ...args) {
 function bind(src, srcProp, dest, destProp) {
     dest[destProp] = src[srcProp];
     if (src.isBdWatchHub) {
-        return src.watch(srcProp, newValue => dest[destProp] = newValue);
+        return src.watch(srcProp, newValue => (dest[destProp] = newValue));
     } else if (src[OWNER]) {
-        return watch(srcProp, newValue => dest[destProp] = newValue);
+        return watch(srcProp, newValue => (dest[destProp] = newValue));
     } else {
         throw new Error("src is not watchable");
     }

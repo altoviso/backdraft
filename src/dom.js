@@ -16,24 +16,21 @@ function getAttributeValueFromEvent(e, attributeName, stopNode) {
 
 
 function normalizeNodeArg(arg) {
+    // eslint-disable-next-line no-nested-ternary
     return arg instanceof Component ? arg.bdDom.root : (typeof arg === "string" ? document.getElementById(arg) : arg);
 }
 
 function setAttr(node, name, value) {
     node = normalizeNodeArg(node);
     if (arguments.length === 2) {
-        let hash = name;
-        Object.keys(hash).forEach(name => {
-            setAttr(node, name, hash[name]);
-        });
+        // name is a hash
+        Object.keys(name).forEach(n => setAttr(node, n, name[n]));
+    } else if (name === "style") {
+        setStyle(node, value);
+    } else if (name === "innerHTML" || (name in node && node instanceof HTMLElement)) {
+        node[name] = value;
     } else {
-        if (name === "style") {
-            setStyle(node, value);
-        } else if (name === "innerHTML" || (name in node && node instanceof HTMLElement)) {
-            node[name] = value;
-        } else {
-            node.setAttribute(name, value);
-        }
+        node.setAttribute(name, value);
     }
 }
 
@@ -73,13 +70,14 @@ function getStyles(node, ...styleNames) {
     }
 
     let styles = [];
-    styleNames.forEach((p) => {
-        if (Array.isArray(p)) {
-            styles = styles.concat(p);
-        } else if (typeof p === "string") {
-            styles.push(p);
+    styleNames.forEach((styleName) => {
+        if (Array.isArray(styleName)) {
+            styles = styles.concat(styleName);
+        } else if (typeof styleName === "string") {
+            styles.push(styleName);
         } else {
-            Object.keys(p).forEach((p) => styles.push(p));
+            // styleName is a hash
+            Object.keys(styleName).forEach(p => styles.push(p));
         }
     });
 
@@ -97,9 +95,9 @@ function setStyle(node, property, value) {
         if (typeof property === "string") {
             node.style = property;
         } else {
-            let hash = property;
-            Object.keys(hash).forEach(property => {
-                node.style[property] = hash[property];
+            // property is a hash
+            Object.keys(property).forEach(p => {
+                node.style[p] = property[p];
             });
         }
     } else {
@@ -124,7 +122,8 @@ function positStyle(v) {
 
 function setPosit(node, posit) {
     node = normalizeNodeArg(node);
-    for (let p in posit) {
+    // eslint-disable-next-line guard-for-in,no-restricted-syntax
+    Object.keys(posit).forEach(p => {
         switch (p) {
             case "t":
                 node.style.top = positStyle(posit.t);
@@ -160,9 +159,9 @@ function setPosit(node, posit) {
                 node.style.zIndex = posit.z === false ? "" : posit.z;
                 break;
             default:
-                // ignore...this allows clients to stuff other properties into posit for other reasons
+            // ignore...this allows clients to stuff other properties into posit for other reasons
         }
-    }
+    });
 }
 
 function insertBefore(node, refNode) {
@@ -182,43 +181,46 @@ function insert(node, refNode, position) {
     if (position === undefined || position === "last") {
         // short circuit the common case
         refNode.appendChild(node);
-    } else switch (position) {
-        case "before":
-            insertBefore(node, refNode);
-            break;
-        case "after":
-            insertAfter(node, refNode);
-            break;
-        case "replace":
-            refNode.parentNode.replaceChild(node, refNode);
-            return (refNode);
-        case "only": {
-            let result = [];
-            while (refNode.firstChild) {
-                result.push(refNode.removeChild(refNode.firstChild));
-            }
-            refNode.appendChild(node);
-            return result;
-        }
-        case "first":
-            if (refNode.firstChild) {
-                insertBefore(node, refNode.firstChild);
-            } else {
-                refNode.appendChild(node);
-            }
-            break;
-        default:
-            if (typeof position === "number") {
-                let children = refNode.childNodes;
-                if (!children.length || children.length <= position) {
-                    refNode.appendChild(node);
-                } else {
-                    insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
+    } else {
+        switch (position) {
+            case "before":
+                insertBefore(node, refNode);
+                break;
+            case "after":
+                insertAfter(node, refNode);
+                break;
+            case "replace":
+                refNode.parentNode.replaceChild(node, refNode);
+                return (refNode);
+            case "only": {
+                let result = [];
+                while (refNode.firstChild) {
+                    result.push(refNode.removeChild(refNode.firstChild));
                 }
-            } else {
-                throw new Error("illegal position");
+                refNode.appendChild(node);
+                return result;
             }
+            case "first":
+                if (refNode.firstChild) {
+                    insertBefore(node, refNode.firstChild);
+                } else {
+                    refNode.appendChild(node);
+                }
+                break;
+            default:
+                if (typeof position === "number") {
+                    let children = refNode.childNodes;
+                    if (!children.length || children.length <= position) {
+                        refNode.appendChild(node);
+                    } else {
+                        insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
+                    }
+                } else {
+                    throw new Error("illegal position");
+                }
+        }
     }
+    return 0;
 }
 
 function create(tag, props) {
@@ -239,7 +241,7 @@ function hide(...nodes) {
             if (!node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)) {
                 node.setAttribute(DATA_BD_HIDE_SAVED_VALUE, node.style.display);
                 node.style.display = "none";
-            }//else, ignore, multiple calls to hide
+            }// else, ignore, multiple calls to hide
         }
     });
 }
@@ -343,7 +345,7 @@ class FocusManager extends withWatchables(
 
         connect(document.body, "focusin", e => {
             let node = e.target;
-            if (!node || node.parentNode == null || node === this.focusedNode) {
+            if (!node || node.parentNode || node === this.focusedNode) {
                 return;
             }
 
@@ -477,7 +479,8 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
 let viewportWatcher = new ViewportWatcher();
 
 
-insPostProcessingFunction("bdReflect",
+insPostProcessingFunction(
+    "bdReflect",
     function (prop, value) {
         if (prop === null && value instanceof Object && !Array.isArray(value)) {
             // e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
@@ -528,7 +531,8 @@ insPostProcessingFunction("bdReflect",
     }
 );
 
-insPostProcessingFunction("bdAdvise", true,
+insPostProcessingFunction(
+    "bdAdvise", true,
     function (ppfOwner, ppfTarget, listeners) {
         Reflect.ownKeys(listeners).forEach(eventType => {
             let listener = listeners[eventType];
