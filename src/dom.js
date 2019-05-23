@@ -1,7 +1,7 @@
 import {EventHub} from "./eventHub.js";
-import {getWatchableRef} from "./watchUtils.js";
 import {Component} from "./Component.js";
 import {insPostProcessingFunction} from "./postProcessingCatalog.js";
+import {watchHub, withWatchables, getWatchableRef} from "./watchUtils.js";
 
 function getAttributeValueFromEvent(e, attributeName, stopNode) {
     let node = e.target;
@@ -327,116 +327,111 @@ function stopEvent(event) {
     }
 }
 
+class FocusManager extends withWatchables(
+    watchHub(EventHub),
+    "focusedNode",
+    "previousFocusedNode",
+    "focusedComponent",
+    "previousFocusedComponent"
+) {
+    constructor(kwargs) {
+        super(kwargs);
+        this._focusedStack = [];
+        this._nextFocusedComponent = null;
 
-let focusedComponent = null,
-    focusedNode = null,
-    focusedStack = [],
-    previousFocusedComponent = null,
-    previousFocusedNode = null;
+        let focusWatcher = 0;
 
-class FocusManager extends EventHub {
-    get focusedComponent() {
-        return focusedComponent;
+        connect(document.body, "focusin", e => {
+            let node = e.target;
+            if (!node || node.parentNode == null || node === this.focusedNode) {
+                return;
+            }
+
+            if (focusWatcher) {
+                clearTimeout(focusWatcher);
+                focusWatcher = 0;
+            }
+            this.processNode(node);
+        });
+
+        // eslint-disable-next-line no-unused-vars
+        connect(document.body, "focusout", () => {
+            // If the blur event isn't followed by a focus event, it means the user clicked on something unfocusable,
+            // so clear focus.
+            if (focusWatcher) {
+                clearTimeout(focusWatcher);
+            }
+
+            focusWatcher = setTimeout(this.processNode.bind(this, null), 5);
+        });
     }
 
-    get focusedNode() {
-        return focusedNode;
+    get focusStack() {
+        return this._focusedStack.slice();
     }
 
-    get focusedStack() {
-        return focusedStack;
+    get nextFocusedComponent() {
+        return this._nextFocusedComponent;
     }
 
-    get previousFocusedComponent() {
-        return previousFocusedComponent;
-    }
+    processNode(node) {
+        let previousFocusedNode = this.focusedNode,
+            focusedNode = node;
+        if (previousFocusedNode === focusedNode) {
+            return;
+        }
+        this.bdMutate(["focusedNode", "_focusedNode", focusedNode], ["previousFocusedNode", "_previousFocusedNode", previousFocusedNode]);
 
-    get previousFocusedNode() {
-        return previousFocusedNode;
+        // find the focused component, if any
+        let nextFocusedComponent = 0;
+        while (node && (!(nextFocusedComponent = Component.get(node)))) {
+            node = node.parentNode;
+        }
+        this._nextFocusedComponent = nextFocusedComponent;
+
+        let stack = [];
+        if (nextFocusedComponent) {
+            let p = nextFocusedComponent;
+            while (p) {
+                stack.unshift(p);
+                p = p.parent;
+            }
+        }
+
+        let focusStack = this._focusedStack,
+            newStackLength = stack.length,
+            oldStackLength = focusStack.length,
+            i = 0,
+            j, component;
+        while (i < newStackLength && i < oldStackLength && stack[i] === focusStack[i]) {
+            i++;
+        }
+        // [0..i-1] are identical in each stack
+
+
+        // signal blur from the path end to the first identical component (not including the first identical component)
+        for (j = i; j < oldStackLength; j++) {
+            component = focusStack.pop();
+            if (!component.destroyed) {
+                component.bdOnBlur();
+                focusManager.bdNotify({type: "blurComponent", component: component});
+            }
+        }
+
+        // signal focus for all new components that just gained the focus
+        for (j = i; j < newStackLength; j++) {
+            focusStack.push(component = stack[j]);
+            component.bdOnFocus();
+            focusManager.bdNotify({type: "focusComponent", component: component});
+        }
+
+        this.bdMutate(["focusedComponent", "_focusedComponent", nextFocusedComponent], ["previousFocusedComponent", "_previousFocusedComponent", this.focusedComponent]);
+        this._nextFocusedComponent = 0;
     }
 }
 
 let focusManager = new FocusManager();
-let focusWatcher = 0;
 
-function processNode(node) {
-    if (focusWatcher) {
-        clearTimeout(focusWatcher);
-        focusWatcher = 0;
-    }
-
-    previousFocusedNode = focusedNode;
-    focusedNode = node;
-    if (previousFocusedNode === focusedNode) {
-        return;
-    }
-
-    // find the focused component, if any
-    while (node && (!Component.get(node))) {
-        node = node.parentNode;
-    }
-    let focusedComponent_ = node && Component.get(node),
-        stack = [];
-    if (focusedComponent_) {
-        let p = focusedComponent_;
-        while (p) {
-            stack.unshift(p);
-            p = p.parent;
-        }
-    }
-
-    let focusStack = focusedStack,
-        newStackLength = stack.length,
-        oldStackLength = focusStack.length,
-        i = 0,
-        j, component;
-    while (i < newStackLength && i < oldStackLength && stack[i] === focusStack[i]) {
-        i++;
-    }
-    // [0..i-1] are identical in each stack
-
-
-    // signal blur from the path end to the first identical component (not including the first identical component)
-    for (j = i; j < oldStackLength; j++) {
-        component = focusStack.pop();
-        if (!component.destroyed) {
-            component.bdOnBlur();
-            focusManager.bdNotify({type: "blurComponent", component: component});
-        }
-    }
-
-    // signal focus for all new components that just gained the focus
-    for (j = i; j < newStackLength; j++) {
-        focusStack.push(component = stack[j]);
-        component.bdOnFocus();
-        focusManager.bdNotify({type: "focusComponent", component: component});
-    }
-
-    previousFocusedComponent = focusedComponent;
-    focusedComponent = focusedComponent_;
-    focusManager.bdNotify({type: "focusedComponent", component: focusedComponent_});
-}
-
-connect(document.body, "focusin", function (e) {
-    let node = e.target;
-    if (!node || node.parentNode == null || node === self[focusedNode]) {
-        return;
-    }
-    processNode(node);
-});
-
-// eslint-disable-next-line no-unused-vars
-connect(document.body, "focusout", function () {
-    // If the blur event isn't followed by a focus event, it means the user clicked on something unfocusable,
-    // so clear focus.
-    if (focusWatcher) {
-        clearTimeout(focusWatcher);
-    }
-
-    focusWatcher = setTimeout(function () {
-        processNode(null);
-    }, 5);
-});
 
 let viewportWatcher = new EventHub;
 
@@ -552,6 +547,7 @@ export {
     connect,
     animate,
     stopEvent,
+    FocusManager,
     focusManager,
     viewportWatcher
 };
