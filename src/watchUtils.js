@@ -226,7 +226,7 @@ function set(target, prop, value, receiver) {
 }
 
 const watcher = {
-    set: set
+    set
 };
 
 const SWAP_OLD_LENGTH = Symbol("SWAP_OLD_LENGTH");
@@ -485,7 +485,7 @@ function silentSet(watchable, prop, value, enumerable, configurable) {
             Object.defineProperty(watchable, prop, {
                 writable: true,
                 configurable: configurable !== undefined ? configurable : true,
-                value: value
+                value
             });
         } else {
             watchable[prop] = value;
@@ -764,10 +764,10 @@ function withWatchables(superClass, ...args) {
         publicPropNames.push(name);
         Object.defineProperty(prototype, name, {
             enumerable: true,
-            get: function () {
+            get() {
                 return this[pname];
             },
-            set: function (value) {
+            set(value) {
                 this.bdMutate(name, pname, value);
             }
         });

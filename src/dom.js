@@ -286,7 +286,7 @@ function connect(target, type, listener, useCapture) {
     useCapture = !!useCapture;
     target.addEventListener(type, listener, useCapture);
     return {
-        destroy: function () {
+        destroy() {
             if (!destroyed) {
                 destroyed = true;
                 target.removeEventListener(type, listener, useCapture);
@@ -416,7 +416,7 @@ class FocusManager extends withWatchables(
             component = focusStack.pop();
             if (!component.destroyed) {
                 component.bdOnBlur();
-                focusManager.bdNotify({type: "blurComponent", component: component});
+                focusManager.bdNotify({type: "blurComponent", component});
             }
         }
 
@@ -424,7 +424,7 @@ class FocusManager extends withWatchables(
         for (j = i; j < newStackLength; j++) {
             focusStack.push(component = stack[j]);
             component.bdOnFocus();
-            focusManager.bdNotify({type: "focusComponent", component: component});
+            focusManager.bdNotify({type: "focusComponent", component});
         }
 
         this.bdMutate(["focusedComponent", "_focusedComponent", nextFocusedComponent], ["previousFocusedComponent", "_previousFocusedComponent", this.focusedComponent]);
@@ -470,7 +470,7 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
                     "vh", "_vh", vh,
                     "vw", "_vw", vw
                 );
-                viewportWatcher.bdNotify({type: "resize", vh: vh, vw: vw});
+                viewportWatcher.bdNotify({type: "resize", vh, vw});
             }, this.throttle);
         }, true);
     }

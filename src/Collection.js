@@ -214,7 +214,7 @@ export class Collection extends Component {
 
     insChild(collectionIndex) {
         // eslint-disable-next-line new-cap
-        let child = new this.kwargs.childType({parent: this, collectionIndex: collectionIndex});
+        let child = new this.kwargs.childType({parent: this, collectionIndex});
         Component.insertNode(child.render(), this.bdChildrenAttachPoint || this.bdDom.root, collectionIndex);
         this.children.splice(collectionIndex, 0, child);
         child.bdAttachToDoc(this.bdAttachedToDoc);

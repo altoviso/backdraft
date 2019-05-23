@@ -521,39 +521,39 @@ export class Component extends eventHub(WatchHub) {
         if (!this._classList) {
             let self = this;
             this._classList = {
-                get: function () {
+                get() {
                     return self.className;
                 },
 
-                set: function (value) {
+                set(value) {
                     return (self.className = value);
                 },
 
-                add: function (...values) {
+                add(...values) {
                     return self.addClassName(...values);
                 },
 
-                ins: function (...values) {
+                ins(...values) {
                     return self.addClassName(...values);
                 },
 
-                remove: function (...values) {
+                remove(...values) {
                     return self.removeClassName(...values);
                 },
 
-                del: function (...values) {
+                del(...values) {
                     return self.removeClassName(...values);
                 },
 
-                toggle: function (...values) {
+                toggle(...values) {
                     return self.toggleClassName(...values);
                 },
 
-                contains: function (...values) {
+                contains(...values) {
                     return self.containsClassName(...values);
                 },
 
-                has: function (...values) {
+                has(...values) {
                     return self.containsClassName(...values);
                 }
             };
@@ -770,7 +770,7 @@ insPostProcessingFunction(
         } else {
             ppfOwner[name] = ppfTarget;
             ppfOwner.ownWhileRendered({
-                destroy: function () {
+                destroy() {
                     delete ppfOwner[name];
                 }
             });

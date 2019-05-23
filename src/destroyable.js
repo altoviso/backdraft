@@ -2,7 +2,7 @@ function noop() {
 }
 
 function destroyable(proc, container, onEmpty) {
-    let result = {proc: proc};
+    let result = {proc};
     if (container) {
         result.destroy = () => {
             result.destroy = result.proc = noop;
