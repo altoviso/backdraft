@@ -57,7 +57,7 @@ export class Element {
                             ppFuncs[ppKey] = value;
                         }
                     };
-                    Reflect.ownKeys(props).forEach((k) => {
+                    Reflect.ownKeys(props).forEach(k => {
                         if ((ppf = getPostProcessingFunction(k))) {
                             const value = ppf.bdTransform(null, props[k]);
                             setPpFuncs(k, value);

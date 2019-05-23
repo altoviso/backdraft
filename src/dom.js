@@ -70,7 +70,7 @@ function getStyles(node, ...styleNames) {
     }
 
     let styles = [];
-    styleNames.forEach((styleName) => {
+    styleNames.forEach(styleName => {
         if (Array.isArray(styleName)) {
             styles = styles.concat(styleName);
         } else if (typeof styleName === "string") {
@@ -82,7 +82,7 @@ function getStyles(node, ...styleNames) {
     });
 
     const result = {};
-    styles.forEach((property) => {
+    styles.forEach(property => {
         const value = lastComputedStyle[property];
         result[property] = (typeof value === "string" && /px$/.test(value)) ? parseFloat(value) : value;
     });
@@ -235,7 +235,7 @@ function create(tag, props) {
 const DATA_BD_HIDE_SAVED_VALUE = "data-bd-hide-saved-value";
 
 function hide(...nodes) {
-    nodes.forEach((node) => {
+    nodes.forEach(node => {
         node = normalizeNodeArg(node);
         if (node) {
             if (!node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)) {
@@ -247,7 +247,7 @@ function hide(...nodes) {
 }
 
 function show(...nodes) {
-    nodes.forEach((node) => {
+    nodes.forEach(node => {
         node = normalizeNodeArg(node);
         if (node) {
             let displayValue = "";
@@ -305,7 +305,7 @@ function animate(node, className, onComplete) {
     if (isComponent && !node.rendered) {
         return;
     }
-    const h = connect(isComponent ? node.bdDom.root : node, "animationend", (e) => {
+    const h = connect(isComponent ? node.bdDom.root : node, "animationend", e => {
         if (e.animationName === className) {
             h.destroy();
             if (isComponent) {

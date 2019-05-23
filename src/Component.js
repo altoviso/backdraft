@@ -43,7 +43,7 @@ function addChildToDomNode(parent, domNode, child, childIsComponent) {
     if (childIsComponent) {
         const childDomRoot = child.bdDom.root;
         if (Array.isArray(childDomRoot)) {
-            childDomRoot.forEach((node) => insertNode(node, domNode));
+            childDomRoot.forEach(node => insertNode(node, domNode));
         } else {
             insertNode(childDomRoot, domNode);
         }
@@ -184,7 +184,7 @@ export class Component extends eventHub(WatchHub) {
             validateElements(elements);
             const root = dom.root = this.constructor.renderElements(this, elements);
             if (Array.isArray(root)) {
-                root.forEach((node) => domNodeToComponent.set(node, this));
+                root.forEach(node => domNodeToComponent.set(node, this));
             } else {
                 domNodeToComponent.set(root, this);
                 if (this.id) {
@@ -236,7 +236,7 @@ export class Component extends eventHub(WatchHub) {
             }
 
             if (this.children) {
-                this.children.slice().forEach((child) => {
+                this.children.slice().forEach(child => {
                     child.destroy();
                 });
             }
@@ -244,7 +244,7 @@ export class Component extends eventHub(WatchHub) {
 
             const root = this.bdDom.root;
             if (Array.isArray(root)) {
-                root.forEach((node) => {
+                root.forEach(node => {
                     domNodeToComponent.delete(node);
                     node.parentNode && node.parentNode.removeChild(node);
                 });
@@ -401,7 +401,7 @@ export class Component extends eventHub(WatchHub) {
         const index = this.children ? this.children.indexOf(child) : -1;
         if (index !== -1) {
             const root = child.bdDom && child.bdDom.root;
-            const removeNode = (node) => {
+            const removeNode = node => {
                 node.parentNode && node.parentNode.removeChild(node);
             };
             Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
@@ -721,7 +721,7 @@ export class Component extends eventHub(WatchHub) {
 
     static renderElements(owner, e) {
         if (Array.isArray(e)) {
-            return e.map((e) => Component.renderElements(owner, e));
+            return e.map(e => Component.renderElements(owner, e));
         } else if (e instanceof Element) {
             const {Type, ctorProps, ppFuncs, children} = e;
             let result;
@@ -732,7 +732,7 @@ export class Component extends eventHub(WatchHub) {
                 if (children) {
                     const renderedChildren = Component.renderElements(owner, children);
                     if (Array.isArray(renderedChildren)) {
-                        renderedChildren.forEach((child) => result.insChild(child));
+                        renderedChildren.forEach(child => result.insChild(child));
                     } else {
                         result.insChild(renderedChildren);
                     }
