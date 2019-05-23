@@ -433,34 +433,48 @@ class FocusManager extends withWatchables(
 let focusManager = new FocusManager();
 
 
-let viewportWatcher = new EventHub;
+class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
+    constructor(throttle) {
+        super();
+        this.throttle = throttle || 300;
 
-let scrollTimeoutHandle = 0;
+        this._vh = document.documentElement.clientHeight;
+        this._vw = document.documentElement.clientWidth;
 
-// eslint-disable-next-line no-unused-vars
-connect(window, "scroll", function () {
-    if (scrollTimeoutHandle) {
-        clearTimeout(scrollTimeoutHandle);
+        let scrollTimeoutHandle = 0;
+
+        connect(window, "scroll", () => {
+            if (scrollTimeoutHandle) {
+                return;
+            }
+            scrollTimeoutHandle = setTimeout(() => {
+                scrollTimeoutHandle = 0;
+                viewportWatcher.bdNotify({type: "scroll"});
+            }, this.throttle);
+        }, true);
+
+
+        let resizeTimeoutHandle = 0;
+
+        connect(window, "resize", () => {
+            if (resizeTimeoutHandle) {
+                return;
+            }
+            resizeTimeoutHandle = setTimeout(() => {
+                resizeTimeoutHandle = 0;
+                let vh = document.documentElement.clientHeight;
+                let vw = document.documentElement.clientWidth;
+                this.bdMutate(
+                    "vh", "_vh", vh,
+                    "vw", "_vw", vw
+                );
+                viewportWatcher.bdNotify({type: "resize", vh: vh, vw: vw});
+            }, this.throttle);
+        }, true);
     }
-    scrollTimeoutHandle = setTimeout(function () {
-        scrollTimeoutHandle = 0;
-        viewportWatcher.bdNotify({type: "scroll"});
-    }, 10);
-}, true);
+}
 
-
-let resizeTimeoutHandle = 0;
-
-// eslint-disable-next-line no-unused-vars
-connect(window, "resize", function () {
-    if (resizeTimeoutHandle) {
-        clearTimeout(resizeTimeoutHandle);
-    }
-    resizeTimeoutHandle = setTimeout(function () {
-        resizeTimeoutHandle = 0;
-        viewportWatcher.bdNotify({type: "resize"});
-    }, 10);
-}, true);
+let viewportWatcher = new ViewportWatcher();
 
 
 insPostProcessingFunction("bdReflect",
@@ -549,5 +563,6 @@ export {
     stopEvent,
     FocusManager,
     focusManager,
+    ViewportWatcher,
     viewportWatcher
 };
