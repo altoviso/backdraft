@@ -597,6 +597,39 @@ export class Component extends eventHub(WatchHub) {
         }
     }
 
+    setItem(...args) {
+        let data = this.bdData || {};
+        let i = 0, end = args.length - 2;
+        while (i < end) {
+            data = data[args[i]] || (data[args[i]] = {});
+            i++;
+        }
+        data[args[i]] = args[i + 1];
+    }
+
+    getItem(...args) {
+        let data = this.bdData;
+        for (let i = 0, end = args.length; data !== undefined && i < end;) {
+            data = data[args[i++]];
+        }
+        return data;
+    }
+
+    removeItem(...args) {
+        let data = this.bdData;
+        for (let i = 0, end = args.length - 1; data !== undefined && i < end;) {
+            data = data[args[i]++];
+        }
+        if (data) {
+            let result = data[args[i]];
+            delete data[args[i]];
+            return result;
+        } else {
+            return undefined;
+        }
+    }
+
+
     get tabIndex() {
         if (this.rendered) {
             // unconditionally make sure this.bdTabIndex and the dom is synchronized on each get
