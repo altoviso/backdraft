@@ -498,7 +498,7 @@ smoke.defTest({
 				["html-node-types", function(){
 					class Parent extends Component{
 						bdElements(){
-							return div(
+							return e.div(
 							)
 						}
 					}
