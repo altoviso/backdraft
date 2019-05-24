@@ -5,6 +5,7 @@ initialize(document, create, insert);
 import {element} from "./src/element.js";
 export {element as e};
 
+export * from "./src/symbols.js";
 export * from "./src/postProcessingCatalog.js";
 export * from "./src/element.js";
 export * from "./src/destroyable.js";

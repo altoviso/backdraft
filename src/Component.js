@@ -723,10 +723,10 @@ export class Component extends eventHub(WatchHub) {
         if (Array.isArray(e)) {
             return e.map(e => Component.renderElements(owner, e));
         } else if (e instanceof Element) {
-            const {Type, ctorProps, ppFuncs, children} = e;
+            const {type, ctorProps, ppFuncs, children} = e;
             let result;
             if (e.isComponentType) {
-                const componentInstance = result = new Type(ctorProps);
+                const componentInstance = result = new type(ctorProps);
                 componentInstance.render();
                 ppFuncs && postProcess(ppFuncs, owner, componentInstance);
                 if (children) {
@@ -738,7 +738,7 @@ export class Component extends eventHub(WatchHub) {
                     }
                 }
             } else {
-                const domNode = result = createNode(Type, ctorProps);
+                const domNode = result = createNode(type, ctorProps);
                 if ("tabIndex" in ctorProps && ctorProps.tabIndex !== false) {
                     owner.bdDom.tabIndexNode = domNode;
                 }
