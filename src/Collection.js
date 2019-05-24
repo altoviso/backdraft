@@ -42,7 +42,7 @@ function updateChildren(collection, owner, oldLength) {
 function setSpliceAdvice(collection, owner) {
     return collection.before("splice", () => {
         if (!owner.rendered) {
-            return;
+            return false;
         }
         const oldLength = collection.length;
         const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
@@ -57,7 +57,7 @@ function setSpliceAdvice(collection, owner) {
 function setShiftAdvice(collection, owner) {
     return collection.before("shift", () => {
         if (!owner.rendered || !collection.length) {
-            return;
+            return false;
         }
         const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
@@ -76,7 +76,7 @@ function setShiftAdvice(collection, owner) {
 function setUnshiftAdvice(collection, owner) {
     return collection.before("unshift", () => {
         if (!owner.rendered) {
-            return;
+            return false;
         }
         const oldLength = collection.length;
         const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
@@ -98,7 +98,7 @@ function setUnshiftAdvice(collection, owner) {
 function setReverseAdvice(collection, owner) {
     return collection.before("reverse", () => {
         if (!owner.rendered) {
-            return;
+            return false;
         }
         const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
@@ -118,7 +118,7 @@ function setReverseAdvice(collection, owner) {
 function setSortAdvice(collection, owner) {
     return collection.before("sort", () => {
         if (!owner.rendered) {
-            return;
+            return false;
         }
         const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
@@ -132,7 +132,7 @@ function setSortAdvice(collection, owner) {
 function setOrderAdvice(collection, owner) {
     return collection.before("order", () => {
         if (!owner.rendered) {
-            return;
+            return false;
         }
         const holdSuspendWatchAdvise = owner.suspendWatchAdvise;
         owner.suspendWatchAdvise = true;
@@ -154,10 +154,10 @@ export class Collection extends Component {
         value = value || toWatchable([]);
         if (this.bdMutate("collection", "bdCollection", value)) {
             this.bdSetupHandle && this.bdSetupHandle.destroy();
+            const collection = this.bdCollection;
 
             if (this.rendered) {
                 const children = this.children;
-                const collection = this.bdCollection;
                 const oldLength = children.length;
                 const newLength = collection.length;
                 const mutateLength = oldLength !== newLength;
@@ -171,12 +171,10 @@ export class Collection extends Component {
                 }
             }
 
-            const collection = this.bdCollection;
             if (isWatchable(collection) && !this.kwargs.collectionIsScalars) {
                 const handles = [
-                    this.watch(this.bdCollection, "length", (newValue, oldValue) => {
-                        if (this.suspendWatchAdvise) return;
-                        if (this.rendered) {
+                    this.watch(collection, "length", (newValue, oldValue) => {
+                        if (!this.suspendWatchAdvise && this.rendered) {
                             this.bdSynchChildren();
                             applyLengthWatchers(this, newValue, oldValue);
                         }
@@ -240,10 +238,9 @@ const onMutateNames = {};
 function onMutateItemWatchable(propName, owner, newValue, oldValue) {
     let procName = onMutateNames[propName];
     if (procName === undefined) {
-        if (typeof propName === "symbol") {
-            return (onMutateNames[propName] = false);
-        }
-        procName = onMutateNames[propName] = `onMutate${propName.substring(0, 1).toUpperCase()}${propName.substring(1)}`;
+        procName = onMutateNames[propName] = typeof propName === "symbol" ?
+            false :
+            `onMutate${propName.substring(0, 1).toUpperCase()}${propName.substring(1)}`;
     }
     procName && owner[procName] && owner[procName](newValue, oldValue);
 }
@@ -332,7 +329,7 @@ export class CollectionChild extends Component {
 
 CollectionChild.itemWatchables = [];
 
-CollectionChild.withWatchables = function (...args) {
+CollectionChild.withWatchables = (...args) => {
     const superclass = typeof args[0] === "function" ? args.shift() : CollectionChild;
     let itemWatchables = [];
     args = args.filter(prop => {
