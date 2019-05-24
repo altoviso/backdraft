@@ -1,5 +1,5 @@
-import {destroyable} from "./destroyable.js";
-import {STAR} from "./symbols.js";
+import {destroyable} from './destroyable.js';
+import {STAR} from './symbols.js';
 
 const listenerCatalog = new WeakMap();
 
@@ -26,7 +26,7 @@ function eventHub(superClass) {
                     e = {type: e, name: e, target: this};
                 } else {
                     // eslint-disable-next-line no-console
-                    console.warn("event.name is deprecated; use event.type");
+                    console.warn('event.name is deprecated; use event.type');
                     handlers = events[e.name];
                     e.type = e.name;
                     e.target = this;

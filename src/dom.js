@@ -1,7 +1,7 @@
-import {EventHub} from "./eventHub.js";
-import {Component} from "./Component.js";
-import {insPostProcessingFunction} from "./postProcessingCatalog.js";
-import {watchHub, withWatchables, getWatchableRef} from "./watchUtils.js";
+import {EventHub} from './eventHub.js';
+import {Component} from './Component.js';
+import {insPostProcessingFunction} from './postProcessingCatalog.js';
+import {watchHub, withWatchables, getWatchableRef} from './watchUtils.js';
 
 function getAttributeValueFromEvent(e, attributeName, stopNode) {
     let node = e.target;
@@ -16,7 +16,7 @@ function getAttributeValueFromEvent(e, attributeName, stopNode) {
 
 function normalizeNodeArg(arg) {
     // eslint-disable-next-line no-nested-ternary
-    return arg instanceof Component ? arg.bdDom.root : (typeof arg === "string" ? document.getElementById(arg) : arg);
+    return arg instanceof Component ? arg.bdDom.root : (typeof arg === 'string' ? document.getElementById(arg) : arg);
 }
 
 function setAttr(node, name, value) {
@@ -24,9 +24,9 @@ function setAttr(node, name, value) {
     if (arguments.length === 2) {
         // name is a hash
         Object.keys(name).forEach(n => setAttr(node, n, name[n]));
-    } else if (name === "style") {
+    } else if (name === 'style') {
         setStyle(node, value);
-    } else if (name === "innerHTML" || (name in node && node instanceof HTMLElement)) {
+    } else if (name === 'innerHTML' || (name in node && node instanceof HTMLElement)) {
         node[name] = value;
     } else {
         node.setAttribute(name, value);
@@ -59,7 +59,7 @@ function getStyle(node, property) {
         lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
     }
     const result = lastComputedStyle[property];
-    return (typeof result === "string" && /px$/.test(result)) ? parseFloat(result) : result;
+    return (typeof result === 'string' && /px$/.test(result)) ? parseFloat(result) : result;
 }
 
 function getStyles(node, ...styleNames) {
@@ -72,7 +72,7 @@ function getStyles(node, ...styleNames) {
     styleNames.forEach(styleName => {
         if (Array.isArray(styleName)) {
             styles = styles.concat(styleName);
-        } else if (typeof styleName === "string") {
+        } else if (typeof styleName === 'string') {
             styles.push(styleName);
         } else {
             // styleName is a hash
@@ -83,7 +83,7 @@ function getStyles(node, ...styleNames) {
     const result = {};
     styles.forEach(property => {
         const value = lastComputedStyle[property];
-        result[property] = (typeof value === "string" && /px$/.test(value)) ? parseFloat(value) : value;
+        result[property] = (typeof value === 'string' && /px$/.test(value)) ? parseFloat(value) : value;
     });
     return result;
 }
@@ -91,7 +91,7 @@ function getStyles(node, ...styleNames) {
 function setStyle(node, property, value) {
     node = normalizeNodeArg(node);
     if (arguments.length === 2) {
-        if (typeof property === "string") {
+        if (typeof property === 'string') {
             node.style = property;
         } else {
             // property is a hash
@@ -116,7 +116,7 @@ function getPosit(node) {
 }
 
 function positStyle(v) {
-    return v === false ? "" : `${v}px`;
+    return v === false ? '' : `${v}px`;
 }
 
 function setPosit(node, posit) {
@@ -124,38 +124,38 @@ function setPosit(node, posit) {
     // eslint-disable-next-line guard-for-in,no-restricted-syntax
     Object.keys(posit).forEach(p => {
         switch (p) {
-            case "t":
+            case 't':
                 node.style.top = positStyle(posit.t);
                 break;
-            case "b":
+            case 'b':
                 node.style.bottom = positStyle(posit.b);
                 break;
-            case "l":
+            case 'l':
                 node.style.left = positStyle(posit.l);
                 break;
-            case "r":
+            case 'r':
                 node.style.right = positStyle(posit.r);
                 break;
-            case "h":
+            case 'h':
                 node.style.height = positStyle(posit.h);
                 break;
-            case "w":
+            case 'w':
                 node.style.width = positStyle(posit.w);
                 break;
-            case "maxH":
+            case 'maxH':
                 node.style.maxHeight = positStyle(posit.maxH);
                 break;
-            case "maxW":
+            case 'maxW':
                 node.style.maxWidth = positStyle(posit.maxW);
                 break;
-            case "minH":
+            case 'minH':
                 node.style.minHeight = positStyle(posit.minH);
                 break;
-            case "minW":
+            case 'minW':
                 node.style.minWidth = positStyle(posit.minW);
                 break;
-            case "z":
-                node.style.zIndex = posit.z === false ? "" : posit.z;
+            case 'z':
+                node.style.zIndex = posit.z === false ? '' : posit.z;
                 break;
             default:
             // ignore...this allows clients to stuff other properties into posit for other reasons
@@ -177,21 +177,21 @@ function insertAfter(node, refNode) {
 }
 
 function insert(node, refNode, position) {
-    if (position === undefined || position === "last") {
+    if (position === undefined || position === 'last') {
         // short circuit the common case
         refNode.appendChild(node);
     } else {
         switch (position) {
-            case "before":
+            case 'before':
                 insertBefore(node, refNode);
                 break;
-            case "after":
+            case 'after':
                 insertAfter(node, refNode);
                 break;
-            case "replace":
+            case 'replace':
                 refNode.parentNode.replaceChild(node, refNode);
                 return (refNode);
-            case "only": {
+            case 'only': {
                 const result = [];
                 while (refNode.firstChild) {
                     result.push(refNode.removeChild(refNode.firstChild));
@@ -199,7 +199,7 @@ function insert(node, refNode, position) {
                 refNode.appendChild(node);
                 return result;
             }
-            case "first":
+            case 'first':
                 if (refNode.firstChild) {
                     insertBefore(node, refNode.firstChild);
                 } else {
@@ -207,7 +207,7 @@ function insert(node, refNode, position) {
                 }
                 break;
             default:
-                if (typeof position === "number") {
+                if (typeof position === 'number') {
                     const children = refNode.childNodes;
                     if (!children.length || children.length <= position) {
                         refNode.appendChild(node);
@@ -215,7 +215,7 @@ function insert(node, refNode, position) {
                         insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
                     }
                 } else {
-                    throw new Error("illegal position");
+                    throw new Error('illegal position');
                 }
         }
     }
@@ -230,7 +230,7 @@ function create(tag, props) {
     return result;
 }
 
-const DATA_BD_HIDE_SAVED_VALUE = "data-bd-hide-saved-value";
+const DATA_BD_HIDE_SAVED_VALUE = 'data-bd-hide-saved-value';
 
 function hide(...nodes) {
     nodes.forEach(node => {
@@ -238,7 +238,7 @@ function hide(...nodes) {
         if (node) {
             if (!node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)) {
                 node.setAttribute(DATA_BD_HIDE_SAVED_VALUE, node.style.display);
-                node.style.display = "none";
+                node.style.display = 'none';
             }// else, ignore, multiple calls to hide
         }
     });
@@ -248,7 +248,7 @@ function show(...nodes) {
     nodes.forEach(node => {
         node = normalizeNodeArg(node);
         if (node) {
-            let displayValue = "";
+            let displayValue = '';
             if (node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)) {
                 displayValue = node.getAttribute(DATA_BD_HIDE_SAVED_VALUE);
                 node.removeAttribute(DATA_BD_HIDE_SAVED_VALUE);
@@ -310,7 +310,7 @@ function animate(node, className, onComplete) {
     if (isComponent && !node.rendered) {
         return;
     }
-    const h = connect(isComponent ? node.bdDom.root : node, "animationend", e => {
+    const h = connect(isComponent ? node.bdDom.root : node, 'animationend', e => {
         if (e.animationName === className) {
             h.destroy();
             if (isComponent) {
@@ -334,10 +334,10 @@ function animate(node, className, onComplete) {
 
 class FocusManager extends withWatchables(
     watchHub(EventHub),
-    "focusedNode",
-    "previousFocusedNode",
-    "focusedComponent",
-    "previousFocusedComponent"
+    'focusedNode',
+    'previousFocusedNode',
+    'focusedComponent',
+    'previousFocusedComponent'
 ) {
     constructor(kwargs) {
         super(kwargs);
@@ -346,7 +346,7 @@ class FocusManager extends withWatchables(
 
         let focusWatcher = 0;
 
-        connect(document.body, "focusin", e => {
+        connect(document.body, 'focusin', e => {
             const node = e.target;
             if (!node || node.parentNode || node === this.focusedNode) {
                 return;
@@ -360,7 +360,7 @@ class FocusManager extends withWatchables(
         });
 
         // eslint-disable-next-line no-unused-vars
-        connect(document.body, "focusout", () => {
+        connect(document.body, 'focusout', () => {
             // If the blur event isn't followed by a focus event, it means the user clicked on something unfocusable,
             // so clear focus.
             if (focusWatcher) {
@@ -385,7 +385,7 @@ class FocusManager extends withWatchables(
         if (previousFocusedNode === focusedNode) {
             return;
         }
-        this.bdMutate(["focusedNode", "_focusedNode", focusedNode], ["previousFocusedNode", "_previousFocusedNode", previousFocusedNode]);
+        this.bdMutate(['focusedNode', '_focusedNode', focusedNode], ['previousFocusedNode', '_previousFocusedNode', previousFocusedNode]);
 
         // find the focused component, if any
         let nextFocusedComponent = 0;
@@ -419,7 +419,7 @@ class FocusManager extends withWatchables(
             component = focusStack.pop();
             if (!component.destroyed) {
                 component.bdOnBlur();
-                focusManager.bdNotify({type: "blurComponent", component});
+                focusManager.bdNotify({type: 'blurComponent', component});
             }
         }
 
@@ -427,17 +427,17 @@ class FocusManager extends withWatchables(
         for (j = i; j < newStackLength; j++) {
             focusStack.push(component = stack[j]);
             component.bdOnFocus();
-            focusManager.bdNotify({type: "focusComponent", component});
+            focusManager.bdNotify({type: 'focusComponent', component});
         }
 
-        this.bdMutate(["focusedComponent", "_focusedComponent", nextFocusedComponent], ["previousFocusedComponent", "_previousFocusedComponent", this.focusedComponent]);
+        this.bdMutate(['focusedComponent', '_focusedComponent', nextFocusedComponent], ['previousFocusedComponent', '_previousFocusedComponent', this.focusedComponent]);
         this._nextFocusedComponent = 0;
     }
 }
 
 const focusManager = new FocusManager();
 
-class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
+class ViewportWatcher extends withWatchables(watchHub(EventHub), 'vh', 'vw') {
     constructor(throttle) {
         super();
         this.throttle = throttle || 300;
@@ -447,20 +447,20 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
 
         let scrollTimeoutHandle = 0;
 
-        connect(window, "scroll", () => {
+        connect(window, 'scroll', () => {
             if (scrollTimeoutHandle) {
                 return;
             }
             scrollTimeoutHandle = setTimeout(() => {
                 scrollTimeoutHandle = 0;
-                viewportWatcher.bdNotify({type: "scroll"});
+                viewportWatcher.bdNotify({type: 'scroll'});
             }, this.throttle);
         }, true);
 
 
         let resizeTimeoutHandle = 0;
 
-        connect(window, "resize", () => {
+        connect(window, 'resize', () => {
             if (resizeTimeoutHandle) {
                 return;
             }
@@ -469,10 +469,10 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
                 const vh = document.documentElement.clientHeight;
                 const vw = document.documentElement.clientWidth;
                 this.bdMutate(
-                    "vh", "_vh", vh,
-                    "vw", "_vw", vw
+                    'vh', '_vh', vh,
+                    'vw', '_vw', vw
                 );
-                viewportWatcher.bdNotify({type: "resize", vh, vw});
+                viewportWatcher.bdNotify({type: 'resize', vh, vw});
             }, this.throttle);
         }, true);
     }
@@ -481,7 +481,7 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
 const viewportWatcher = new ViewportWatcher();
 
 insPostProcessingFunction(
-    "bdReflect",
+    'bdReflect',
     (prop, value) => {
         if (prop === null && value instanceof Object && !Array.isArray(value)) {
             // e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
@@ -522,31 +522,31 @@ insPostProcessingFunction(
                 prop;
             while (args.length) {
                 refObject = args.shift();
-                if (typeof refObject === "string" || typeof refObject === "symbol") {
+                if (typeof refObject === 'string' || typeof refObject === 'symbol') {
                     prop = refObject;
                     refObject = ppfOwner;
                 } else {
                     prop = args.shift();
                 }
-                install(destProp, refObject, prop, typeof args[0] === "function" ? args.shift() : null);
+                install(destProp, refObject, prop, typeof args[0] === 'function' ? args.shift() : null);
             }
         });
     }
 );
 
 insPostProcessingFunction(
-    "bdAdvise", true,
+    'bdAdvise', true,
     (ppfOwner, ppfTarget, listeners) => {
         Reflect.ownKeys(listeners).forEach(eventType => {
             let listener = listeners[eventType];
-            if (typeof listener !== "function") {
+            if (typeof listener !== 'function') {
                 listener = ppfOwner[listener].bind(ppfOwner);
             }
             ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener));
         });
     }
 );
-insPostProcessingFunction("bdAdvise", "bdOn");
+insPostProcessingFunction('bdAdvise', 'bdOn');
 
 export {
     getAttributeValueFromEvent,

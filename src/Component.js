@@ -1,8 +1,8 @@
-import {getPostProcessingFunction, insPostProcessingFunction} from "./postProcessingCatalog.js";
-import {Element} from "./element.js";
-import {eventHub} from "./eventHub.js";
-import {WatchHub, withWatchables, getWatchableRef} from "./watchUtils.js";
-import {destroyAll} from "./destroyable.js";
+import {getPostProcessingFunction, insPostProcessingFunction} from './postProcessingCatalog.js';
+import {Element} from './element.js';
+import {eventHub} from './eventHub.js';
+import {WatchHub, withWatchables, getWatchableRef} from './watchUtils.js';
+import {destroyAll} from './destroyable.js';
 
 let document = 0;
 let createNode = 0;
@@ -15,7 +15,7 @@ export function initialize(_document, _createNode, _insertNode) {
 }
 
 function cleanClassName(s) {
-    return s.replace(/\s{2,}/g, " ").trim();
+    return s.replace(/\s{2,}/g, ' ').trim();
 }
 
 function conditionClassNameArgs(args) {
@@ -23,7 +23,7 @@ function conditionClassNameArgs(args) {
         if (item instanceof RegExp) {
             acc.push(item);
         } else if (item) {
-            acc = acc.concat(cleanClassName(item).split(" "));
+            acc = acc.concat(cleanClassName(item).split(' '));
         }
         return acc;
     }, []);
@@ -57,7 +57,7 @@ function validateElements(elements) {
     if (Array.isArray(elements)) {
         elements.forEach(validateElements);
     } else if (elements.isComponentType) {
-        throw new Error("Illegal: root element(s) for a Component cannot be Components");
+        throw new Error('Illegal: root element(s) for a Component cannot be Components');
     }
 }
 
@@ -108,7 +108,7 @@ export class Component extends eventHub(WatchHub) {
 
         // id, if provided, is read-only
         if (kwargs.id) {
-            Object.defineProperty(this, "id", {value: `${kwargs.id}`, enumerable: true});
+            Object.defineProperty(this, 'id', {value: `${kwargs.id}`, enumerable: true});
         }
 
         if (kwargs.className) {
@@ -132,7 +132,7 @@ export class Component extends eventHub(WatchHub) {
         }
 
         if (kwargs.elements) {
-            if (typeof kwargs.elements === "function") {
+            if (typeof kwargs.elements === 'function') {
                 this.bdElements = kwargs.elements;
             } else {
                 this.bdElements = () => kwargs.elements;
@@ -161,7 +161,7 @@ export class Component extends eventHub(WatchHub) {
 
     destroy() {
         if (!this.destroyed) {
-            this.destroyed = "in-prog";
+            this.destroyed = 'in-prog';
             this.unrender();
             const handles = ownedHandlesCatalog.get(this);
             if (handles) {
@@ -190,10 +190,10 @@ export class Component extends eventHub(WatchHub) {
                 if (this.id) {
                     root.id = this.id;
                 }
-                this.addClassName(root.getAttribute("class") || "");
+                this.addClassName(root.getAttribute('class') || '');
                 const className = calcDomClassName(this);
                 if (className) {
-                    root.setAttribute("class", className);
+                    root.setAttribute('class', className);
                 }
 
                 if (this.bdDom.tabIndexNode) {
@@ -208,15 +208,15 @@ export class Component extends eventHub(WatchHub) {
                 if (this.bdTitle !== undefined) {
                     (this.bdDom.titleNode || this.bdDom.root).title = this.bdTitle;
                 }
-                this[this.bdDisabled ? "addClassName" : "removeClassName"]("bd-disabled");
+                this[this.bdDisabled ? 'addClassName' : 'removeClassName']('bd-disabled');
                 if (!this.visible) {
                     this._hiddenDisplayStyle = root.style.display;
-                    root.style.display = "none";
+                    root.style.display = 'none';
                 }
             }
             this.ownWhileRendered(this.postRender());
             proc && proc.call(this);
-            this.bdMutateNotify("rendered", true, false);
+            this.bdMutateNotify('rendered', true, false);
         }
         return this.bdDom.root;
     }
@@ -226,7 +226,7 @@ export class Component extends eventHub(WatchHub) {
     }
 
     bdElements() {
-        return new Element("div", {});
+        return new Element('div', {});
     }
 
     unrender() {
@@ -257,7 +257,7 @@ export class Component extends eventHub(WatchHub) {
             delete this._dom;
             delete this._hiddenDisplayStyle;
             this.bdAttachToDoc(false);
-            this.bdMutateNotify("rendered", false, true);
+            this.bdMutateNotify('rendered', false, true);
         }
     }
 
@@ -283,16 +283,16 @@ export class Component extends eventHub(WatchHub) {
 
     bdAdopt(child) {
         if (child.bdParent) {
-            throw new Error("unexpected");
+            throw new Error('unexpected');
         }
         (this.children || (this.children = [])).push(child);
 
-        child.bdMutate("parent", "bdParent", this);
+        child.bdMutate('parent', 'bdParent', this);
         child.bdAttachToDoc(this.bdAttachedToDoc);
     }
 
     bdAttachToDoc(value) {
-        if (this.bdMutate("attachedToDoc", "bdAttachedToDoc", !!value)) {
+        if (this.bdMutate('attachedToDoc', 'bdAttachedToDoc', !!value)) {
             if (value && this.resize) {
                 this.resize();
             }
@@ -309,7 +309,7 @@ export class Component extends eventHub(WatchHub) {
 
     insChild(...args) {
         if (!this.rendered) {
-            throw new Error("parent component must be rendered before explicitly inserting a child");
+            throw new Error('parent component must be rendered before explicitly inserting a child');
         }
         let {src, attachPoint, position} = decodeRender(args);
         let child;
@@ -326,7 +326,7 @@ export class Component extends eventHub(WatchHub) {
             child = this.constructor.renderElements(this, src);
         }
 
-        if (/before|after|replace|only|first|last/.test(attachPoint) || typeof attachPoint === "number") {
+        if (/before|after|replace|only|first|last/.test(attachPoint) || typeof attachPoint === 'number') {
             position = attachPoint;
             attachPoint = 0;
         }
@@ -335,10 +335,10 @@ export class Component extends eventHub(WatchHub) {
             if (attachPoint in this) {
                 // node reference
                 attachPoint = this[attachPoint];
-            } else if (typeof attachPoint === "string") {
+            } else if (typeof attachPoint === 'string') {
                 attachPoint = document.getElementById(attachPoint);
                 if (!attachPoint) {
-                    throw new Error("unexpected");
+                    throw new Error('unexpected');
                 }
             } else if (position !== undefined) {
                 // attachPoint must be a child Component
@@ -348,36 +348,36 @@ export class Component extends eventHub(WatchHub) {
                     attachPoint = attachPoint.bdDom.root;
                     if (Array.isArray(attachPoint)) {
                         switch (position) {
-                            case "replace":
-                            case "only":
-                            case "before":
+                            case 'replace':
+                            case 'only':
+                            case 'before':
                                 attachPoint = attachPoint[0];
                                 break;
-                            case "after":
+                            case 'after':
                                 attachPoint = attachPoint[attachPoint.length - 1];
                                 break;
                             default:
-                                throw new Error("unexpected");
+                                throw new Error('unexpected');
                         }
                     }
                 } else {
-                    throw new Error("unexpected");
+                    throw new Error('unexpected');
                 }
             } else {
                 // attachPoint without a position must give a node reference
-                throw new Error("unexpected");
+                throw new Error('unexpected');
             }
         } else if (child.bdParentAttachPoint) {
             // child is telling the parent where it wants to go; this is more specific than pChildrenAttachPoint
             if (child.bdParentAttachPoint in this) {
                 attachPoint = this[child.bdParentAttachPoint];
             } else {
-                throw new Error("unexpected");
+                throw new Error('unexpected');
             }
         } else {
             attachPoint = this.bdChildrenAttachPoint || this.bdDom.root;
             if (Array.isArray(attachPoint)) {
-                throw new Error("unexpected");
+                throw new Error('unexpected');
             }
         }
 
@@ -386,7 +386,7 @@ export class Component extends eventHub(WatchHub) {
             const firstChildNode = childRoot[0];
             unrender(insertNode(firstChildNode, attachPoint, position));
             childRoot.slice(1).reduce((prevNode, node) => {
-                insertNode(node, prevNode, "after");
+                insertNode(node, prevNode, 'after');
                 return node;
             }, firstChildNode);
         } else {
@@ -405,13 +405,13 @@ export class Component extends eventHub(WatchHub) {
                 node.parentNode && node.parentNode.removeChild(node);
             };
             Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
-            child.bdMutate("parent", "bdParent", null);
+            child.bdMutate('parent', 'bdParent', null);
             child.bdAttachToDoc(false);
             this.children.splice(index, 1);
             if (!preserve) {
                 child.destroy();
                 child = false;
-            } else if (preserve === "unrender") {
+            } else if (preserve === 'unrender') {
                 child.unrender();
             }
             return child;
@@ -443,8 +443,8 @@ export class Component extends eventHub(WatchHub) {
     }
 
     get staticClassName() {
-        return this.kwargs.hasOwnProperty("staticClassName") ?
-            this.kwargs.staticClassName : (this.constructor.className || "");
+        return this.kwargs.hasOwnProperty('staticClassName') ?
+            this.kwargs.staticClassName : (this.constructor.className || '');
     }
 
     get className() {
@@ -458,11 +458,11 @@ export class Component extends eventHub(WatchHub) {
             let className = root.className;
             const staticClassName = this.staticClassName;
             if (staticClassName) {
-                staticClassName.split(" ").forEach(s => (className = className.replace(s, "")));
+                staticClassName.split(' ').forEach(s => (className = className.replace(s, '')));
             }
             return cleanClassName(className);
         } else {
-            return this.bdClassName || "";
+            return this.bdClassName || '';
         }
     }
 
@@ -472,9 +472,9 @@ export class Component extends eventHub(WatchHub) {
         // clean up any space sloppiness, sometimes caused by client-code algorithms that manipulate className
         value = cleanClassName(value);
         if (!this.bdClassName) {
-            this.bdSetClassName(value, "");
+            this.bdSetClassName(value, '');
         } else if (!value) {
-            this.bdSetClassName("", this.bdClassName);
+            this.bdSetClassName('', this.bdClassName);
         } else if (value !== this.bdClassName) {
             this.bdSetClassName(value, this.bdClassName);
         }
@@ -484,11 +484,11 @@ export class Component extends eventHub(WatchHub) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 
         value = cleanClassName(value);
-        return (` ${this.bdClassName || ""} `).indexOf(value) !== -1;
+        return (` ${this.bdClassName || ''} `).indexOf(value) !== -1;
     }
 
     addClassName(...values) {
-        const current = this.bdClassName || "";
+        const current = this.bdClassName || '';
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
             return classValueToRegExp(value).test(className) ? className : `${className + value} `;
         }, ` ${current} `).trim(), current);
@@ -497,19 +497,19 @@ export class Component extends eventHub(WatchHub) {
 
     removeClassName(...values) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-        const current = this.bdClassName || "";
+        const current = this.bdClassName || '';
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
-            return className.replace(classValueToRegExp(value, "g"), " ");
+            return className.replace(classValueToRegExp(value, 'g'), ' ');
         }, ` ${current} `).trim(), current);
         return this;
     }
 
     toggleClassName(...values) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
-        const current = this.bdClassName || "";
+        const current = this.bdClassName || '';
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
             if (classValueToRegExp(value).test(className)) {
-                return className.replace(classValueToRegExp(value, "g"), " ");
+                return className.replace(classValueToRegExp(value, 'g'), ' ');
             } else {
                 return `${className + value} `;
             }
@@ -565,25 +565,25 @@ export class Component extends eventHub(WatchHub) {
         if (newValue !== oldValue) {
             this.bdClassName = newValue;
             if (this.rendered) {
-                this.bdDom.root.setAttribute("class", calcDomClassName(this));
+                this.bdDom.root.setAttribute('class', calcDomClassName(this));
             }
-            this.bdMutateNotify("className", newValue, oldValue);
-            const oldVisibleValue = oldValue ? oldValue.indexOf("bd-hidden") === -1 : true,
-                newVisibleValue = newValue ? newValue.indexOf("bd-hidden") === -1 : true;
+            this.bdMutateNotify('className', newValue, oldValue);
+            const oldVisibleValue = oldValue ? oldValue.indexOf('bd-hidden') === -1 : true,
+                newVisibleValue = newValue ? newValue.indexOf('bd-hidden') === -1 : true;
             if (oldVisibleValue !== newVisibleValue) {
-                this.bdMutateNotify("visible", newVisibleValue, oldVisibleValue);
+                this.bdMutateNotify('visible', newVisibleValue, oldVisibleValue);
             }
         }
     }
 
     bdOnFocus() {
-        this.addClassName("bd-focused");
-        this.bdMutate("hasFocus", "bdHasFocus", true);
+        this.addClassName('bd-focused');
+        this.bdMutate('hasFocus', 'bdHasFocus', true);
     }
 
     bdOnBlur() {
-        this.removeClassName("bd-focused");
-        this.bdMutate("hasFocus", "bdHasFocus", false);
+        this.removeClassName('bd-focused');
+        this.bdMutate('hasFocus', 'bdHasFocus', false);
     }
 
     get hasFocus() {
@@ -631,7 +631,7 @@ export class Component extends eventHub(WatchHub) {
     }
 
     get uid() {
-        return this.bdUid || (this.bdUid = Symbol("component-instance-uid"));
+        return this.bdUid || (this.bdUid = Symbol('component-instance-uid'));
     }
 
     get tabIndex() {
@@ -645,11 +645,11 @@ export class Component extends eventHub(WatchHub) {
 
     set tabIndex(value) {
         if (!value && value !== 0) {
-            value = "";
+            value = '';
         }
         if (value !== this.bdTabIndex) {
             this.rendered && ((this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = value);
-            this.bdMutate("tabIndex", "bdTabIndex", value);
+            this.bdMutate('tabIndex', 'bdTabIndex', value);
         }
     }
 
@@ -669,20 +669,20 @@ export class Component extends eventHub(WatchHub) {
         value = !!value;
         if (this.bdDisabled !== value) {
             this.bdDisabled = value;
-            this.bdMutateNotify([["disabled", value, !value], ["enabled", !value, value]]);
-            this[value ? "addClassName" : "removeClassName"]("bd-disabled");
+            this.bdMutateNotify([['disabled', value, !value], ['enabled', !value, value]]);
+            this[value ? 'addClassName' : 'removeClassName']('bd-disabled');
         }
     }
 
     get visible() {
-        return !this.containsClassName("bd-hidden");
+        return !this.containsClassName('bd-hidden');
     }
 
     set visible(value) {
         value = !!value;
-        if (value !== !this.containsClassName("bd-hidden")) {
+        if (value !== !this.containsClassName('bd-hidden')) {
             if (value) {
-                this.removeClassName("bd-hidden");
+                this.removeClassName('bd-hidden');
                 const node = this.bdDom && this.bdDom.root;
                 if (this._hiddenDisplayStyle !== undefined) {
                     node && (node.style.display = this._hiddenDisplayStyle);
@@ -690,14 +690,14 @@ export class Component extends eventHub(WatchHub) {
                 }
                 this.resize && this.resize();
             } else {
-                this.addClassName("bd-hidden");
+                this.addClassName('bd-hidden');
                 const node = this.bdDom && this.bdDom.root;
                 if (node) {
                     this._hiddenDisplayStyle = node.style.display;
-                    node.style.display = "none";
+                    node.style.display = 'none';
                 }
             }
-            this.bdMutateNotify("visible", value, !value);
+            this.bdMutateNotify('visible', value, !value);
         }
     }
 
@@ -710,7 +710,7 @@ export class Component extends eventHub(WatchHub) {
     }
 
     set title(value) {
-        if (this.bdMutate("title", "bdTitle", value)) {
+        if (this.bdMutate('title', 'bdTitle', value)) {
             this.rendered && ((this.bdDom.titleNode || this.bdDom.root).title = value);
         }
     }
@@ -740,7 +740,7 @@ export class Component extends eventHub(WatchHub) {
                 }
             } else {
                 const domNode = result = createNode(type, ctorProps);
-                if ("tabIndex" in ctorProps && ctorProps.tabIndex !== false) {
+                if ('tabIndex' in ctorProps && ctorProps.tabIndex !== false) {
                     owner.bdDom.tabIndexNode = domNode;
                 }
                 ppFuncs && postProcess(ppFuncs, owner, domNode);
@@ -761,14 +761,14 @@ export class Component extends eventHub(WatchHub) {
     }
 }
 
-Component.watchables = ["rendered", "parent", "attachedToDoc", "className", "hasFocus", "tabIndex", "enabled", "visible", "title"];
+Component.watchables = ['rendered', 'parent', 'attachedToDoc', 'className', 'hasFocus', 'tabIndex', 'enabled', 'visible', 'title'];
 Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
 
 insPostProcessingFunction(
-    "bdAttach",
+    'bdAttach',
     (ppfOwner, ppfTarget, name) => {
-        if (typeof name === "function") {
+        if (typeof name === 'function') {
             ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
         } else {
             ppfOwner[name] = ppfTarget;
@@ -782,11 +782,11 @@ insPostProcessingFunction(
 );
 
 insPostProcessingFunction(
-    "bdWatch", true,
+    'bdWatch', true,
     (ppfOwner, ppfTarget, watchers) => {
         Reflect.ownKeys(watchers).forEach(eventType => {
             let watcher = watchers[eventType];
-            if (typeof watcher !== "function") {
+            if (typeof watcher !== 'function') {
                 watcher = ppfOwner[eventType].bind(ppfOwner);
             }
             ppfTarget.ownWhileRendered(ppfTarget.watch(eventType, watcher));
@@ -795,16 +795,16 @@ insPostProcessingFunction(
 );
 
 insPostProcessingFunction(
-    "bdExec",
+    'bdExec',
     (ppfOwner, ppfTarget, ...args) => {
         for (let i = 0; i < args.length;) {
             const f = args[i++];
-            if (typeof f === "function") {
+            if (typeof f === 'function') {
                 f(ppfOwner, ppfTarget);
-            } else if (typeof f === "string") {
-                if (!(typeof ppfTarget[f] === "function")) {
+            } else if (typeof f === 'string') {
+                if (!(typeof ppfTarget[f] === 'function')) {
                     // eslint-disable-next-line no-console
-                    console.error("unexpected");
+                    console.error('unexpected');
                 }
                 if (i < args.length && Array.isArray(args[i])) {
                     ppfTarget[f](...args[i++], ppfOwner, ppfTarget);
@@ -813,41 +813,41 @@ insPostProcessingFunction(
                 }
             } else {
                 // eslint-disable-next-line no-console
-                console.error("unexpected");
+                console.error('unexpected');
             }
         }
     }
 );
 
 insPostProcessingFunction(
-    "bdTitleNode",
+    'bdTitleNode',
     (ppfOwner, ppfTarget) => {
         ppfOwner.bdDom.titleNode = ppfTarget;
     }
 );
 
 insPostProcessingFunction(
-    "bdParentAttachPoint",
+    'bdParentAttachPoint',
     (ppfOwner, ppfTarget, propertyName) => {
         ppfTarget.bdParentAttachPoint = propertyName;
     }
 );
 
 insPostProcessingFunction(
-    "bdChildrenAttachPoint",
+    'bdChildrenAttachPoint',
     (ppfOwner, ppfTarget) => {
         ppfOwner.bdChildrenAttachPoint = ppfTarget;
     }
 );
 
 insPostProcessingFunction(
-    "bdReflectClass",
+    'bdReflectClass',
     (ppfOwner, ppfTarget, ...args) => {
         // args is a list of ([owner, ] property, [, formatter])...
         // very much like bdReflect, except we're adding/removing components (words) from this.classname
 
         function normalize(value) {
-            return !value ? "" : `${value}`;
+            return !value ? '' : `${value}`;
         }
 
         function install(owner, prop, formatter) {
@@ -883,13 +883,13 @@ insPostProcessingFunction(
             prop;
         while (args.length) {
             owner = args.shift();
-            if (typeof owner === "string" || typeof owner === "symbol") {
+            if (typeof owner === 'string' || typeof owner === 'symbol') {
                 prop = owner;
                 owner = ppfOwner;
             } else {
                 prop = args.shift();
             }
-            install(owner, prop, typeof args[0] === "function" ? args.shift() : null);
+            install(owner, prop, typeof args[0] === 'function' ? args.shift() : null);
         }
     }
 );
@@ -952,7 +952,7 @@ function decodeRender(args) {
         return {src: arg1, attachPoint: arg2, position: arg3};
     } else {
         if (!isComponentDerivedCtor(arg1)) {
-            throw new Error("first argument must be an Element, Component, or a class derived from Component");
+            throw new Error('first argument must be an Element, Component, or a class derived from Component');
         }
         if (args.length === 1) {
             // [3]
@@ -999,7 +999,7 @@ export function render(...args) {
         result.render();
     }
 
-    if (typeof attachPoint === "string") {
+    if (typeof attachPoint === 'string') {
         attachPoint = document.getElementById(attachPoint);
     }
 
@@ -1009,7 +1009,7 @@ export function render(...args) {
             const firstChildNode = root[0];
             unrender(insertNode(firstChildNode, attachPoint, position));
             root.slice(1).reduce((prevNode, node) => {
-                insertNode(node, prevNode, "after");
+                insertNode(node, prevNode, 'after');
                 return node;
             }, firstChildNode);
         } else {

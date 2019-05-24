@@ -1,7 +1,7 @@
 const postProcessingFuncs = Object.create(null);
 
 function insPostProcessingFunction(name, transform, func) {
-    if (typeof transform === "string") {
+    if (typeof transform === 'string') {
         // transform is an alias for name
         if (!postProcessingFuncs[name]) {
             throw Error(`cannot alias to a non-existing post-processing function: ${name}`);
@@ -10,7 +10,7 @@ function insPostProcessingFunction(name, transform, func) {
         return;
     }
     if (arguments.length === 3) {
-        if (typeof transform !== "function") {
+        if (typeof transform !== 'function') {
             transform = (prop, value) => prop ? {[prop]: value} : value;
         }
     } else {

@@ -1,12 +1,12 @@
-import {Component} from "./Component.js";
-import {destroyAll} from "./destroyable.js";
-import {UNKNOWN_OLD_VALUE, toWatchable, isWatchable, withWatchables} from "./watchUtils.js";
+import {Component} from './Component.js';
+import {destroyAll} from './destroyable.js';
+import {UNKNOWN_OLD_VALUE, toWatchable, isWatchable, withWatchables} from './watchUtils.js';
 
 function applyLengthWatchers(owner, newValue, oldValue) {
     if (oldValue !== newValue) {
         owner.children.forEach(child => {
             child.onMutateCollectionLength && child.onMutateCollectionLength(newValue, oldValue);
-            child.bdMutateNotify("collectionLength", newValue, oldValue);
+            child.bdMutateNotify('collectionLength', newValue, oldValue);
         });
     }
 }
@@ -40,7 +40,7 @@ function updateChildren(collection, owner, oldLength) {
 }
 
 function setSpliceAdvice(collection, owner) {
-    return collection.before("splice", () => {
+    return collection.before('splice', () => {
         if (!owner.rendered) {
             return false;
         }
@@ -55,7 +55,7 @@ function setSpliceAdvice(collection, owner) {
 }
 
 function setShiftAdvice(collection, owner) {
-    return collection.before("shift", () => {
+    return collection.before('shift', () => {
         if (!owner.rendered || !collection.length) {
             return false;
         }
@@ -74,7 +74,7 @@ function setShiftAdvice(collection, owner) {
 }
 
 function setUnshiftAdvice(collection, owner) {
-    return collection.before("unshift", () => {
+    return collection.before('unshift', () => {
         if (!owner.rendered) {
             return false;
         }
@@ -96,7 +96,7 @@ function setUnshiftAdvice(collection, owner) {
 }
 
 function setReverseAdvice(collection, owner) {
-    return collection.before("reverse", () => {
+    return collection.before('reverse', () => {
         if (!owner.rendered) {
             return false;
         }
@@ -116,7 +116,7 @@ function setReverseAdvice(collection, owner) {
 }
 
 function setSortAdvice(collection, owner) {
-    return collection.before("sort", () => {
+    return collection.before('sort', () => {
         if (!owner.rendered) {
             return false;
         }
@@ -130,7 +130,7 @@ function setSortAdvice(collection, owner) {
 }
 
 function setOrderAdvice(collection, owner) {
-    return collection.before("order", () => {
+    return collection.before('order', () => {
         if (!owner.rendered) {
             return false;
         }
@@ -152,7 +152,7 @@ export class Collection extends Component {
     set collection(value) {
         // always an array
         value = value || toWatchable([]);
-        if (this.bdMutate("collection", "bdCollection", value)) {
+        if (this.bdMutate('collection', 'bdCollection', value)) {
             this.bdSetupHandle && this.bdSetupHandle.destroy();
             const collection = this.bdCollection;
 
@@ -166,7 +166,7 @@ export class Collection extends Component {
                     child.collectionItem = collection[i];
                     if (mutateLength) {
                         child.onMutateCollectionLength && child.onMutateCollectionLength(newLength, oldLength);
-                        child.bdMutateNotify("collectionLength", newLength, oldLength);
+                        child.bdMutateNotify('collectionLength', newLength, oldLength);
                     }
                 }
                 this.bdSynchChildren();
@@ -174,7 +174,7 @@ export class Collection extends Component {
 
             if (isWatchable(collection) && !this.kwargs.collectionIsScalars) {
                 const handles = [
-                    this.watch(collection, "length", (newValue, oldValue) => {
+                    this.watch(collection, 'length', (newValue, oldValue) => {
                         if (!this.suspendWatchAdvise && this.rendered) {
                             this.bdSynchChildren();
                             applyLengthWatchers(this, newValue, oldValue);
@@ -239,7 +239,7 @@ const onMutateNames = {};
 function onMutateItemWatchable(propName, owner, newValue, oldValue) {
     let procName = onMutateNames[propName];
     if (procName === undefined) {
-        procName = onMutateNames[propName] = typeof propName === "symbol" ?
+        procName = onMutateNames[propName] = typeof propName === 'symbol' ?
             false :
             `onMutate${propName.substring(0, 1).toUpperCase()}${propName.substring(1)}`;
     }
@@ -270,7 +270,7 @@ export class CollectionChild extends Component {
             const oldValue = this.bdCollectionIndex;
             this.bdCollectionIndex = newValue;
             this.onMutateCollectionIndex && this.onMutateCollectionIndex(newValue, oldValue);
-            this.bdMutateNotify("collectionIndex", newValue, oldValue);
+            this.bdMutateNotify('collectionIndex', newValue, oldValue);
             this._connectWatchers();
         }
     }
@@ -294,7 +294,7 @@ export class CollectionChild extends Component {
     _applyWatchers(newValue, oldValue) {
         if (newValue !== oldValue) {
             this.onMutateCollectionItem && this.onMutateCollectionItem(newValue, oldValue);
-            this.bdMutateNotify("collectionItem", newValue, oldValue);
+            this.bdMutateNotify('collectionItem', newValue, oldValue);
             this.constructor.itemWatchables.forEach(prop => {
                 onMutateItemWatchable(prop, this, newValue[prop], oldValue[prop]);
                 this.bdMutateNotify(prop, newValue[prop], oldValue[prop]);
@@ -315,7 +315,7 @@ export class CollectionChild extends Component {
                     this._connectWatchers();
                 } else {
                     this.onMutateCollectionItem && this.onMutateCollectionItem(collectionItem, UNKNOWN_OLD_VALUE);
-                    this.bdMutateNotify("collectionItem", collectionItem, UNKNOWN_OLD_VALUE);
+                    this.bdMutateNotify('collectionItem', collectionItem, UNKNOWN_OLD_VALUE);
                 }
             }));
             this.constructor.itemWatchables.forEach(prop =>
@@ -331,12 +331,12 @@ export class CollectionChild extends Component {
 CollectionChild.itemWatchables = [];
 
 CollectionChild.withWatchables = (...args) => {
-    const superclass = typeof args[0] === "function" ? args.shift() : CollectionChild;
+    const superclass = typeof args[0] === 'function' ? args.shift() : CollectionChild;
     let itemWatchables = [];
     args = args.filter(prop => {
         const match = prop.match(/^item:(.+)/);
         if (match) {
-            itemWatchables = itemWatchables.concat(match[1].split(",").map(p => p.trim()).filter(p => !!p));
+            itemWatchables = itemWatchables.concat(match[1].split(',').map(p => p.trim()).filter(p => !!p));
             return false;
         }
         return true;
