@@ -1,7 +1,7 @@
 import {getPostProcessingFunction} from "./postProcessingCatalog.js";
 
 function flattenChildren(children) {
-    // single children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
+    // children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
     const result = [];
 
     function flatten_(child) {
@@ -99,30 +99,30 @@ export function element(type, props, ...children) {
     return new Element(type, props, children);
 }
 
-const addElementType = element.addElementType = function (type) {
+element.addElementType = function addElementType(type) {
     if (typeof type === "function") {
         if (type.name in element) {
+            // eslint-disable-next-line no-console
             console.error(type.name, "already in element");
         } else {
-            element[type.name] = function (props, ...children) {
-                return new Element(type, props, children);
-            };
+            element[type.name] = (props, ...children) => new Element(type, props, children);
         }
     } else {
         // eslint-disable-next-line no-lonely-if
         if (type in element) {
+            // eslint-disable-next-line no-console
             console.error(type, "already in element");
         } else {
-            element[type] = function (props, ...children) {
-                return new Element(type, props, children);
-            };
+            element[type] = (props, ...children) => new Element(type, props, children);
         }
     }
 };
 
-"a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr".split(".").forEach(addElementType);
+"a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr".split(".").forEach(element.addElementType);
 
 export function div(props, ...children) {
+    // eslint-disable-next-line no-console
+    console.warn("deprecated: use e.div");
     return new Element("div", props, children);
 }
 
@@ -143,7 +143,5 @@ export function svg(type, props, ...children) {
 }
 
 "altGlyph.altGlyphDef.altGlyphItem.animate.animateColor.animateMotion.animateTransform.circle.clipPath.colorprofile.cursor.defs.desc.ellipse.feBlend.feColorMatrix.feComponentTransfer.feComposite.feConvolveMatrix.feDiffuseLighting.feDisplacementMap.feDistantLight.feFlood.feFuncA.feFuncB.feFuncG.feFuncR.feGaussianBlur.feImage.feMerge.feMergeNode.feMorphology.feOffset.fePointLight.feSpecularLighting.feSpotLight.feTile.feTurbulence.filter.font.fontface.fontfaceformat.fontfacename.fontfacesrc.fontfaceuri.foreignObject.g.glyph.glyphRef.hkern.image.line.linearGradient.marker.mask.metadata.missingglyph.mpath.path.pattern.polygon.polyline.radialGradient.rect.script.set.stop.style.svg.switch.symbol.text.textPath.title.tref.tspan.use.view.vkern".split(".").forEach(tag => {
-    svg[tag] = function (props, ...children) {
-        return svg(tag, props, children);
-    };
+    svg[tag] = (props, ...children) => svg(tag, props, children);
 });

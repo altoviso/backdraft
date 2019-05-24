@@ -23,7 +23,7 @@ function conditionClassNameArgs(args) {
         if (item instanceof RegExp) {
             acc.push(item);
         } else if (item) {
-            acc = acc.concat(item.split(" ").map(s => s.trim()).filter(s => !!s));
+            acc = acc.concat(cleanClassName(item).split(" "));
         }
         return acc;
     }, []);
@@ -81,7 +81,7 @@ function pushHandles(dest, ...handles) {
             pushHandles(dest, ...h);
         } else if (h) {
             const destroy = h.destroy.bind(h);
-            h.destroy = function () {
+            h.destroy = () => {
                 destroy();
                 const index = dest.indexOf(h);
                 if (index !== -1) {
@@ -726,6 +726,7 @@ export class Component extends eventHub(WatchHub) {
             const {type, ctorProps, ppFuncs, children} = e;
             let result;
             if (e.isComponentType) {
+                // eslint-disable-next-line new-cap
                 const componentInstance = result = new type(ctorProps);
                 componentInstance.render();
                 ppFuncs && postProcess(ppFuncs, owner, componentInstance);

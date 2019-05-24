@@ -44,6 +44,7 @@ class WatchableRef {
 
         Object.defineProperty(this, "value", {
             enumerable: true,
+            // eslint-disable-next-line func-names
             get: (function () {
                 if (formatter) {
                     if (referenceProp === STAR) {
@@ -76,7 +77,7 @@ class WatchableRef {
             }
         };
 
-        this[pWatchableSetup] = function () {
+        this[pWatchableSetup] = () => {
             cValue = this.value;
             if (referenceObject[OWNER]) {
                 this[pWatchableHandles] = [watch(referenceObject, referenceProp, (newValue, oldValue, receiver, _prop) => {

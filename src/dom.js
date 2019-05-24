@@ -14,7 +14,6 @@ function getAttributeValueFromEvent(e, attributeName, stopNode) {
     return undefined;
 }
 
-
 function normalizeNodeArg(arg) {
     // eslint-disable-next-line no-nested-ternary
     return arg instanceof Component ? arg.bdDom.root : (typeof arg === "string" ? document.getElementById(arg) : arg);
@@ -231,7 +230,6 @@ function create(tag, props) {
     return result;
 }
 
-
 const DATA_BD_HIDE_SAVED_VALUE = "data-bd-hide-saved-value";
 
 function hide(...nodes) {
@@ -300,6 +298,13 @@ function connect(target, type, listener, useCapture) {
     };
 }
 
+function stopEvent(event) {
+    if (event && event.preventDefault) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}
+
 function animate(node, className, onComplete) {
     const isComponent = node instanceof Component;
     if (isComponent && !node.rendered) {
@@ -324,13 +329,6 @@ function animate(node, className, onComplete) {
         }
     } else {
         node.classList.add(className);
-    }
-}
-
-function stopEvent(event) {
-    if (event && event.preventDefault) {
-        event.preventDefault();
-        event.stopPropagation();
     }
 }
 
@@ -414,8 +412,7 @@ class FocusManager extends withWatchables(
         while (i < newStackLength && i < oldStackLength && stack[i] === focusStack[i]) {
             i++;
         }
-        // [0..i-1] are identical in each stack
-
+        // at this point [0..i-1] are identical in each stack
 
         // signal blur from the path end to the first identical component (not including the first identical component)
         for (j = i; j < oldStackLength; j++) {
@@ -439,7 +436,6 @@ class FocusManager extends withWatchables(
 }
 
 const focusManager = new FocusManager();
-
 
 class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
     constructor(throttle) {
@@ -484,7 +480,6 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), "vh", "vw") {
 
 const viewportWatcher = new ViewportWatcher();
 
-
 insPostProcessingFunction(
     "bdReflect",
     (prop, value) => {
@@ -504,7 +499,7 @@ insPostProcessingFunction(
         let install,
             watchable;
         if (ppfTarget instanceof Component) {
-            install = function (destProp, refObject, prop, formatter) {
+            install = (destProp, refObject, prop, formatter) => {
                 ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
                 ppfTarget[destProp] = watchable.value;
                 ppfOwner.ownWhileRendered(watchable.watch(newValue => {
@@ -512,7 +507,7 @@ insPostProcessingFunction(
                 }));
             };
         } else {
-            install = function (destProp, refObject, prop, formatter) {
+            install = (destProp, refObject, prop, formatter) => {
                 ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
                 setAttr(ppfTarget, destProp, watchable.value);
                 ppfOwner.ownWhileRendered(watchable.watch(newValue => {

@@ -24,7 +24,7 @@ function destroyable(proc, container, onEmpty) {
 
 function destroyAll(container) {
     // deterministic algorithm to destroy handles that works even when handle destructors
-    // cause another handles to be destroyed
+    // cause other handles to be destroyed
     if (Array.isArray(container)) {
         for (let i = 0, end = container.length; i < end && container.length; i++) {
             container.pop().destroy();
