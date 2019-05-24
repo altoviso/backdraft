@@ -169,6 +169,7 @@ export class Collection extends Component {
                         child.bdMutateNotify("collectionLength", newLength, oldLength);
                     }
                 }
+                this.bdSynchChildren();
             }
 
             if (isWatchable(collection) && !this.kwargs.collectionIsScalars) {
