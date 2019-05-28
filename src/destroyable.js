@@ -27,6 +27,6 @@ export function destroyAll(container) {
     //   * deterministic even when handle destructors insert handles (though the new handles will not be destroyed)
     //   * robust even when handle destructors cause other handles to be destroyed
     if (Array.isArray(container)) {
-        container.slice().forEach(h => h.destroy);
+        container.slice().forEach(h => h.destroy());
     }// else container was likely falsy and never used
 }
