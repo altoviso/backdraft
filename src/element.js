@@ -107,7 +107,7 @@ element.addElementType = function addElementType(type) {
         } else {
             element[type.name] = (props, ...children) => new Element(type, props, children);
         }
-    } else {
+    } else {// type must be a string
         // eslint-disable-next-line no-lonely-if
         if (type in element) {
             // eslint-disable-next-line no-console

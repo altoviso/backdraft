@@ -1,7 +1,7 @@
 function noop() {
 }
 
-function destroyable(proc, container, onEmpty) {
+export function destroyable(proc, container, onEmpty) {
     const result = {proc};
     if (container) {
         result.destroy = () => {
@@ -22,14 +22,11 @@ function destroyable(proc, container, onEmpty) {
     return result;
 }
 
-function destroyAll(container) {
-    // deterministic algorithm to destroy handles that works even when handle destructors
-    // cause other handles to be destroyed
+export function destroyAll(container) {
+    // deterministic and robust algorithm to destroy handles:
+    //   * deterministic even when handle destructors insert handles (though the new handles will not be destroyed)
+    //   * robust even when handle destructors cause other handles to be destroyed
     if (Array.isArray(container)) {
-        for (let i = 0, end = container.length; i < end && container.length; i++) {
-            container.pop().destroy();
-        }
-    }// else container was likely falsey and never used
+        container.slice().forEach(h => h.destroy);
+    }// else container was likely falsy and never used
 }
-
-export {destroyable, destroyAll};

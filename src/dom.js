@@ -1,7 +1,11 @@
-import {EventHub} from './eventHub.js';
-import {Component} from './Component.js';
-import {insPostProcessingFunction} from './postProcessingCatalog.js';
-import {watchHub, withWatchables, getWatchableRef} from './watchUtils.js';
+import {adviseGlobal} from './global.js';
+
+let window = 0;
+let document = 0;
+adviseGlobal(global => {
+    window = global;
+    document = window.document;
+});
 
 function getAttributeValueFromEvent(e, attributeName, stopNode) {
     let node = e.target;
@@ -332,221 +336,6 @@ function animate(node, className, onComplete) {
     }
 }
 
-class FocusManager extends withWatchables(
-    watchHub(EventHub),
-    'focusedNode',
-    'previousFocusedNode',
-    'focusedComponent',
-    'previousFocusedComponent'
-) {
-    constructor(kwargs) {
-        super(kwargs);
-        this._focusedStack = [];
-        this._nextFocusedComponent = null;
-
-        let focusWatcher = 0;
-
-        connect(document.body, 'focusin', e => {
-            const node = e.target;
-            if (!node || node.parentNode || node === this.focusedNode) {
-                return;
-            }
-
-            if (focusWatcher) {
-                clearTimeout(focusWatcher);
-                focusWatcher = 0;
-            }
-            this.processNode(node);
-        });
-
-        // eslint-disable-next-line no-unused-vars
-        connect(document.body, 'focusout', () => {
-            // If the blur event isn't followed by a focus event, it means the user clicked on something unfocusable,
-            // so clear focus.
-            if (focusWatcher) {
-                clearTimeout(focusWatcher);
-            }
-
-            focusWatcher = setTimeout(this.processNode.bind(this, null), 5);
-        });
-    }
-
-    get focusStack() {
-        return this._focusedStack.slice();
-    }
-
-    get nextFocusedComponent() {
-        return this._nextFocusedComponent;
-    }
-
-    processNode(node) {
-        const previousFocusedNode = this.focusedNode,
-            focusedNode = node;
-        if (previousFocusedNode === focusedNode) {
-            return;
-        }
-        this.bdMutate(['focusedNode', '_focusedNode', focusedNode], ['previousFocusedNode', '_previousFocusedNode', previousFocusedNode]);
-
-        // find the focused component, if any
-        let nextFocusedComponent = 0;
-        while (node && (!(nextFocusedComponent = Component.get(node)))) {
-            node = node.parentNode;
-        }
-        this._nextFocusedComponent = nextFocusedComponent;
-
-        const stack = [];
-        if (nextFocusedComponent) {
-            let p = nextFocusedComponent;
-            while (p) {
-                stack.unshift(p);
-                p = p.parent;
-            }
-        }
-
-        const focusStack = this._focusedStack;
-        const newStackLength = stack.length;
-        const oldStackLength = focusStack.length;
-        let i = 0,
-            j,
-            component;
-        while (i < newStackLength && i < oldStackLength && stack[i] === focusStack[i]) {
-            i++;
-        }
-        // at this point [0..i-1] are identical in each stack
-
-        // signal blur from the path end to the first identical component (not including the first identical component)
-        for (j = i; j < oldStackLength; j++) {
-            component = focusStack.pop();
-            if (!component.destroyed) {
-                component.bdOnBlur();
-                focusManager.bdNotify({type: 'blurComponent', component});
-            }
-        }
-
-        // signal focus for all new components that just gained the focus
-        for (j = i; j < newStackLength; j++) {
-            focusStack.push(component = stack[j]);
-            component.bdOnFocus();
-            focusManager.bdNotify({type: 'focusComponent', component});
-        }
-
-        this.bdMutate(['focusedComponent', '_focusedComponent', nextFocusedComponent], ['previousFocusedComponent', '_previousFocusedComponent', this.focusedComponent]);
-        this._nextFocusedComponent = 0;
-    }
-}
-
-const focusManager = new FocusManager();
-
-class ViewportWatcher extends withWatchables(watchHub(EventHub), 'vh', 'vw') {
-    constructor(throttle) {
-        super();
-        this.throttle = throttle || 300;
-
-        this._vh = document.documentElement.clientHeight;
-        this._vw = document.documentElement.clientWidth;
-
-        let scrollTimeoutHandle = 0;
-
-        connect(window, 'scroll', () => {
-            if (scrollTimeoutHandle) {
-                return;
-            }
-            scrollTimeoutHandle = setTimeout(() => {
-                scrollTimeoutHandle = 0;
-                viewportWatcher.bdNotify({type: 'scroll'});
-            }, this.throttle);
-        }, true);
-
-
-        let resizeTimeoutHandle = 0;
-
-        connect(window, 'resize', () => {
-            if (resizeTimeoutHandle) {
-                return;
-            }
-            resizeTimeoutHandle = setTimeout(() => {
-                resizeTimeoutHandle = 0;
-                const vh = document.documentElement.clientHeight;
-                const vw = document.documentElement.clientWidth;
-                this.bdMutate(
-                    'vh', '_vh', vh,
-                    'vw', '_vw', vw
-                );
-                viewportWatcher.bdNotify({type: 'resize', vh, vw});
-            }, this.throttle);
-        }, true);
-    }
-}
-
-const viewportWatcher = new ViewportWatcher();
-
-insPostProcessingFunction(
-    'bdReflect',
-    (prop, value) => {
-        if (prop === null && value instanceof Object && !Array.isArray(value)) {
-            // e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
-            return value;
-        } else if (prop) {
-            // e.g., bdReflect_someProp: [refObject, ] prop [, someFormatter]
-            return {[prop]: value};
-        } else {
-            // e.g., bdReflect: [refObject, ] prop [, someFormatter]
-            return {innerHTML: value};
-        }
-    },
-    (ppfOwner, ppfTarget, props) => {
-        // props is a hash from property in ppfTarget to a list of ([refObject, ] property, [, formatter])...
-        let install,
-            watchable;
-        if (ppfTarget instanceof Component) {
-            install = (destProp, refObject, prop, formatter) => {
-                ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
-                ppfTarget[destProp] = watchable.value;
-                ppfOwner.ownWhileRendered(watchable.watch(newValue => {
-                    ppfTarget[destProp] = newValue;
-                }));
-            };
-        } else {
-            install = (destProp, refObject, prop, formatter) => {
-                ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
-                setAttr(ppfTarget, destProp, watchable.value);
-                ppfOwner.ownWhileRendered(watchable.watch(newValue => {
-                    setAttr(ppfTarget, destProp, newValue);
-                }));
-            };
-        }
-
-        Reflect.ownKeys(props).forEach(destProp => {
-            const args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
-            let refObject,
-                prop;
-            while (args.length) {
-                refObject = args.shift();
-                if (typeof refObject === 'string' || typeof refObject === 'symbol') {
-                    prop = refObject;
-                    refObject = ppfOwner;
-                } else {
-                    prop = args.shift();
-                }
-                install(destProp, refObject, prop, typeof args[0] === 'function' ? args.shift() : null);
-            }
-        });
-    }
-);
-
-insPostProcessingFunction(
-    'bdAdvise', true,
-    (ppfOwner, ppfTarget, listeners) => {
-        Reflect.ownKeys(listeners).forEach(eventType => {
-            let listener = listeners[eventType];
-            if (typeof listener !== 'function') {
-                listener = ppfOwner[listener].bind(ppfOwner);
-            }
-            ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener));
-        });
-    }
-);
-insPostProcessingFunction('bdAdvise', 'bdOn');
 
 export {
     getAttributeValueFromEvent,
@@ -567,9 +356,5 @@ export {
     destroyDomNode,
     connect,
     animate,
-    stopEvent,
-    FocusManager,
-    focusManager,
-    ViewportWatcher,
-    viewportWatcher
+    stopEvent
 };

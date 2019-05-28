@@ -1,18 +1,15 @@
-import {getPostProcessingFunction, insPostProcessingFunction} from './postProcessingCatalog.js';
+import {adviseGlobal} from './global.js';
+import {create, insert, setPosit, getPosit} from './dom.js';
+import {getPostProcessingFunction} from './postProcessingCatalog.js';
 import {Element} from './element.js';
 import {eventHub} from './eventHub.js';
-import {WatchHub, withWatchables, getWatchableRef} from './watchUtils.js';
+import {WatchHub, withWatchables} from './watchUtils.js';
 import {destroyAll} from './destroyable.js';
 
 let document = 0;
-let createNode = 0;
-let insertNode = 0;
-
-export function initialize(_document, _createNode, _insertNode) {
-    document = _document;
-    Component.createNode = createNode = _createNode;
-    Component.insertNode = insertNode = _insertNode;
-}
+adviseGlobal(window => {
+    document = window.document;
+});
 
 function cleanClassName(s) {
     return s.replace(/\s{2,}/g, ' ').trim();
@@ -43,13 +40,13 @@ function addChildToDomNode(parent, domNode, child, childIsComponent) {
     if (childIsComponent) {
         const childDomRoot = child.bdDom.root;
         if (Array.isArray(childDomRoot)) {
-            childDomRoot.forEach(node => insertNode(node, domNode));
+            childDomRoot.forEach(node => insert(node, domNode));
         } else {
-            insertNode(childDomRoot, domNode);
+            insert(childDomRoot, domNode);
         }
         parent.bdAdopt(child);
     } else {
-        insertNode(child, domNode);
+        insert(child, domNode);
     }
 }
 
@@ -384,13 +381,13 @@ export class Component extends eventHub(WatchHub) {
         const childRoot = child.bdDom.root;
         if (Array.isArray(childRoot)) {
             const firstChildNode = childRoot[0];
-            unrender(insertNode(firstChildNode, attachPoint, position));
+            unrender(insert(firstChildNode, attachPoint, position));
             childRoot.slice(1).reduce((prevNode, node) => {
-                insertNode(node, prevNode, 'after');
+                insert(node, prevNode, 'after');
                 return node;
             }, firstChildNode);
         } else {
-            unrender(insertNode(childRoot, attachPoint, position));
+            unrender(insert(childRoot, attachPoint, position));
         }
 
         this.bdAdopt(child);
@@ -429,8 +426,7 @@ export class Component extends eventHub(WatchHub) {
         }
         const thisChildren = this.children;
         if (thisChildren && thisChildren.length) {
-            const node = this.children[0].bdDom.root.parentNode;
-
+            const node = children.bdDom.root.parentNode;
             children.forEach((child, i) => {
                 if (thisChildren[i] !== child) {
                     const index = thisChildren.indexOf(child, i + 1);
@@ -630,6 +626,23 @@ export class Component extends eventHub(WatchHub) {
         }
     }
 
+    setPosit(posit, memoize){
+        setPosit(this.bdDom.root, posit);
+        if(memoize){
+            Object.assign(this._posit || (this._posit={}), posit);
+        }
+    }
+
+    getPosit(refresh){
+        if(refresh===undefined){
+            return getPosit(this.bdDom.root);
+        }else if(refresh || !this._posit) {
+            return Object.assign(this._posit || (this._posit = {}), getPosit(this.bdDom.root));
+        }else {
+            return this._posit;
+        }
+    }
+
     get uid() {
         return this.bdUid || (this.bdUid = Symbol('component-instance-uid'));
     }
@@ -739,7 +752,7 @@ export class Component extends eventHub(WatchHub) {
                     }
                 }
             } else {
-                const domNode = result = createNode(type, ctorProps);
+                const domNode = result = create(type, ctorProps);
                 if ('tabIndex' in ctorProps && ctorProps.tabIndex !== false) {
                     owner.bdDom.tabIndexNode = domNode;
                 }
@@ -764,135 +777,6 @@ export class Component extends eventHub(WatchHub) {
 Component.watchables = ['rendered', 'parent', 'attachedToDoc', 'className', 'hasFocus', 'tabIndex', 'enabled', 'visible', 'title'];
 Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
-
-insPostProcessingFunction(
-    'bdAttach',
-    (ppfOwner, ppfTarget, name) => {
-        if (typeof name === 'function') {
-            ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
-        } else {
-            ppfOwner[name] = ppfTarget;
-            ppfOwner.ownWhileRendered({
-                destroy() {
-                    delete ppfOwner[name];
-                }
-            });
-        }
-    }
-);
-
-insPostProcessingFunction(
-    'bdWatch', true,
-    (ppfOwner, ppfTarget, watchers) => {
-        Reflect.ownKeys(watchers).forEach(eventType => {
-            let watcher = watchers[eventType];
-            if (typeof watcher !== 'function') {
-                watcher = ppfOwner[eventType].bind(ppfOwner);
-            }
-            ppfTarget.ownWhileRendered(ppfTarget.watch(eventType, watcher));
-        });
-    }
-);
-
-insPostProcessingFunction(
-    'bdExec',
-    (ppfOwner, ppfTarget, ...args) => {
-        for (let i = 0; i < args.length;) {
-            const f = args[i++];
-            if (typeof f === 'function') {
-                f(ppfOwner, ppfTarget);
-            } else if (typeof f === 'string') {
-                if (!(typeof ppfTarget[f] === 'function')) {
-                    // eslint-disable-next-line no-console
-                    console.error('unexpected');
-                }
-                if (i < args.length && Array.isArray(args[i])) {
-                    ppfTarget[f](...args[i++], ppfOwner, ppfTarget);
-                } else {
-                    ppfTarget[f](ppfOwner, ppfTarget);
-                }
-            } else {
-                // eslint-disable-next-line no-console
-                console.error('unexpected');
-            }
-        }
-    }
-);
-
-insPostProcessingFunction(
-    'bdTitleNode',
-    (ppfOwner, ppfTarget) => {
-        ppfOwner.bdDom.titleNode = ppfTarget;
-    }
-);
-
-insPostProcessingFunction(
-    'bdParentAttachPoint',
-    (ppfOwner, ppfTarget, propertyName) => {
-        ppfTarget.bdParentAttachPoint = propertyName;
-    }
-);
-
-insPostProcessingFunction(
-    'bdChildrenAttachPoint',
-    (ppfOwner, ppfTarget) => {
-        ppfOwner.bdChildrenAttachPoint = ppfTarget;
-    }
-);
-
-insPostProcessingFunction(
-    'bdReflectClass',
-    (ppfOwner, ppfTarget, ...args) => {
-        // args is a list of ([owner, ] property, [, formatter])...
-        // very much like bdReflect, except we're adding/removing components (words) from this.classname
-
-        function normalize(value) {
-            return !value ? '' : `${value}`;
-        }
-
-        function install(owner, prop, formatter) {
-            const watchable = getWatchableRef(owner, prop, formatter);
-            ppfOwner.ownWhileRendered(watchable);
-            const value = normalize(watchable.value);
-            if (value) {
-                if (ppfOwner.bdDom.root === ppfTarget) {
-                    // mutating className on the root node of a component
-                    ppfOwner.addClassName(value);
-                } else {
-                    ppfTarget.classList.add(value);
-                }
-            }
-            ppfOwner.ownWhileRendered(watchable.watch((newValue, oldValue) => {
-                newValue = normalize(newValue);
-                oldValue = normalize(oldValue);
-                if (newValue !== oldValue) {
-                    if (ppfOwner.bdDom.root === ppfTarget) {
-                        // mutating className on the root node of a component
-                        oldValue && ppfOwner.removeClassName(oldValue);
-                        newValue && ppfOwner.addClassName(newValue);
-                    } else {
-                        oldValue && ppfTarget.classList.remove(oldValue);
-                        newValue && ppfTarget.classList.add(newValue);
-                    }
-                }
-            }));
-        }
-
-        args = args.slice();
-        let owner,
-            prop;
-        while (args.length) {
-            owner = args.shift();
-            if (typeof owner === 'string' || typeof owner === 'symbol') {
-                prop = owner;
-                owner = ppfOwner;
-            } else {
-                prop = args.shift();
-            }
-            install(owner, prop, typeof args[0] === 'function' ? args.shift() : null);
-        }
-    }
-);
 
 function isComponentDerivedCtor(f) {
     return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
@@ -1007,13 +891,13 @@ export function render(...args) {
         const root = result.bdDom.root;
         if (Array.isArray(root)) {
             const firstChildNode = root[0];
-            unrender(insertNode(firstChildNode, attachPoint, position));
+            unrender(insert(firstChildNode, attachPoint, position));
             root.slice(1).reduce((prevNode, node) => {
-                insertNode(node, prevNode, 'after');
+                insert(node, prevNode, 'after');
                 return node;
             }, firstChildNode);
         } else {
-            unrender(insertNode(root, attachPoint, position));
+            unrender(insert(root, attachPoint, position));
         }
         result.bdAttachToDoc(document.body.contains(attachPoint));
     }
