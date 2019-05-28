@@ -63,155 +63,6 @@
         return postProcessingFuncs[name];
     }
 
-    function flattenChildren(children) {
-        // children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
-        const result = [];
-
-        function flatten_(child) {
-            if (Array.isArray(child)) {
-                child.forEach(flatten_);
-            } else if (child) {
-                result.push(child);
-            }
-        }
-
-        flatten_(children);
-        return result;
-    }
-
-    class Element {
-        constructor(type, props, ...children) {
-            if (type instanceof Element) {
-                // copy constructor
-                this.type = type.type;
-                type.isComponentType && (this.isComponentType = type.isComponentType);
-                type.ctorProps && (this.ctorProps = type.ctorProps);
-                type.ppFuncs && (this.ppFuncs = type.ppFuncs);
-                type.children && (this.children = type.children);
-            } else {
-                // type must either be a constructor (a function) or a string; guarantee that as follows...
-                if (type instanceof Function) {
-                    this.isComponentType = true;
-                    this.type = type;
-                } else if (type) {
-                    // leave this.isComponentType === undefined
-                    this.type = Array.isArray(type) ? type : `${type}`;
-                } else {
-                    throw new Error('type is required');
-                }
-
-                // if the second arg is an Object and not an Element or and Array, then it is props...
-                if (props) {
-                    if (props instanceof Element || Array.isArray(props)) {
-                        children.unshift(props);
-                        this.ctorProps = {};
-                    } else if (props instanceof Object) {
-                        const ctorProps = {};
-                        const ppFuncs = {};
-                        let ppFuncsExist = false;
-                        let match,
-                            ppf;
-                        const setPpFuncs = (ppKey, value) => {
-                            if (ppFuncs[ppKey]) {
-                                const dest = ppFuncs[ppKey];
-                                Reflect.ownKeys(value).forEach(k => (dest[k] = value[k]));
-                            } else {
-                                ppFuncsExist = true;
-                                ppFuncs[ppKey] = value;
-                            }
-                        };
-                        Reflect.ownKeys(props).forEach(k => {
-                            if ((ppf = getPostProcessingFunction(k))) {
-                                const value = ppf.bdTransform(null, props[k]);
-                                setPpFuncs(k, value);
-                            } else if ((match = k.match(/^([A-Za-z0-9$]+)_(.+)$/)) && (ppf = getPostProcessingFunction(match[1]))) {
-                                const ppKey = match[1];
-                                const value = ppf.bdTransform(match[2], props[k]);
-                                setPpFuncs(ppKey, value);
-                            } else {
-                                ctorProps[k] = props[k];
-                            }
-                        });
-                        this.ctorProps = Object.freeze(ctorProps);
-                        if (ppFuncsExist) {
-                            this.ppFuncs = Object.freeze(ppFuncs);
-                        }
-                    } else {
-                        children.unshift(props);
-                        this.ctorProps = {};
-                    }
-                } else {
-                    this.ctorProps = {};
-                }
-
-                const flattenedChildren = flattenChildren(children);
-                if (flattenedChildren.length === 1) {
-                    const child = flattenedChildren[0];
-                    this.children = child instanceof Element ? child : `${child}`;
-                } else if (flattenedChildren.length) {
-                    this.children = flattenedChildren.map(child => (child instanceof Element ? child : `${child}`));
-                    Object.freeze(this.children);
-                }// else children.length===0; therefore, no children
-            }
-            Object.freeze(this);
-        }
-    }
-
-    function element(type, props, ...children) {
-        // make elements without having to use new
-        return new Element(type, props, children);
-    }
-
-    element.addElementType = function addElementType(type) {
-        // type is either a constructor (a function) or a string
-        if (typeof type === 'function') {
-            if (type.name in element) {
-                // eslint-disable-next-line no-console
-                console.error(type.name, 'already in element');
-            } else {
-                element[type.name] = (props, ...children) => new Element(type, props, children);
-            }
-        } else {
-            // eslint-disable-next-line no-lonely-if
-            if (type in element) {
-                // eslint-disable-next-line no-console
-                console.error(type, 'already in element');
-            } else {
-                element[type] = (props, ...children) => new Element(type, props, children);
-            }
-        }
-    };
-
-    'a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr'.split('.').forEach(element.addElementType);
-
-    function div(props, ...children) {
-        // eslint-disable-next-line no-console
-        console.warn('deprecated: use e.div');
-        return new Element('div', props, children);
-    }
-
-    const SVG = Object.create(null, {
-        toString: {
-            value: () => 'http://www.w3.org/2000/svg'
-        }
-    });
-    Object.freeze(SVG);
-
-    function svg(type, props, ...children) {
-        if (typeof type !== 'string') {
-            children.unshift(props);
-            props = type;
-            type = 'svg';
-        }
-        return new Element([SVG, type], props, children);
-    }
-
-    'altGlyph.altGlyphDef.altGlyphItem.animate.animateColor.animateMotion.animateTransform.circle.clipPath.colorprofile.cursor.defs.desc.ellipse.feBlend.feColorMatrix.feComponentTransfer.feComposite.feConvolveMatrix.feDiffuseLighting.feDisplacementMap.feDistantLight.feFlood.feFuncA.feFuncB.feFuncG.feFuncR.feGaussianBlur.feImage.feMerge.feMergeNode.feMorphology.feOffset.fePointLight.feSpecularLighting.feSpotLight.feTile.feTurbulence.filter.font.fontface.fontfaceformat.fontfacename.fontfacesrc.fontfaceuri.foreignObject.g.glyph.glyphRef.hkern.image.line.linearGradient.marker.mask.metadata.missingglyph.mpath.path.pattern.polygon.polyline.radialGradient.rect.script.set.stop.style.svg.switch.symbol.text.textPath.title.tref.tspan.use.view.vkern'.split('.').forEach(tag => {
-        svg[tag] = (props, ...children) => svg(tag, props, children);
-    });
-
-    const STAR = Symbol('bd-star');
-
     function noop() {
     }
 
@@ -245,90 +96,7 @@
         }// else container was likely falsy and never used
     }
 
-    const listenerCatalog = new WeakMap();
-
-    function eventHub(superClass) {
-        return class extends (superClass || class {
-        }) {
-            // protected interface...
-            bdNotify(e) {
-                const events = listenerCatalog.get(this);
-                if (!events) {
-                    return;
-                }
-
-                let handlers;
-                if (e instanceof Event) {
-                    handlers = events[e.type];
-                } else {
-                    // eslint-disable-next-line no-lonely-if
-                    if (e.type) {
-                        handlers = events[e.type];
-                        e.target = this;
-                    } else if (!e.name) {
-                        handlers = events[e];
-                        e = {type: e, name: e, target: this};
-                    } else {
-                        // eslint-disable-next-line no-console
-                        console.warn('event.name is deprecated; use event.type');
-                        handlers = events[e.name];
-                        e.type = e.name;
-                        e.target = this;
-                    }
-                }
-
-                if (handlers) {
-                    handlers.slice().forEach(destroyable => destroyable.proc(e));
-                }
-                if ((handlers = events[STAR])) {
-                    handlers.slice().forEach(destroyable => destroyable.proc(e));
-                }
-            }
-
-            // public interface...
-            get isBdEventHub() {
-                return true;
-            }
-
-            advise(eventName, handler) {
-                if (!handler) {
-                    const hash = eventName;
-                    return Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
-                } else if (Array.isArray(eventName)) {
-                    return eventName.map(name => this.advise(name, handler));
-                } else {
-                    let events = listenerCatalog.get(this);
-                    if (!events) {
-                        listenerCatalog.set(this, (events = {}));
-                    }
-                    const result = destroyable(handler, events[eventName] || (events[eventName] = []));
-                    this.own && this.own(result);
-                    return result;
-                }
-            }
-
-            destroyAdvise(eventName) {
-                const events = listenerCatalog.get(this);
-                if (!events) {
-                    return;
-                }
-                if (eventName) {
-                    const handlers = events[eventName];
-                    if (handlers) {
-                        handlers.forEach(h => h.destroy());
-                        delete events[eventName];
-                    }
-                } else {
-                    Reflect.ownKeys(events).forEach(eventName => {
-                        events[eventName].forEach(h => h.destroy());
-                    });
-                    listenerCatalog.delete(this);
-                }
-            }
-        };
-    }
-
-    const EventHub = eventHub();
+    const STAR = Symbol('bd-star');
 
     const eqlComparators = new Map();
 
@@ -1447,6 +1215,238 @@
         node.classList.add(className);
     }
 
+    function flattenChildren(children) {
+        // children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
+        const result = [];
+
+        function flatten_(child) {
+            if (Array.isArray(child)) {
+                child.forEach(flatten_);
+            } else if (child) {
+                result.push(child);
+            }
+        }
+
+        flatten_(children);
+        return result;
+    }
+
+    class Element {
+        constructor(type, props, ...children) {
+            if (type instanceof Element) {
+                // copy constructor
+                this.type = type.type;
+                type.isComponentType && (this.isComponentType = type.isComponentType);
+                type.ctorProps && (this.ctorProps = type.ctorProps);
+                type.ppFuncs && (this.ppFuncs = type.ppFuncs);
+                type.children && (this.children = type.children);
+            } else {
+                // type must either be a constructor (a function) or a string; guarantee that as follows...
+                if (type instanceof Function) {
+                    this.isComponentType = true;
+                    this.type = type;
+                } else if (type) {
+                    // leave this.isComponentType === undefined
+                    this.type = Array.isArray(type) ? type : `${type}`;
+                } else {
+                    throw new Error('type is required');
+                }
+
+                // if the second arg is an Object and not an Element or and Array, then it is props...
+                if (props) {
+                    if (props instanceof Element || Array.isArray(props)) {
+                        children.unshift(props);
+                        this.ctorProps = {};
+                    } else if (props instanceof Object) {
+                        const ctorProps = {};
+                        const ppFuncs = {};
+                        let ppFuncsExist = false;
+                        let match,
+                            ppf;
+                        const setPpFuncs = (ppKey, value) => {
+                            if (ppFuncs[ppKey]) {
+                                const dest = ppFuncs[ppKey];
+                                Reflect.ownKeys(value).forEach(k => (dest[k] = value[k]));
+                            } else {
+                                ppFuncsExist = true;
+                                ppFuncs[ppKey] = value;
+                            }
+                        };
+                        Reflect.ownKeys(props).forEach(k => {
+                            if ((ppf = getPostProcessingFunction(k))) {
+                                const value = ppf.bdTransform(null, props[k]);
+                                setPpFuncs(k, value);
+                            } else if ((match = k.match(/^([A-Za-z0-9$]+)_(.+)$/)) && (ppf = getPostProcessingFunction(match[1]))) {
+                                const ppKey = match[1];
+                                const value = ppf.bdTransform(match[2], props[k]);
+                                setPpFuncs(ppKey, value);
+                            } else {
+                                ctorProps[k] = props[k];
+                            }
+                        });
+                        this.ctorProps = Object.freeze(ctorProps);
+                        if (ppFuncsExist) {
+                            this.ppFuncs = Object.freeze(ppFuncs);
+                        }
+                    } else {
+                        children.unshift(props);
+                        this.ctorProps = {};
+                    }
+                } else {
+                    this.ctorProps = {};
+                }
+
+                const flattenedChildren = flattenChildren(children);
+                if (flattenedChildren.length === 1) {
+                    const child = flattenedChildren[0];
+                    this.children = child instanceof Element ? child : `${child}`;
+                } else if (flattenedChildren.length) {
+                    this.children = flattenedChildren.map(child => (child instanceof Element ? child : `${child}`));
+                    Object.freeze(this.children);
+                }// else children.length===0; therefore, no children
+            }
+            Object.freeze(this);
+        }
+    }
+
+    function element(type, props, ...children) {
+        // make elements without having to use new
+        return new Element(type, props, children);
+    }
+
+    element.addElementType = function addElementType(type) {
+        // type is either a constructor (a function) or a string
+        if (typeof type === 'function') {
+            if (type.name in element) {
+                // eslint-disable-next-line no-console
+                console.error(type.name, 'already in element');
+            } else {
+                element[type.name] = (props, ...children) => new Element(type, props, children);
+            }
+        } else {
+            // eslint-disable-next-line no-lonely-if
+            if (type in element) {
+                // eslint-disable-next-line no-console
+                console.error(type, 'already in element');
+            } else {
+                element[type] = (props, ...children) => new Element(type, props, children);
+            }
+        }
+    };
+
+    'a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr'.split('.').forEach(element.addElementType);
+
+    function div(props, ...children) {
+        // eslint-disable-next-line no-console
+        console.warn('deprecated: use e.div');
+        return new Element('div', props, children);
+    }
+
+    const SVG = Object.create(null, {
+        toString: {
+            value: () => 'http://www.w3.org/2000/svg'
+        }
+    });
+    Object.freeze(SVG);
+
+    function svg(type, props, ...children) {
+        if (typeof type !== 'string') {
+            children.unshift(props);
+            props = type;
+            type = 'svg';
+        }
+        return new Element([SVG, type], props, children);
+    }
+
+    'altGlyph.altGlyphDef.altGlyphItem.animate.animateColor.animateMotion.animateTransform.circle.clipPath.colorprofile.cursor.defs.desc.ellipse.feBlend.feColorMatrix.feComponentTransfer.feComposite.feConvolveMatrix.feDiffuseLighting.feDisplacementMap.feDistantLight.feFlood.feFuncA.feFuncB.feFuncG.feFuncR.feGaussianBlur.feImage.feMerge.feMergeNode.feMorphology.feOffset.fePointLight.feSpecularLighting.feSpotLight.feTile.feTurbulence.filter.font.fontface.fontfaceformat.fontfacename.fontfacesrc.fontfaceuri.foreignObject.g.glyph.glyphRef.hkern.image.line.linearGradient.marker.mask.metadata.missingglyph.mpath.path.pattern.polygon.polyline.radialGradient.rect.script.set.stop.style.svg.switch.symbol.text.textPath.title.tref.tspan.use.view.vkern'.split('.').forEach(tag => {
+        svg[tag] = (props, ...children) => svg(tag, props, children);
+    });
+
+    const listenerCatalog = new WeakMap();
+
+    function eventHub(superClass) {
+        return class extends (superClass || class {
+        }) {
+            // protected interface...
+            bdNotify(e) {
+                const events = listenerCatalog.get(this);
+                if (!events) {
+                    return;
+                }
+
+                let handlers;
+                if (e instanceof Event) {
+                    handlers = events[e.type];
+                } else {
+                    // eslint-disable-next-line no-lonely-if
+                    if (e.type) {
+                        handlers = events[e.type];
+                        e.target = this;
+                    } else if (!e.name) {
+                        handlers = events[e];
+                        e = {type: e, name: e, target: this};
+                    } else {
+                        // eslint-disable-next-line no-console
+                        console.warn('event.name is deprecated; use event.type');
+                        handlers = events[e.name];
+                        e.type = e.name;
+                        e.target = this;
+                    }
+                }
+
+                if (handlers) {
+                    handlers.slice().forEach(destroyable => destroyable.proc(e));
+                }
+                if ((handlers = events[STAR])) {
+                    handlers.slice().forEach(destroyable => destroyable.proc(e));
+                }
+            }
+
+            // public interface...
+            get isBdEventHub() {
+                return true;
+            }
+
+            advise(eventName, handler) {
+                if (!handler) {
+                    const hash = eventName;
+                    return Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
+                } else if (Array.isArray(eventName)) {
+                    return eventName.map(name => this.advise(name, handler));
+                } else {
+                    let events = listenerCatalog.get(this);
+                    if (!events) {
+                        listenerCatalog.set(this, (events = {}));
+                    }
+                    const result = destroyable(handler, events[eventName] || (events[eventName] = []));
+                    this.own && this.own(result);
+                    return result;
+                }
+            }
+
+            destroyAdvise(eventName) {
+                const events = listenerCatalog.get(this);
+                if (!events) {
+                    return;
+                }
+                if (eventName) {
+                    const handlers = events[eventName];
+                    if (handlers) {
+                        handlers.forEach(h => h.destroy());
+                        delete events[eventName];
+                    }
+                } else {
+                    Reflect.ownKeys(events).forEach(eventName => {
+                        events[eventName].forEach(h => h.destroy());
+                    });
+                    listenerCatalog.delete(this);
+                }
+            }
+        };
+    }
+
+    const EventHub = eventHub();
+
     let document$1 = 0;
     adviseGlobal(window => {
         document$1 = window.document;
@@ -2104,21 +2104,12 @@
             }
         }
 
-        getPosit(refresh) {
-            if (refresh === undefined) {
-                return getPosit(this.bdDom.root);
-            } else if (refresh || !this._posit) {
-                return Object.assign(this._posit || (this._posit = {}), getPosit(this.bdDom.root));
-            } else {
-                return this._posit;
-            }
+        getPosit() {
+            return getPosit(this.bdDom.root);
         }
 
-        setPosit(posit, memoize) {
+        setPosit(posit) {
             setPosit(this.bdDom.root, posit);
-            if (memoize) {
-                Object.assign(this._posit || (this._posit = {}), posit);
-            }
         }
 
         get uid() {
@@ -2381,6 +2372,203 @@
         }
         return result;
     }
+
+    insPostProcessingFunction(
+        'bdAttach',
+        (ppfOwner, ppfTarget, name) => {
+            if (typeof name === 'function') {
+                ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
+            } else {
+                ppfOwner[name] = ppfTarget;
+                ppfOwner.ownWhileRendered({
+                    destroy() {
+                        delete ppfOwner[name];
+                    }
+                });
+            }
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdWatch', true,
+        (ppfOwner, ppfTarget, watchers) => {
+            Reflect.ownKeys(watchers).forEach(eventType => {
+                let watcher = watchers[eventType];
+                if (typeof watcher !== 'function') {
+                    watcher = ppfOwner[eventType].bind(ppfOwner);
+                }
+                ppfTarget.ownWhileRendered(ppfTarget.watch(eventType, watcher));
+            });
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdExec',
+        (ppfOwner, ppfTarget, ...args) => {
+            for (let i = 0; i < args.length;) {
+                const f = args[i++];
+                if (typeof f === 'function') {
+                    f(ppfOwner, ppfTarget);
+                } else if (typeof f === 'string') {
+                    if (!(typeof ppfTarget[f] === 'function')) {
+                        // eslint-disable-next-line no-console
+                        console.error('unexpected');
+                    }
+                    if (i < args.length && Array.isArray(args[i])) {
+                        ppfTarget[f](...args[i++], ppfOwner, ppfTarget);
+                    } else {
+                        ppfTarget[f](ppfOwner, ppfTarget);
+                    }
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error('unexpected');
+                }
+            }
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdTitleNode',
+        (ppfOwner, ppfTarget) => {
+            ppfOwner.bdDom.titleNode = ppfTarget;
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdParentAttachPoint',
+        (ppfOwner, ppfTarget, propertyName) => {
+            ppfTarget.bdParentAttachPoint = propertyName;
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdChildrenAttachPoint',
+        (ppfOwner, ppfTarget) => {
+            ppfOwner.bdChildrenAttachPoint = ppfTarget;
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdReflectClass',
+        (ppfOwner, ppfTarget, ...args) => {
+            // args is a list of ([owner, ] property, [, formatter])...
+            // very much like bdReflect, except we're adding/removing components (words) from this.classname
+
+            function normalize(value) {
+                return !value ? '' : `${value}`;
+            }
+
+            function install(owner, prop, formatter) {
+                const watchable = getWatchableRef(owner, prop, formatter);
+                ppfOwner.ownWhileRendered(watchable);
+                const value = normalize(watchable.value);
+                if (value) {
+                    if (ppfOwner.bdDom.root === ppfTarget) {
+                        // mutating className on the root node of a component
+                        ppfOwner.addClassName(value);
+                    } else {
+                        ppfTarget.classList.add(value);
+                    }
+                }
+                ppfOwner.ownWhileRendered(watchable.watch((newValue, oldValue) => {
+                    newValue = normalize(newValue);
+                    oldValue = normalize(oldValue);
+                    if (newValue !== oldValue) {
+                        if (ppfOwner.bdDom.root === ppfTarget) {
+                            // mutating className on the root node of a component
+                            oldValue && ppfOwner.removeClassName(oldValue);
+                            newValue && ppfOwner.addClassName(newValue);
+                        } else {
+                            oldValue && ppfTarget.classList.remove(oldValue);
+                            newValue && ppfTarget.classList.add(newValue);
+                        }
+                    }
+                }));
+            }
+
+            args = args.slice();
+            let owner,
+                prop;
+            while (args.length) {
+                owner = args.shift();
+                if (typeof owner === 'string' || typeof owner === 'symbol') {
+                    prop = owner;
+                    owner = ppfOwner;
+                } else {
+                    prop = args.shift();
+                }
+                install(owner, prop, typeof args[0] === 'function' ? args.shift() : null);
+            }
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdReflect',
+        (prop, value) => {
+            if (prop === null && value instanceof Object && !Array.isArray(value)) {
+                // e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
+                return value;
+            } else if (prop) {
+                // e.g., bdReflect_someProp: [refObject, ] prop [, someFormatter]
+                return {[prop]: value};
+            } else {
+                // e.g., bdReflect: [refObject, ] prop [, someFormatter]
+                return {innerHTML: value};
+            }
+        },
+        (ppfOwner, ppfTarget, props) => {
+            // props is a hash from property in ppfTarget to a list of ([refObject, ] property, [, formatter])...
+            let install,
+                watchable;
+            if (ppfTarget instanceof Component) {
+                install = (destProp, refObject, prop, formatter) => {
+                    ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
+                    ppfTarget[destProp] = watchable.value;
+                    ppfOwner.ownWhileRendered(watchable.watch(newValue => {
+                        ppfTarget[destProp] = newValue;
+                    }));
+                };
+            } else {
+                install = (destProp, refObject, prop, formatter) => {
+                    ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
+                    setAttr(ppfTarget, destProp, watchable.value);
+                    ppfOwner.ownWhileRendered(watchable.watch(newValue => {
+                        setAttr(ppfTarget, destProp, newValue);
+                    }));
+                };
+            }
+
+            Reflect.ownKeys(props).forEach(destProp => {
+                const args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
+                let refObject,
+                    prop;
+                while (args.length) {
+                    refObject = args.shift();
+                    if (typeof refObject === 'string' || typeof refObject === 'symbol') {
+                        prop = refObject;
+                        refObject = ppfOwner;
+                    } else {
+                        prop = args.shift();
+                    }
+                    install(destProp, refObject, prop, typeof args[0] === 'function' ? args.shift() : null);
+                }
+            });
+        }
+    );
+
+    insPostProcessingFunction(
+        'bdAdvise', true,
+        (ppfOwner, ppfTarget, listeners) => {
+            Reflect.ownKeys(listeners).forEach(eventType => {
+                let listener = listeners[eventType];
+                if (typeof listener !== 'function') {
+                    listener = ppfOwner[listener].bind(ppfOwner);
+                }
+                ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener));
+            });
+        }
+    );
+    insPostProcessingFunction('bdAdvise', 'bdOn');
 
     let focusedNode = null;
     let previousFocusedNode = null;
@@ -2905,205 +3093,9 @@
         return result;
     };
 
-    insPostProcessingFunction(
-        'bdAttach',
-        (ppfOwner, ppfTarget, name) => {
-            if (typeof name === 'function') {
-                ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
-            } else {
-                ppfOwner[name] = ppfTarget;
-                ppfOwner.ownWhileRendered({
-                    destroy() {
-                        delete ppfOwner[name];
-                    }
-                });
-            }
-        }
-    );
-
-    insPostProcessingFunction(
-        'bdWatch', true,
-        (ppfOwner, ppfTarget, watchers) => {
-            Reflect.ownKeys(watchers).forEach(eventType => {
-                let watcher = watchers[eventType];
-                if (typeof watcher !== 'function') {
-                    watcher = ppfOwner[eventType].bind(ppfOwner);
-                }
-                ppfTarget.ownWhileRendered(ppfTarget.watch(eventType, watcher));
-            });
-        }
-    );
-
-    insPostProcessingFunction(
-        'bdExec',
-        (ppfOwner, ppfTarget, ...args) => {
-            for (let i = 0; i < args.length;) {
-                const f = args[i++];
-                if (typeof f === 'function') {
-                    f(ppfOwner, ppfTarget);
-                } else if (typeof f === 'string') {
-                    if (!(typeof ppfTarget[f] === 'function')) {
-                        // eslint-disable-next-line no-console
-                        console.error('unexpected');
-                    }
-                    if (i < args.length && Array.isArray(args[i])) {
-                        ppfTarget[f](...args[i++], ppfOwner, ppfTarget);
-                    } else {
-                        ppfTarget[f](ppfOwner, ppfTarget);
-                    }
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.error('unexpected');
-                }
-            }
-        }
-    );
-
-    insPostProcessingFunction(
-        'bdTitleNode',
-        (ppfOwner, ppfTarget) => {
-            ppfOwner.bdDom.titleNode = ppfTarget;
-        }
-    );
-
-    insPostProcessingFunction(
-        'bdParentAttachPoint',
-        (ppfOwner, ppfTarget, propertyName) => {
-            ppfTarget.bdParentAttachPoint = propertyName;
-        }
-    );
-
-    insPostProcessingFunction(
-        'bdChildrenAttachPoint',
-        (ppfOwner, ppfTarget) => {
-            ppfOwner.bdChildrenAttachPoint = ppfTarget;
-        }
-    );
-
-    insPostProcessingFunction(
-        'bdReflectClass',
-        (ppfOwner, ppfTarget, ...args) => {
-            // args is a list of ([owner, ] property, [, formatter])...
-            // very much like bdReflect, except we're adding/removing components (words) from this.classname
-
-            function normalize(value) {
-                return !value ? '' : `${value}`;
-            }
-
-            function install(owner, prop, formatter) {
-                const watchable = getWatchableRef(owner, prop, formatter);
-                ppfOwner.ownWhileRendered(watchable);
-                const value = normalize(watchable.value);
-                if (value) {
-                    if (ppfOwner.bdDom.root === ppfTarget) {
-                        // mutating className on the root node of a component
-                        ppfOwner.addClassName(value);
-                    } else {
-                        ppfTarget.classList.add(value);
-                    }
-                }
-                ppfOwner.ownWhileRendered(watchable.watch((newValue, oldValue) => {
-                    newValue = normalize(newValue);
-                    oldValue = normalize(oldValue);
-                    if (newValue !== oldValue) {
-                        if (ppfOwner.bdDom.root === ppfTarget) {
-                            // mutating className on the root node of a component
-                            oldValue && ppfOwner.removeClassName(oldValue);
-                            newValue && ppfOwner.addClassName(newValue);
-                        } else {
-                            oldValue && ppfTarget.classList.remove(oldValue);
-                            newValue && ppfTarget.classList.add(newValue);
-                        }
-                    }
-                }));
-            }
-
-            args = args.slice();
-            let owner,
-                prop;
-            while (args.length) {
-                owner = args.shift();
-                if (typeof owner === 'string' || typeof owner === 'symbol') {
-                    prop = owner;
-                    owner = ppfOwner;
-                } else {
-                    prop = args.shift();
-                }
-                install(owner, prop, typeof args[0] === 'function' ? args.shift() : null);
-            }
-        }
-    );
-    insPostProcessingFunction(
-        'bdReflect',
-        (prop, value) => {
-            if (prop === null && value instanceof Object && !Array.isArray(value)) {
-                // e.g., bdReflect:{p1:"someProp", p2:[refObject, "someOtherProp", someFormatter]}
-                return value;
-            } else if (prop) {
-                // e.g., bdReflect_someProp: [refObject, ] prop [, someFormatter]
-                return {[prop]: value};
-            } else {
-                // e.g., bdReflect: [refObject, ] prop [, someFormatter]
-                return {innerHTML: value};
-            }
-        },
-        (ppfOwner, ppfTarget, props) => {
-            // props is a hash from property in ppfTarget to a list of ([refObject, ] property, [, formatter])...
-            let install,
-                watchable;
-            if (ppfTarget instanceof Component) {
-                install = (destProp, refObject, prop, formatter) => {
-                    ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
-                    ppfTarget[destProp] = watchable.value;
-                    ppfOwner.ownWhileRendered(watchable.watch(newValue => {
-                        ppfTarget[destProp] = newValue;
-                    }));
-                };
-            } else {
-                install = (destProp, refObject, prop, formatter) => {
-                    ppfOwner.ownWhileRendered((watchable = getWatchableRef(refObject, prop, formatter)));
-                    setAttr(ppfTarget, destProp, watchable.value);
-                    ppfOwner.ownWhileRendered(watchable.watch(newValue => {
-                        setAttr(ppfTarget, destProp, newValue);
-                    }));
-                };
-            }
-
-            Reflect.ownKeys(props).forEach(destProp => {
-                const args = Array.isArray(props[destProp]) ? props[destProp].slice() : [props[destProp]];
-                let refObject,
-                    prop;
-                while (args.length) {
-                    refObject = args.shift();
-                    if (typeof refObject === 'string' || typeof refObject === 'symbol') {
-                        prop = refObject;
-                        refObject = ppfOwner;
-                    } else {
-                        prop = args.shift();
-                    }
-                    install(destProp, refObject, prop, typeof args[0] === 'function' ? args.shift() : null);
-                }
-            });
-        }
-    );
-
-    insPostProcessingFunction(
-        'bdAdvise', true,
-        (ppfOwner, ppfTarget, listeners) => {
-            Reflect.ownKeys(listeners).forEach(eventType => {
-                let listener = listeners[eventType];
-                if (typeof listener !== 'function') {
-                    listener = ppfOwner[listener].bind(ppfOwner);
-                }
-                ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener));
-            });
-        }
-    );
-    insPostProcessingFunction('bdAdvise', 'bdOn');
-
     setGlobal(window);
 
-    const version = "3.0.0";
+    const version = "3.0.1";
 
     exports.Collection = Collection;
     exports.CollectionChild = CollectionChild;
