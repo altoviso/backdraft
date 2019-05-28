@@ -18,13 +18,7 @@ function getAttributeValueFromEvent(e, attributeName, stopNode) {
     return undefined;
 }
 
-function normalizeNodeArg(arg) {
-    // eslint-disable-next-line no-nested-ternary
-    return arg instanceof Component ? arg.bdDom.root : (typeof arg === 'string' ? document.getElementById(arg) : arg);
-}
-
 function setAttr(node, name, value) {
-    node = normalizeNodeArg(node);
     if (arguments.length === 2) {
         // name is a hash
         Object.keys(name).forEach(n => setAttr(node, n, name[n]));
@@ -38,7 +32,6 @@ function setAttr(node, name, value) {
 }
 
 function getAttr(node, name) {
-    node = normalizeNodeArg(node);
     if (name in node && node instanceof HTMLElement) {
         return node[name];
     } else {
@@ -50,7 +43,6 @@ let lastComputedStyleNode = 0;
 let lastComputedStyle = 0;
 
 function getComputedStyle(node) {
-    node = normalizeNodeArg(node);
     if (lastComputedStyleNode !== node) {
         lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
     }
@@ -58,7 +50,6 @@ function getComputedStyle(node) {
 }
 
 function getStyle(node, property) {
-    node = normalizeNodeArg(node);
     if (lastComputedStyleNode !== node) {
         lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
     }
@@ -67,7 +58,6 @@ function getStyle(node, property) {
 }
 
 function getStyles(node, ...styleNames) {
-    node = normalizeNodeArg(node);
     if (lastComputedStyleNode !== node) {
         lastComputedStyle = window.getComputedStyle((lastComputedStyleNode = node));
     }
@@ -93,7 +83,6 @@ function getStyles(node, ...styleNames) {
 }
 
 function setStyle(node, property, value) {
-    node = normalizeNodeArg(node);
     if (arguments.length === 2) {
         if (typeof property === 'string') {
             node.style = property;
@@ -109,7 +98,7 @@ function setStyle(node, property, value) {
 }
 
 function getPosit(node) {
-    const result = normalizeNodeArg(node).getBoundingClientRect();
+    const result = node.getBoundingClientRect();
     result.t = result.top;
     result.b = result.bottom;
     result.l = result.left;
@@ -124,7 +113,6 @@ function positStyle(v) {
 }
 
 function setPosit(node, posit) {
-    node = normalizeNodeArg(node);
     // eslint-disable-next-line guard-for-in,no-restricted-syntax
     Object.keys(posit).forEach(p => {
         switch (p) {
@@ -238,7 +226,6 @@ const DATA_BD_HIDE_SAVED_VALUE = 'data-bd-hide-saved-value';
 
 function hide(...nodes) {
     nodes.forEach(node => {
-        node = normalizeNodeArg(node);
         if (node) {
             if (!node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)) {
                 node.setAttribute(DATA_BD_HIDE_SAVED_VALUE, node.style.display);
@@ -250,7 +237,6 @@ function hide(...nodes) {
 
 function show(...nodes) {
     nodes.forEach(node => {
-        node = normalizeNodeArg(node);
         if (node) {
             let displayValue = '';
             if (node.hasAttribute(DATA_BD_HIDE_SAVED_VALUE)) {
@@ -310,32 +296,17 @@ function stopEvent(event) {
 }
 
 function animate(node, className, onComplete) {
-    const isComponent = node instanceof Component;
-    if (isComponent && !node.rendered) {
-        return;
-    }
-    const h = connect(isComponent ? node.bdDom.root : node, 'animationend', e => {
+    const h = connect(node, 'animationend', e => {
         if (e.animationName === className) {
             h.destroy();
-            if (isComponent) {
-                !node.destroyed && node.removeClassName(className);
-            } else {
-                node.classList.remove(className);
-            }
+            node.classList.remove(className);
             if (onComplete) {
                 onComplete.destroy ? onComplete.destroy() : onComplete();
             }
         }
     });
-    if (isComponent) {
-        if (!node.containsClassName(className)) {
-            node.addClassName(className);
-        }
-    } else {
-        node.classList.add(className);
-    }
+    node.classList.add(className);
 }
-
 
 export {
     getAttributeValueFromEvent,

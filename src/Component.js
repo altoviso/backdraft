@@ -1,5 +1,5 @@
 import {adviseGlobal} from './global.js';
-import {create, insert, setPosit, getPosit} from './dom.js';
+import {getAttr, setAttr, getStyle, getStyles, setStyle, setPosit, getPosit, create, insert, connect} from './dom.js';
 import {getPostProcessingFunction} from './postProcessingCatalog.js';
 import {Element} from './element.js';
 import {eventHub} from './eventHub.js';
@@ -626,20 +626,57 @@ export class Component extends eventHub(WatchHub) {
         }
     }
 
-    setPosit(posit, memoize){
-        setPosit(this.bdDom.root, posit);
-        if(memoize){
-            Object.assign(this._posit || (this._posit={}), posit);
+    getAttr(name) {
+        return getAttr(this.bdDom.root, name);
+    }
+
+    setAttr(name, value) {
+        return setAttr(this.bdDom.root, name, value);
+    }
+
+    getStyle(property) {
+        return getStyle(this.bdDom.root, property);
+    }
+
+    getStyles(...styleNames) {
+        return getStyles(this.bdDom.root, styleNames);
+    }
+
+    setStyle(property, value) {
+        return setStyle(this.bdDom.root, property, value);
+    }
+
+    animate(className, onComplete) {
+        if (this.rendered) {
+            const h = connect(this.bdDom.root, 'animationend', e => {
+                if (e.animationName === className) {
+                    h.destroy();
+                    !this.destroyed && this.removeClassName(className);
+                    if (onComplete) {
+                        onComplete.destroy ? onComplete.destroy() : onComplete();
+                    }
+                }
+            });
+            if (!this.containsClassName(className)) {
+                this.addClassName(className);
+            }
         }
     }
 
-    getPosit(refresh){
-        if(refresh===undefined){
+    getPosit(refresh) {
+        if (refresh === undefined) {
             return getPosit(this.bdDom.root);
-        }else if(refresh || !this._posit) {
+        } else if (refresh || !this._posit) {
             return Object.assign(this._posit || (this._posit = {}), getPosit(this.bdDom.root));
-        }else {
+        } else {
             return this._posit;
+        }
+    }
+
+    setPosit(posit, memoize) {
+        setPosit(this.bdDom.root, posit);
+        if (memoize) {
+            Object.assign(this._posit || (this._posit = {}), posit);
         }
     }
 
