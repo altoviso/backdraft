@@ -1,15 +1,15 @@
 import {adviseGlobal} from './global.js';
-import {connect} from "./dom.js";
-import {EventHub} from "./eventHub.js";
-import {watchHub} from "./watchUtils.js";
-import {Component} from "./Component.js";
+import {connect} from './dom.js';
+import {EventHub} from './eventHub.js';
+import {watchHub} from './watchUtils.js';
+import {Component} from './Component.js';
 
 let focusedNode = null;
 let previousFocusedNode = null;
 let focusedComponent = null;
 let previousFocusedComponent = null;
 let nextFocusedComponent = null;
-let focusStack = [];
+const focusStack = [];
 
 class FocusManager extends watchHub(EventHub) {
     get focusedNode() {

@@ -100,6 +100,7 @@ export function element(type, props, ...children) {
 }
 
 element.addElementType = function addElementType(type) {
+    // type is either a constructor (a function) or a string
     if (typeof type === 'function') {
         if (type.name in element) {
             // eslint-disable-next-line no-console
@@ -107,7 +108,7 @@ element.addElementType = function addElementType(type) {
         } else {
             element[type.name] = (props, ...children) => new Element(type, props, children);
         }
-    } else {// type must be a string
+    } else {
         // eslint-disable-next-line no-lonely-if
         if (type in element) {
             // eslint-disable-next-line no-console

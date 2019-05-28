@@ -1,6 +1,7 @@
-import {getPostProcessingFunction, insPostProcessingFunction} from './postProcessingCatalog.js';
+import {insPostProcessingFunction} from './postProcessingCatalog.js';
 import {getWatchableRef} from './watchUtils.js';
-import {connect, setAttr} from "./dom.js";
+import {connect, setAttr} from './dom.js';
+import {Component} from './Component.js';
 
 insPostProcessingFunction(
     'bdAttach',

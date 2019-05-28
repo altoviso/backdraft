@@ -1,7 +1,7 @@
 import {adviseGlobal} from './global.js';
-import {connect} from "./dom.js";
-import {EventHub} from "./eventHub.js";
-import {watchHub, withWatchables} from "./watchUtils.js";
+import {connect} from './dom.js';
+import {EventHub} from './eventHub.js';
+import {watchHub} from './watchUtils.js';
 
 let vh = 0;
 let vw = 0;
@@ -59,5 +59,3 @@ adviseGlobal(window => {
         }, viewportWatcher.throttle);
     }, true);
 });
-
-
