@@ -1,32 +1,44 @@
 module.exports = {
-    "env": {
-        "browser": true,
-        "es6": true,
-        "node": true
+    'env': {
+        'browser': true,
+        'es6': true,
+        'node': true
     },
+
+    parserOptions: {
+        ecmaVersion: 2018,
+        sourceType: 'module',
+    },
+
     "extends": "eslint:recommended",
-    "parserOptions": {
-        "ecmaVersion": 2017,
-        "sourceType": "module"
-    },
-    "rules": {
-        "indent": [
-            "error",
-            "tab",
-			{ "SwitchCase": 1 }
-        ],
-        "no-undef":["warn", { "typeof": false }],
-        "linebreak-style": [
-            "error",
-            "windows"
-        ],
-        "quotes": [
-            "error",
-            "double"
-        ],
-        "semi": [
-            "error",
-            "always"
-        ]
+
+    // extends: [
+    //     './eslint-rules/es.js',
+    //     './eslint-rules/best-practices.js',
+    //     './eslint-rules/errors.js',
+    //     './eslint-rules/node.js',
+    //     './eslint-rules/style.js',
+    //     './eslint-rules/variables.js',
+    //     './eslint-rules/imports.js'
+    // ],
+
+    'rules': {
+        'no-multi-assign': ['off'],
+        'no-cond-assign': ['error', 'except-parens'],
+        'padding-line-between-statements': ['off'],
+        'arrow-body-style': ['off'],
+        'no-param-reassign': ['off'],
+        'max-len': ['off'],
+        'prefer-const': ['error', {'destructuring': 'all'}],
+        'no-use-before-define': ['off'],
+        'no-else-return': ['off'],
+        'no-prototype-builtins': ['off'],
+        'comma-dangle': ['off'],
+        'one-var': ['off'],
+        'sort-vars': ['off'],
+        'no-plusplus': ['off'],
+        'arrow-parens': ['error', 'as-needed'],
+        'wrap-iife': ['off'],
+        'no-shadow': ['off'],
     }
 };
