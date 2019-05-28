@@ -14,15 +14,12 @@
 		"test": "test"
 	},
 	"scripts": {
-		"build": "./node_modules/.bin/rollup -c"
+		"build": "./node_modules/.bin/rollup -c",
+		"test": "node node_modules/bd-smoke/smoke.js",
+		"lint": "./node_modules/.bin/eslint src"
 	},
 	"author": "Rawld Gill",
 	"license": "BSD-3-Clause",
-	"devDependencies": {
-		"bd-smoke": "^1.1.0",
-		"eslint": "^5.5.0",
-		"rollup": "^0.65.0"
-	},
 	"keywords": [
 		"backdraft",
 		"bd",
@@ -35,5 +32,10 @@
 		"javascript library",
 		"application library",
 		"browser application library"
-	]
+	],
+	"devDependencies": {
+		"bd-smoke": "^1.1.0",
+		"eslint": "^5.16.0",
+		"rollup": "^1.12.4"
+	}
 }

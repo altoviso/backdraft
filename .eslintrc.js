@@ -10,17 +10,18 @@ module.exports = {
         sourceType: 'module',
     },
 
-    "extends": "eslint:recommended",
+    'extends': 'eslint:recommended',
 
-    // extends: [
-    //     './eslint-rules/es.js',
-    //     './eslint-rules/best-practices.js',
-    //     './eslint-rules/errors.js',
-    //     './eslint-rules/node.js',
-    //     './eslint-rules/style.js',
-    //     './eslint-rules/variables.js',
-    //     './eslint-rules/imports.js'
-    // ],
+    extends: [
+        'eslint:recommended',
+        // './eslint-rules/es.js',
+        // './eslint-rules/errors.js',
+        // './eslint-rules/variables.js',
+        // './eslint-rules/imports.js',
+        //'./eslint-rules/style.js',
+        //'./eslint-rules/best-practices.js',
+        //'./eslint-rules/node.js'
+    ],
 
     'rules': {
         'no-multi-assign': ['off'],
