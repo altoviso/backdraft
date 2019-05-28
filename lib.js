@@ -2,10 +2,9 @@ import {setGlobal} from "./src/global.js";
 
 setGlobal(window);
 
-import {element} from "./src/element.js";
+import "./src/postProcessingFunctions.js";
 
-export {element as e};
-
+export {element as e} from "./src/element.js";
 export * from "./src/global.js";
 export * from "./src/symbols.js";
 export * from "./src/destroyable.js";
@@ -18,6 +17,5 @@ export * from "./src/focusManager.js";
 export * from "./src/viewportWatcher.js";
 export * from "./src/Component.js";
 export * from "./src/Collection.js";
-export * from "./src/postProcessingFunctions.js";
 
-export const version = "3.0.0";
+export const version = "3.0.1";
