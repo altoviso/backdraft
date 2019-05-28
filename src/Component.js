@@ -663,21 +663,12 @@ export class Component extends eventHub(WatchHub) {
         }
     }
 
-    getPosit(refresh) {
-        if (refresh === undefined) {
-            return getPosit(this.bdDom.root);
-        } else if (refresh || !this._posit) {
-            return Object.assign(this._posit || (this._posit = {}), getPosit(this.bdDom.root));
-        } else {
-            return this._posit;
-        }
+    getPosit() {
+        return getPosit(this.bdDom.root);
     }
 
-    setPosit(posit, memoize) {
+    setPosit(posit) {
         setPosit(this.bdDom.root, posit);
-        if (memoize) {
-            Object.assign(this._posit || (this._posit = {}), posit);
-        }
     }
 
     get uid() {
