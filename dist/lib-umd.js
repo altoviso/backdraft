@@ -3095,7 +3095,7 @@
 
     setGlobal(window);
 
-    const version = "3.0.1";
+    const version = "3.0.3";
 
     exports.Collection = Collection;
     exports.CollectionChild = CollectionChild;

@@ -18,4 +18,4 @@ export * from "./src/viewportWatcher.js";
 export * from "./src/Component.js";
 export * from "./src/Collection.js";
 
-export const version = "3.0.1";
+export const version = "3.0.3";

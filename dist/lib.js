@@ -3089,6 +3089,6 @@ CollectionChild.withWatchables = (...args) => {
 
 setGlobal(window);
 
-const version = "3.0.1";
+const version = "3.0.3";
 
 export { Collection, CollectionChild, Component, Element, EventHub, OWNER, OWNER_NULL, PROP, STAR, UNKNOWN_OLD_VALUE, WatchHub, WatchableRef, adviseGlobal, animate, biBind, bind, connect, create, destroyAll, destroyDomChildren, destroyDomNode, destroyable, div, element as e, element, eql, eqlComparators, eventHub, focusManager, fromWatchable, getAttr, getAttributeValueFromEvent, getComputedStyle, getMaxZIndex, getPosit, getPostProcessingFunction, getStyle, getStyles, getWatchableRef, global, hide, insPostProcessingFunction, insert, isWatchable, render, replacePostProcessingFunction, setAttr, setGlobal, setPosit, setStyle, show, silentSet, stopEvent, svg, toWatchable, version, viewportWatcher, watch, watchHub, withWatchables };
