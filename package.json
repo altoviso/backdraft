@@ -13,6 +13,13 @@
 	"directories": {
 		"test": "test"
 	},
+	"files": [
+		"/dist",
+		"/src",
+		"lib.js",
+		"LICENSE",
+		"README.md"
+	],
 	"scripts": {
 		"build": "./node_modules/.bin/rollup -c",
 		"test": "node node_modules/bd-smoke/smoke.js",
