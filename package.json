@@ -1,6 +1,6 @@
 {
 	"name": "bd-core",
-	"version": "3.0.3",
+	"version": "3.0.4",
 	"description": "a JavaScript library for building browser-hosted user interfaces",
 	"homepage": "http://backdraftjs.org",
 	"bugs": "http://github.com/altoviso/backdraft/issues",
