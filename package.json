@@ -41,8 +41,9 @@
 		"browser application library"
 	],
 	"devDependencies": {
-		"bd-smoke": "^1.1.0",
-		"eslint": "^5.16.0",
-		"rollup": "^1.12.4"
-	}
+		"bd-smoke": "^1.1.1",
+		"eslint": "^6.1.0",
+		"rollup": "^1.19.4"
+	},
+	"dependencies": {}
 }
