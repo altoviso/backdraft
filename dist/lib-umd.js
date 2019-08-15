@@ -295,6 +295,7 @@
     }
 
     let pauseWatchers = false;
+    const moving = false;
     let _silentSet = false;
 
     function set(target, prop, value, receiver) {
@@ -307,7 +308,7 @@
                 const holdPauseWatchers = pauseWatchers;
                 try {
                     pauseWatchers = true;
-                    value = createWatchable(value, receiver, prop);
+                    value = moving ? value : createWatchable(value, receiver, prop);
                     pauseWatchers = holdPauseWatchers;
                 } catch (e) {
                     pauseWatchers = holdPauseWatchers;
@@ -2004,6 +2005,9 @@
                 if (this.rendered) {
                     this.bdDom.root.setAttribute('class', calcDomClassName(this));
                 }
+                if (this.rendered && !Array.isArray(this.bdDom.root))  {
+                    this.bdDom.root.setAttribute('class', calcDomClassName(this));
+                }
                 this.bdMutateNotify('className', newValue, oldValue);
                 const oldVisibleValue = oldValue ? oldValue.indexOf('bd-hidden') === -1 : true,
                     newVisibleValue = newValue ? newValue.indexOf('bd-hidden') === -1 : true;
@@ -3068,7 +3072,7 @@
                 this.constructor.itemWatchables.forEach(prop =>
                     handles.push(this.watch(collectionItem, prop, (newValue, oldValue, target, _prop) => {
                         if (this.parent.suspendWatchAdvise) return;
-                        onMutateItemWatchable(prop, this, newValue, oldValue, target, _prop);
+                        onMutateItemWatchable(prop, this, newValue, oldValue);
                         this.bdMutateNotify(prop, newValue, oldValue);
                     })));
             }
