@@ -11,10 +11,10 @@
         return _global;
     }
 
-    function setGlobal(global) {
+    function setGlobal(theGlobal) {
         if (!_global) {
-            _global = global;
-            watchers.forEach(handler => handler(global));
+            _global = theGlobal;
+            watchers.forEach(handler => handler(theGlobal));
             watchers = null;
         } else {
             throw new Error('illegal to mutate global space');
@@ -64,6 +64,7 @@
     }
 
     function noop() {
+        // do nothing
     }
 
     function destroyable(proc, container, onEmpty) {
@@ -142,7 +143,7 @@
             Object.defineProperty(this, 'value', {
                 enumerable: true,
                 // eslint-disable-next-line func-names
-                get: (function () {
+                get: ((function () {
                     if (formatter) {
                         if (referenceProp === STAR) {
                             return () => formatter(referenceObject);
@@ -154,7 +155,7 @@
                     } else {
                         return () => referenceObject[referenceProp];
                     }
-                })()
+                })())
             });
 
             // if (referenceObject[OWNER] && referenceProp === STAR), then we cValue===newValue===referenceObject...
@@ -333,6 +334,7 @@
     const QUICK_COPY = Symbol('slice-quick-copy');
     const BEFORE_ADVICE = Symbol('BEFORE_ADVICE');
     const noop$1 = () => {
+        // do nothing
     };
 
     const arrayWatcher = {
@@ -860,6 +862,7 @@
                 pname = `_${name}`;
             }
             publicPropNames.push(name);
+            // eslint-disable-next-line no-use-before-define
             Object.defineProperty(prototype, name, {
                 enumerable: true,
                 get() {
@@ -1396,10 +1399,10 @@
                 }
 
                 if (handlers) {
-                    handlers.slice().forEach(destroyable => destroyable.proc(e));
+                    handlers.slice().forEach(theDestroyable => theDestroyable.proc(e));
                 }
                 if ((handlers = events[STAR])) {
-                    handlers.slice().forEach(destroyable => destroyable.proc(e));
+                    handlers.slice().forEach(theDestroyable => theDestroyable.proc(e));
                 }
             }
 
@@ -1437,6 +1440,7 @@
                         delete events[eventName];
                     }
                 } else {
+                    // eslint-disable-next-line no-shadow
                     Reflect.ownKeys(events).forEach(eventName => {
                         events[eventName].forEach(h => h.destroy());
                     });
@@ -1512,6 +1516,7 @@
     }
 
     function noop$2() {
+        // do nothing
     }
 
     function pushHandles(dest, ...handles) {
@@ -1547,7 +1552,7 @@
 
             // id, if provided, is read-only
             if (kwargs.id) {
-                Object.defineProperty(this, 'id', {value: `${kwargs.id}`, enumerable: true});
+                Object.defineProperty(this, 'id', { value: `${kwargs.id}`, enumerable: true });
             }
 
             if (kwargs.className) {
@@ -1750,7 +1755,7 @@
             if (!this.rendered) {
                 throw new Error('parent component must be rendered before explicitly inserting a child');
             }
-            let {src, attachPoint, position} = decodeRender(args);
+            let { src, attachPoint, position } = decodeRender(args);
             let child;
             if (src instanceof Component) {
                 child = src;
@@ -1760,7 +1765,7 @@
                 child.render();
             } else { // child instanceof Element
                 if (!src.isComponentType) {
-                    src = new Element(Component, {elements: src});
+                    src = new Element(Component, { elements: src });
                 }
                 child = this.constructor.renderElements(this, src);
             }
@@ -2005,7 +2010,7 @@
                 if (this.rendered) {
                     this.bdDom.root.setAttribute('class', calcDomClassName(this));
                 }
-                if (this.rendered && !Array.isArray(this.bdDom.root))  {
+                if (this.rendered && !Array.isArray(this.bdDom.root)) {
                     this.bdDom.root.setAttribute('class', calcDomClassName(this));
                 }
                 this.bdMutateNotify('className', newValue, oldValue);
@@ -2207,9 +2212,10 @@
 
         static renderElements(owner, e) {
             if (Array.isArray(e)) {
+                // eslint-disable-next-line no-shadow
                 return e.map(e => Component.renderElements(owner, e));
             } else if (e instanceof Element) {
-                const {type, ctorProps, ppFuncs, children} = e;
+                const { type, ctorProps, ppFuncs, children } = e;
                 let result;
                 if (e.isComponentType) {
                     // eslint-disable-next-line new-cap
@@ -2306,24 +2312,24 @@
         const [arg1, arg2, arg3, arg4] = args;
         if (arg1 instanceof Element || arg1 instanceof Component) {
             // [1] or [2] || [7] or [8]
-            return {src: arg1, attachPoint: arg2, position: arg3};
+            return { src: arg1, attachPoint: arg2, position: arg3 };
         } else {
             if (!isComponentDerivedCtor(arg1)) {
                 throw new Error('first argument must be an Element, Component, or a class derived from Component');
             }
             if (args.length === 1) {
                 // [3]
-                return {src: new Element(arg1)};
+                return { src: new Element(arg1) };
             } else {
                 // more than one argument; the second argument is either props or not
                 // eslint-disable-next-line no-lonely-if
                 if (Object.getPrototypeOf(arg2) === prototypeOfObject) {
                     // [4] or [6]
                     // WARNING: this signature requires kwargs to be a plain Javascript Object (which is should be!)
-                    return {src: new Element(arg1, arg2), attachPoint: arg3, position: arg4};
+                    return { src: new Element(arg1, arg2), attachPoint: arg3, position: arg4 };
                 } else {
                     // [5]
-                    return {src: new Element(arg1), attachPoint: arg2, position: arg3};
+                    return { src: new Element(arg1), attachPoint: arg2, position: arg3 };
                 }
             }
         }
@@ -2342,13 +2348,13 @@
 
     function render(...args) {
         let result;
-        let {src, attachPoint, position} = decodeRender(args);
+        let { src, attachPoint, position } = decodeRender(args);
         if (src instanceof Element) {
             if (src.isComponentType) {
                 // eslint-disable-next-line new-cap
                 result = new src.type(src.ctorProps);
             } else {
-                result = new Component({elements: src});
+                result = new Component({ elements: src });
             }
             result.render();
         } else { // src instanceof Component
@@ -2568,7 +2574,11 @@
                 if (typeof listener !== 'function') {
                     listener = ppfOwner[listener].bind(ppfOwner);
                 }
-                ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener));
+                ppfOwner.ownWhileRendered(
+                    ppfTarget instanceof Component ?
+                        ppfTarget.advise(eventType, listener) :
+                        connect(ppfTarget, eventType, listener)
+                );
             });
         }
     );
@@ -3099,7 +3109,7 @@
 
     setGlobal(window);
 
-    const version = "3.0.3";
+    const version = "3.1.0";
 
     exports.Collection = Collection;
     exports.CollectionChild = CollectionChild;
