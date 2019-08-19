@@ -14,14 +14,25 @@ module.exports = {
         'backdraft'
     ],
 
-    'rules': {
-    },
+    rules: {},
 
-    "overrides": [
+    overrides: [
         {
-            "files": ['smoke.config.js'],
-            "rules": {
-                "global-require": "off",
+            'files': ['smoke.config.js'],
+            'rules': {
+                'global-require': 'off',
+            }
+        },
+        {
+            'files': ['test/*.js'],
+            'rules': {
+                'camelcase': 'off',
+                'func-names': 'off',
+                'no-shadow': 'off',
+                'no-console': 'off',
+                'no-use-before-define': 'off',
+                'no-empty': 'off',
+                'max-len': 'off',
             }
         }
     ]

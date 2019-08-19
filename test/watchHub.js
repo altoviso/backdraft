@@ -1,12 +1,13 @@
-import {watchHub, eqlComparators, STAR, toWatchable, Component} from "../lib.js";
+import {watchHub, eqlComparators, STAR, toWatchable, Component} from '../lib.js';
 
-const smoke = typeof window !== "undefined" ? window.smoke : require("bd-smoke");
+const smoke = typeof window !== 'undefined' ? window.smoke : require('bd-smoke');
+
 const assert = smoke.assert;
 
 smoke.defTest({
-    id: "watchHub",
+    id: 'watchHub',
     tests: [
-        ["usage", function () {
+        ['usage', function () {
             // Typically, watchHub is used to provide watchers on member data of some other class.
             // In this example, we define the class Coord which models an (x, y) coordinate and
             // uses watchHub to provide machinery that allows the x, y, and coordinate value can be watched.
@@ -31,7 +32,7 @@ smoke.defTest({
                     // occured; otherwise, it returns false. This example wraps to application of bdMutate so we can
                     // see this behavior below.
                     Coord.xMutated = false;
-                    if (this.bdMutate("x", "_x", value)) {
+                    if (this.bdMutate('x', '_x', value)) {
                         Coord.xMutated = true;
                     }
                 }
@@ -46,11 +47,11 @@ smoke.defTest({
                     // the watchers called only if an actual mutation occurred:
                     value = Number(value);
                     if (isNaN(value)) {
-                        throw new Error("Illegal value provided for y");
+                        throw new Error('Illegal value provided for y');
                     }
                     if (this._y !== value) {
-                        let oldValue = this._y;
-                        this.bdMutateNotify("y", this._y = value, oldValue);
+                        const oldValue = this._y;
+                        this.bdMutateNotify('y', this._y = value, oldValue);
                     }
                 }
 
@@ -60,11 +61,11 @@ smoke.defTest({
                     }
                     // We want to set both x and y before signaling changes to either;
                     // this is how to do it:
-                    this.bdMutate("x", "_x", x, "y", "_y", y);
+                    this.bdMutate('x', '_x', x, 'y', '_y', y);
                 }
             }
 
-            let c = new Coord();
+            const c = new Coord();
             assert(c.x === 0);
             assert(c.y === 0);
             assert(c.isBdWatchHub);
@@ -80,7 +81,7 @@ smoke.defTest({
             let starHandlerAppliedCount = 0;
 
             // Set up a watch on x.
-            let xWatcher = c.watch("x", (newValue, oldValue, src) => {
+            const xWatcher = c.watch('x', (newValue, oldValue, src) => {
                 xHandlerAppliedCount++;
 
                 assert(oldValue === expectdOldValue_x);
@@ -93,7 +94,7 @@ smoke.defTest({
             });
 
             // Similarly for y.
-            let yWatcher = c.watch("y", (newValue, oldValue, src) => {
+            const yWatcher = c.watch('y', (newValue, oldValue, src) => {
                 yHandlerAppliedCount++;
                 assert(oldValue === expectdOldValue_y);
                 assert(src === c);
@@ -107,7 +108,7 @@ smoke.defTest({
             // Lastly set up a watch for any change on the coord; notice the signature is different.
             // start watches are always applied after specific watches, so c should == (watched_x, watched_y)
             // when this particular watcher is applied.
-            let starWatcher = c.watch(STAR, (newValue, oldValue, src, prop) => {
+            const starWatcher = c.watch(STAR, (newValue, oldValue, src, prop) => {
                 starHandlerAppliedCount++;
 
                 assert(src === c);
@@ -182,9 +183,8 @@ smoke.defTest({
 
             // Of course, the y watcher is still around.
             assert(yHandlerAppliedCount === 3);
-
         }],
-        ["star", function () {
+        ['star', function () {
             class Useless extends watchHub() {
                 constructor(x) {
                     super();
@@ -197,7 +197,7 @@ smoke.defTest({
                 }
 
                 set x(value) {
-                    this.bdMutate("x", "_x", value);
+                    this.bdMutate('x', '_x', value);
                 }
 
                 get y() {
@@ -205,11 +205,11 @@ smoke.defTest({
                 }
 
                 set y(value) {
-                    this.bdMutate("y", "_y", value);
+                    this.bdMutate('y', '_y', value);
                 }
 
                 set(x, y) {
-                    this.bdMutate("x", "_x", x, "y", "_y", y);
+                    this.bdMutate('x', '_x', x, 'y', '_y', y);
                 }
             }
 
@@ -238,9 +238,9 @@ smoke.defTest({
                 assert(src._y === expectedY);
             }
 
-            let useless = new Useless();
-            useless.watch("x", xWatcher);
-            useless.watch("y", yWatcher);
+            const useless = new Useless();
+            useless.watch('x', xWatcher);
+            useless.watch('y', yWatcher);
             useless.x = expectedX = 1;
             assert(applyCount_x === 1);
             assert(applyCount_y === 0);
@@ -273,7 +273,7 @@ smoke.defTest({
             assert(applyCount_y === 4);
             assert(applyCount_star === 3);
         }],
-        ["watchSigs", function () {
+        ['watchSigs', function () {
             // possible sigs:
             // 1: name, watcher
             // 2: name[], watcher
@@ -283,15 +283,15 @@ smoke.defTest({
             // 6: watchable, hash: name -> watcher
             // 7: watchable, watcher // STAR watcher
 
-            class Example extends Component.withWatchables("p1", "p2") {
+            class Example extends Component.withWatchables('p1', 'p2') {
             }
 
-            let ex = new Example({p1: 10, p2: 20});
+            const ex = new Example({p1: 10, p2: 20});
 
-            let newValues = {};
-            let called = {};
+            const newValues = {};
+            const called = {};
             for (let i = 1; i <= 29; i++) {
-                ex["watch" + i] = function (newValue) {
+                ex[`watch${i}`] = function (newValue) {
                     newValues[i] = newValue;
                     called[i] = true;
                 };
@@ -310,7 +310,6 @@ smoke.defTest({
 
                     default:
                         return value;
-
                 }
             }
 
@@ -326,29 +325,29 @@ smoke.defTest({
                 }
             }
 
-            let data = toWatchable({a: 30, b: 40});
+            const data = toWatchable({a: 30, b: 40});
 
-            ex.watch("p1", "watch1");
-            ex.watch("p1", ex.watch2.bind(ex));
-            ex.watch(["p1", "p2"], "watch3");
-            ex.watch(["p1", "p2"], ex.watch4.bind(ex));
-            ex.watch({p1: "watch5", p2: "watch6", [STAR]: "watch7"});
+            ex.watch('p1', 'watch1');
+            ex.watch('p1', ex.watch2.bind(ex));
+            ex.watch(['p1', 'p2'], 'watch3');
+            ex.watch(['p1', 'p2'], ex.watch4.bind(ex));
+            ex.watch({p1: 'watch5', p2: 'watch6', [STAR]: 'watch7'});
             ex.watch({p1: ex.watch8.bind(ex), p2: ex.watch9.bind(ex), [STAR]: ex.watch10.bind(ex)});
-            ex.watch(STAR, "watch11");
+            ex.watch(STAR, 'watch11');
             ex.watch(STAR, ex.watch12.bind(ex));
-            ex.watch([STAR], "watch13");
+            ex.watch([STAR], 'watch13');
             ex.watch([STAR], ex.watch14.bind(ex));
 
-            ex.watch(data, "a", "watch15");
-            ex.watch(data, "a", ex.watch16.bind(ex));
-            ex.watch(data, STAR, "watch17");
+            ex.watch(data, 'a', 'watch15');
+            ex.watch(data, 'a', ex.watch16.bind(ex));
+            ex.watch(data, STAR, 'watch17');
             ex.watch(data, STAR, ex.watch18.bind(ex));
-            ex.watch(data, ["a", "b"], "watch19");
-            ex.watch(data, ["a", "b"], ex.watch20.bind(ex));
+            ex.watch(data, ['a', 'b'], 'watch19');
+            ex.watch(data, ['a', 'b'], ex.watch20.bind(ex));
             ex.watch(data, [STAR], ex.watch21.bind(ex));
-            ex.watch(data, {a: "watch22", b: "watch23", [STAR]: "watch24"});
+            ex.watch(data, {a: 'watch22', b: 'watch23', [STAR]: 'watch24'});
             ex.watch(data, {a: ex.watch25.bind(ex), b: ex.watch26.bind(ex), [STAR]: ex.watch27.bind(ex)});
-            ex.watch(data, "watch28");
+            ex.watch(data, 'watch28');
             ex.watch(data, ex.watch29.bind(ex));
 
             ex.p1 = 11;
@@ -366,12 +365,12 @@ smoke.defTest({
             data.b = 42;
             check([], 42);
         }],
-        ["structure", function () {
+        ['structure', function () {
             // watchHubs do not define any instance variables.
             class Useless extends watchHub() {
                 constructor(x) {
                     super();
-                    Object.defineProperty(this, "_x", {value: x || 0, writable: true});
+                    Object.defineProperty(this, '_x', {value: x || 0, writable: true});
                 }
 
                 get x() {
@@ -379,26 +378,26 @@ smoke.defTest({
                 }
 
                 set x(value) {
-                    this.bdMutate("x", "_x", value);
+                    this.bdMutate('x', '_x', value);
                 }
             }
 
-            let x = new Useless();
-            let ownKeys = Reflect.ownKeys(x);
+            const x = new Useless();
+            const ownKeys = Reflect.ownKeys(x);
             assert(ownKeys.length === 1);
-            assert(ownKeys[0] === "_x");
+            assert(ownKeys[0] === '_x');
 
             // And EventHubs can be in the middle of a derivation chain.
             class Base {
                 constructor() {
-                    this.base = "BASE";
+                    this.base = 'BASE';
                 }
             }
 
             class Useless2 extends watchHub(Base) {
                 constructor(x) {
                     super();
-                    Object.defineProperty(this, "_x", {value: x || 0, writable: true});
+                    Object.defineProperty(this, '_x', {value: x || 0, writable: true});
                 }
 
                 get x() {
@@ -406,23 +405,23 @@ smoke.defTest({
                 }
 
                 set x(value) {
-                    this.bdMutate("x", "_x", value);
+                    this.bdMutate('x', '_x', value);
                 }
             }
 
             // Useless2 instances have both Base and watchHub machinery.
             let instance = new Useless2();
-            assert(instance.base === "BASE");
-            assert(typeof instance.watch === "function");
-            assert(typeof instance.bdMutateNotify === "function");
-            assert(typeof instance.bdMutate === "function");
-            assert(typeof instance.destroyWatch === "function");
-            assert(typeof instance.getWatchableRef === "function");
+            assert(instance.base === 'BASE');
+            assert(typeof instance.watch === 'function');
+            assert(typeof instance.bdMutateNotify === 'function');
+            assert(typeof instance.bdMutate === 'function');
+            assert(typeof instance.destroyWatch === 'function');
+            assert(typeof instance.getWatchableRef === 'function');
 
             // EventHubs can be at the start of a derivation chain.
             class IncompleteUseless3 {
                 constructor(x) {
-                    Object.defineProperty(this, "_x", {value: x || 0, writable: true});
+                    Object.defineProperty(this, '_x', {value: x || 0, writable: true});
                 }
 
                 get x() {
@@ -431,7 +430,7 @@ smoke.defTest({
 
                 set x(value) {
                     // This won't work unless a watchHub is mixed in.
-                    this.bdMutate("x", "_x", value);
+                    this.bdMutate('x', '_x', value);
                 }
             }
 
@@ -450,7 +449,7 @@ smoke.defTest({
             instance = new CompleteUseless3();
             instance.x = 1;
         }],
-        ["onmutate", function () {
+        ['onmutate', function () {
             let onMutateBeforeProp = 0;
             let onMutatePropValue = 0;
 
@@ -466,12 +465,12 @@ smoke.defTest({
 
             let temp = new Example();
             let watcherCalled = false;
-            temp.watch("prop", (newValue, oldValue) => {
+            temp.watch('prop', (newValue, oldValue) => {
                 assert(newValue === 1);
                 assert(oldValue === undefined);
                 watcherCalled = true;
             });
-            temp.bdMutate("prop", "_prop", 1);
+            temp.bdMutate('prop', '_prop', 1);
             assert(onMutateBeforeProp === 1);
             assert(onMutatePropValue === 1);
             assert(temp._prop === 1);
@@ -489,9 +488,9 @@ smoke.defTest({
             }
 
             temp = new Example();
-            temp.bdMutate("prop", "_prop", 1);
+            temp.bdMutate('prop', '_prop', 1);
         }],
-        ["watcher-eq-calc", function () {
+        ['watcher-eq-calc', function () {
             // Watchable::bdMutate compares the current value of the private data to a new value and mutates the private
             // data if and only if the comparison indicates the values are not the same "scalar" values.
 
@@ -502,11 +501,11 @@ smoke.defTest({
                 }
 
                 set x(value) {
-                    Example.mutated = this.bdMutate("x", "_x", value);
+                    Example.mutated = this.bdMutate('x', '_x', value);
                 }
             }
 
-            let test = new Example();
+            const test = new Example();
 
             // All the dissimlar false-like values are considered _not_ scalar equivalents. Here we go from undefined to 0, false, and null.
             test._x = undefined;
@@ -586,10 +585,10 @@ smoke.defTest({
             assert(test._x === false);
 
             // When neither the existing value nor the new value provide an eq method, strict equivalence is  used to compute scalar equivalence.
-            test._x = "test";
-            test.x = "test";
+            test._x = 'test';
+            test.x = 'test';
             assert(!Example.mutated);
-            test.x = String("test");
+            test.x = String('test');
             assert(!Example.mutated);
 
             test._x = 1;
@@ -597,9 +596,9 @@ smoke.defTest({
             assert(!Example.mutated);
             test.x = 2;
             assert(Example.mutated);
-            test.x = "2";
+            test.x = '2';
             assert(Example.mutated);
-            assert(test.x === "2");
+            assert(test.x === '2');
             test._x = true;
             test.x = true;
             assert(!Example.mutated);
@@ -622,13 +621,13 @@ smoke.defTest({
             assert(!Example.mutated);
             test.x = new MyNumber(2);
             assert(Example.mutated);
-            test.x = "2";
+            test.x = '2';
             assert(!Example.mutated);
             test.x = 3;
             assert(Example.mutated);
             assert(test._x === 3);
         }],
-        ["watchable", function () {
+        ['watchable', function () {
             // watchHub allows pulling out a Watchable from instances of classes derived from watchHub
             // which implement a watchable member variable.
 
@@ -647,7 +646,7 @@ smoke.defTest({
                 }
 
                 set x(value) {
-                    this.bdMutate("x", "_x", value);
+                    this.bdMutate('x', '_x', value);
                 }
 
 
@@ -656,7 +655,7 @@ smoke.defTest({
                 }
 
                 set y(value) {
-                    this.bdMutate("y", "_y", value);
+                    this.bdMutate('y', '_y', value);
                 }
 
                 set(x, y) {
@@ -665,12 +664,12 @@ smoke.defTest({
                     }
                     // We want to set both x and y before signaling changes to either;
                     // this is how to do it:
-                    this.bdMutate("x", "_x", x, "y", "_y", y);
+                    this.bdMutate('x', '_x', x, 'y', '_y', y);
                 }
             }
 
-            let c = new Coord();
-            let x = c.getWatchableRef("x");
+            const c = new Coord();
+            const x = c.getWatchableRef('x');
 
             // Watchables always reflect the current value of the member variable to which they are bound.
             assert(x.value === 0);
@@ -680,9 +679,9 @@ smoke.defTest({
             // Watchables can set up watchers on the member variable to which they are bound. Here's a watcher that gives
             // us feedback on what happens when its applied.
             let expectedOldValue;
-            let watchResult = "?";
+            let watchResult = '?';
             let handlerApplyCount = 0;
-            let watcher = (newValue, oldValue, src) => {
+            const watcher = (newValue, oldValue, src) => {
                 handlerApplyCount++;
                 assert(oldValue === expectedOldValue);
                 assert(src === c);
@@ -700,7 +699,7 @@ smoke.defTest({
 
 
             // Watchable::watch returns a destroyable handle.
-            let handle = x.watch(watcher);
+            const handle = x.watch(watcher);
 
             // At this point, x has two watchers watching it (both watchers are the same function in this demo)
             expectedOldValue = c.x;
