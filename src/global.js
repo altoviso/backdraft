@@ -5,10 +5,10 @@ export function global() {
     return _global;
 }
 
-export function setGlobal(global) {
+export function setGlobal(theGlobal) {
     if (!_global) {
-        _global = global;
-        watchers.forEach(handler => handler(global));
+        _global = theGlobal;
+        watchers.forEach(handler => handler(theGlobal));
         watchers = null;
     } else {
         throw new Error('illegal to mutate global space');

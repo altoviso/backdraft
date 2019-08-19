@@ -45,7 +45,7 @@ class WatchableRef {
         Object.defineProperty(this, 'value', {
             enumerable: true,
             // eslint-disable-next-line func-names
-            get: (function () {
+            get: ((function () {
                 if (formatter) {
                     if (referenceProp === STAR) {
                         return () => formatter(referenceObject);
@@ -57,7 +57,7 @@ class WatchableRef {
                 } else {
                     return () => referenceObject[referenceProp];
                 }
-            })()
+            })())
         });
 
         // if (referenceObject[OWNER] && referenceProp === STAR), then we cValue===newValue===referenceObject...
@@ -236,6 +236,7 @@ const NO_CHANGE = Symbol('splice-no-change');
 const QUICK_COPY = Symbol('slice-quick-copy');
 const BEFORE_ADVICE = Symbol('BEFORE_ADVICE');
 const noop = () => {
+    // do nothing
 };
 
 const arrayWatcher = {
@@ -763,6 +764,7 @@ function withWatchables(superClass, ...args) {
             pname = `_${name}`;
         }
         publicPropNames.push(name);
+        // eslint-disable-next-line no-use-before-define
         Object.defineProperty(prototype, name, {
             enumerable: true,
             get() {

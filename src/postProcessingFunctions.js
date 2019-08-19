@@ -194,7 +194,11 @@ insPostProcessingFunction(
             if (typeof listener !== 'function') {
                 listener = ppfOwner[listener].bind(ppfOwner);
             }
-            ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener));
+            ppfOwner.ownWhileRendered(
+                ppfTarget instanceof Component ?
+                    ppfTarget.advise(eventType, listener) :
+                    connect(ppfTarget, eventType, listener)
+            );
         });
     }
 );

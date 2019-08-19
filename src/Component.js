@@ -70,6 +70,7 @@ function postProcess(ppFuncs, owner, target) {
 }
 
 function noop() {
+    // do nothing
 }
 
 function pushHandles(dest, ...handles) {
@@ -105,7 +106,7 @@ export class Component extends eventHub(WatchHub) {
 
         // id, if provided, is read-only
         if (kwargs.id) {
-            Object.defineProperty(this, 'id', {value: `${kwargs.id}`, enumerable: true});
+            Object.defineProperty(this, 'id', { value: `${kwargs.id}`, enumerable: true });
         }
 
         if (kwargs.className) {
@@ -308,7 +309,7 @@ export class Component extends eventHub(WatchHub) {
         if (!this.rendered) {
             throw new Error('parent component must be rendered before explicitly inserting a child');
         }
-        let {src, attachPoint, position} = decodeRender(args);
+        let { src, attachPoint, position } = decodeRender(args);
         let child;
         if (src instanceof Component) {
             child = src;
@@ -318,7 +319,7 @@ export class Component extends eventHub(WatchHub) {
             child.render();
         } else { // child instanceof Element
             if (!src.isComponentType) {
-                src = new Element(Component, {elements: src});
+                src = new Element(Component, { elements: src });
             }
             child = this.constructor.renderElements(this, src);
         }
@@ -563,7 +564,7 @@ export class Component extends eventHub(WatchHub) {
             if (this.rendered) {
                 this.bdDom.root.setAttribute('class', calcDomClassName(this));
             }
-            if (this.rendered && !Array.isArray(this.bdDom.root))  {
+            if (this.rendered && !Array.isArray(this.bdDom.root)) {
                 this.bdDom.root.setAttribute('class', calcDomClassName(this));
             }
             this.bdMutateNotify('className', newValue, oldValue);
@@ -765,9 +766,10 @@ export class Component extends eventHub(WatchHub) {
 
     static renderElements(owner, e) {
         if (Array.isArray(e)) {
+            // eslint-disable-next-line no-shadow
             return e.map(e => Component.renderElements(owner, e));
         } else if (e instanceof Element) {
-            const {type, ctorProps, ppFuncs, children} = e;
+            const { type, ctorProps, ppFuncs, children } = e;
             let result;
             if (e.isComponentType) {
                 // eslint-disable-next-line new-cap
@@ -864,24 +866,24 @@ function decodeRender(args) {
     const [arg1, arg2, arg3, arg4] = args;
     if (arg1 instanceof Element || arg1 instanceof Component) {
         // [1] or [2] || [7] or [8]
-        return {src: arg1, attachPoint: arg2, position: arg3};
+        return { src: arg1, attachPoint: arg2, position: arg3 };
     } else {
         if (!isComponentDerivedCtor(arg1)) {
             throw new Error('first argument must be an Element, Component, or a class derived from Component');
         }
         if (args.length === 1) {
             // [3]
-            return {src: new Element(arg1)};
+            return { src: new Element(arg1) };
         } else {
             // more than one argument; the second argument is either props or not
             // eslint-disable-next-line no-lonely-if
             if (Object.getPrototypeOf(arg2) === prototypeOfObject) {
                 // [4] or [6]
                 // WARNING: this signature requires kwargs to be a plain Javascript Object (which is should be!)
-                return {src: new Element(arg1, arg2), attachPoint: arg3, position: arg4};
+                return { src: new Element(arg1, arg2), attachPoint: arg3, position: arg4 };
             } else {
                 // [5]
-                return {src: new Element(arg1), attachPoint: arg2, position: arg3};
+                return { src: new Element(arg1), attachPoint: arg2, position: arg3 };
             }
         }
     }
@@ -900,13 +902,13 @@ function unrender(node) {
 
 export function render(...args) {
     let result;
-    let {src, attachPoint, position} = decodeRender(args);
+    let { src, attachPoint, position } = decodeRender(args);
     if (src instanceof Element) {
         if (src.isComponentType) {
             // eslint-disable-next-line new-cap
             result = new src.type(src.ctorProps);
         } else {
-            result = new Component({elements: src});
+            result = new Component({ elements: src });
         }
         result.render();
     } else { // src instanceof Component

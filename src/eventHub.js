@@ -34,10 +34,10 @@ function eventHub(superClass) {
             }
 
             if (handlers) {
-                handlers.slice().forEach(destroyable => destroyable.proc(e));
+                handlers.slice().forEach(theDestroyable => theDestroyable.proc(e));
             }
             if ((handlers = events[STAR])) {
-                handlers.slice().forEach(destroyable => destroyable.proc(e));
+                handlers.slice().forEach(theDestroyable => theDestroyable.proc(e));
             }
         }
 
@@ -75,6 +75,7 @@ function eventHub(superClass) {
                     delete events[eventName];
                 }
             } else {
+                // eslint-disable-next-line no-shadow
                 Reflect.ownKeys(events).forEach(eventName => {
                     events[eventName].forEach(h => h.destroy());
                 });

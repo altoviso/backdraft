@@ -1,4 +1,5 @@
 function noop() {
+    // do nothing
 }
 
 export function destroyable(proc, container, onEmpty) {
