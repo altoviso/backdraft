@@ -1,5 +1,5 @@
 import {Component} from './Component.js';
-import {Destroyable} from './destroyable.js';
+import {Destroyable} from './Destroyable.js';
 import {UNKNOWN_OLD_VALUE, toWatchable, isWatchable, withWatchables} from './watchUtils.js';
 
 function applyLengthWatchers(owner, newValue, oldValue) {

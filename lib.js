@@ -6,7 +6,7 @@ setGlobal(window);
 export {element as e} from './src/element.js';
 export * from './src/global.js';
 export * from './src/symbols.js';
-export * from './src/destroyable.js';
+export * from './src/Destroyable.js';
 export * from './src/postProcessingCatalog.js';
 export * from './src/element.js';
 export * from './src/eventHub.js';

@@ -4,7 +4,7 @@ import {getPostProcessingFunction} from './postProcessingCatalog.js';
 import {Element} from './element.js';
 import {eventHub} from './eventHub.js';
 import {WatchHub, withWatchables} from './watchUtils.js';
-import {Destroyable} from './destroyable.js';
+import {Destroyable} from './Destroyable.js';
 
 let document = 0;
 adviseGlobal(window => {

@@ -1,4 +1,4 @@
-import {Destroyable} from './destroyable.js';
+import {Destroyable} from './Destroyable.js';
 import {STAR} from './symbols.js';
 
 const eqlComparators = new Map();
