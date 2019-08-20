@@ -61,34 +61,35 @@ function noop() {
     // do nothing
 }
 
-function destroyable(proc, container, onEmpty) {
-    const result = {proc};
-    if (container) {
-        result.destroy = () => {
-            result.destroy = result.proc = noop;
-            const index = container.indexOf(result);
-            if (index !== -1) {
-                container.splice(index, 1);
-            }
-            !container.length && onEmpty && onEmpty();
-        };
-        container.push(result);
-    } else {
-        result.destroy = () => {
-            result.destroy = result.proc = noop;
-        };
+class Destroyable {
+    constructor(proc, container, onEmpty) {
+        const result = this;
+        result.proc = proc;
+        if (container) {
+            result.destroy = () => {
+                result.destroy = result.proc = noop;
+                const index = container.indexOf(result);
+                if (index !== -1) {
+                    container.splice(index, 1);
+                }
+                !container.length && onEmpty && onEmpty();
+            };
+            container.push(result);
+        } else {
+            result.destroy = () => {
+                result.destroy = result.proc = noop;
+            };
+        }
     }
 
-    return result;
-}
-
-function destroyAll(container) {
-    // deterministic and robust algorithm to destroy handles:
-    //   * deterministic even when handle destructors insert handles (though the new handles will not be destroyed)
-    //   * robust even when handle destructors cause other handles to be destroyed
-    if (Array.isArray(container)) {
-        container.slice().forEach(h => h.destroy());
-    }// else container was likely falsy and never used
+    static destroyAll(container) {
+        // deterministic and robust algorithm to destroy handles:
+        //   * deterministic even when handle destructors insert handles (though the new handles will not be destroyed)
+        //   * robust even when handle destructors cause other handles to be destroyed
+        if (Array.isArray(container)) {
+            container.slice().forEach(h => h.destroy());
+        }// else container was likely falsy and never used
+    }
 }
 
 const STAR = Symbol('bd-star');
@@ -127,11 +128,11 @@ const pWatchableHandles = Symbol('bd-pWatchableHandles');
 const pWatchableSetup = Symbol('bd-pWatchableSetup');
 
 class WatchableRef {
-    constructor(referenceObject, referenceProp, formatter) {
-        if (typeof referenceProp === 'function') {
-            // no referenceProp,...star watcher
-            formatter = referenceProp;
-            referenceProp = STAR;
+    constructor(referenceObject, prop, formatter) {
+        if (typeof prop === 'function') {
+            // no prop,...star watcher
+            formatter = prop;
+            prop = STAR;
         }
 
         Object.defineProperty(this, 'value', {
@@ -139,22 +140,22 @@ class WatchableRef {
             // eslint-disable-next-line func-names
             get: ((function () {
                 if (formatter) {
-                    if (referenceProp === STAR) {
+                    if (prop === STAR) {
                         return () => formatter(referenceObject);
                     } else {
-                        return () => formatter(referenceObject[referenceProp]);
+                        return () => formatter(referenceObject[prop]);
                     }
-                } else if (referenceProp === STAR) {
+                } else if (prop === STAR) {
                     return () => referenceObject;
                 } else {
-                    return () => referenceObject[referenceProp];
+                    return () => referenceObject[prop];
                 }
             })())
         });
 
-        // if (referenceObject[OWNER] && referenceProp === STAR), then we cValue===newValue===referenceObject...
+        // if (referenceObject[OWNER] && prop === STAR), then we cValue===newValue===referenceObject...
         // therefore can't detect internal mutations to referenceObject, so don't try
-        const cannotDetectMutations = referenceProp === STAR && referenceObject[OWNER];
+        const cannotDetectMutations = prop === STAR && referenceObject[OWNER];
 
         this[pWatchableWatchers] = [];
 
@@ -165,15 +166,17 @@ class WatchableRef {
                 newValue = formatter(newValue);
             }
             if (cannotDetectMutations || oldValue === UNKNOWN_OLD_VALUE || !eql(cValue, newValue)) {
-                this[pWatchableWatchers].slice().forEach(destroyable => destroyable.proc((cValue = newValue), oldValue, target, referenceProp));
+                this[pWatchableWatchers].slice().forEach(
+                    destroyable => destroyable.proc((cValue = newValue), oldValue, target, referenceProp)
+                );
             }
         };
 
         this[pWatchableSetup] = () => {
             cValue = this.value;
             if (referenceObject[OWNER]) {
-                this[pWatchableHandles] = [watch(referenceObject, referenceProp, (newValue, oldValue, receiver, _prop) => {
-                    if (referenceProp === STAR) {
+                this[pWatchableHandles] = [watch(referenceObject, prop, (newValue, oldValue, receiver, _prop) => {
+                    if (prop === STAR) {
                         callback(referenceObject, UNKNOWN_OLD_VALUE, referenceObject, _prop);
                     } else {
                         callback(newValue, oldValue, referenceObject, _prop);
@@ -181,20 +184,21 @@ class WatchableRef {
                 })];
             } else if (referenceObject.watch) {
                 this[pWatchableHandles] = [
-                    referenceObject.watch(referenceProp, (newValue, oldValue, target) => {
-                        callback(newValue, oldValue, target, referenceProp);
+                    referenceObject.watch(prop, (newValue, oldValue, target) => {
+                        callback(newValue, oldValue, target, prop);
                         if (this[pWatchableHandles].length === 2) {
                             this[pWatchableHandles].pop().destroy();
                         }
                         if (newValue && newValue[OWNER]) {
                             // value is a watchable
+                            // eslint-disable-next-line no-shadow
                             this[pWatchableHandles].push(watch(newValue, (newValue, oldValue, receiver, referenceProp) => {
                                 callback(receiver, UNKNOWN_OLD_VALUE, referenceObject, referenceProp);
                             }));
                         }
                     })
                 ];
-                const value = referenceObject[referenceProp];
+                const value = referenceObject[prop];
                 if (value && value[OWNER]) {
                     // value is a watchable
                     this[pWatchableHandles].push(watch(value, (newValue, oldValue, receiver, referenceProp) => {
@@ -209,13 +213,13 @@ class WatchableRef {
     }
 
     destroy() {
-        destroyAll(this[pWatchableWatchers]);
+        Destroyable.destroyAll(this[pWatchableWatchers]);
     }
 
     watch(watcher) {
         this[pWatchableHandles] || this[pWatchableSetup]();
-        return destroyable(watcher, this[pWatchableWatchers], () => {
-            destroyAll(this[pWatchableHandles]);
+        return new Destroyable(watcher, this[pWatchableWatchers], () => {
+            Destroyable.destroyAll(this[pWatchableHandles]);
             delete this[pWatchableHandles];
         });
     }
@@ -251,11 +255,14 @@ function watch(watchable, name, watcher) {
         watcherCatalog.set(watchable, (variables = {}));
     }
 
-    const insWatcher = (name, watcher) => destroyable(watcher, variables[name] || (variables[name] = []));
+    // eslint-disable-next-line no-shadow
+    const insWatcher = (name, watcher) => new Destroyable(watcher, variables[name] || (variables[name] = []));
     if (!watcher) {
         const hash = name;
+        // eslint-disable-next-line no-shadow
         return Reflect.ownKeys(hash).map(name => insWatcher(name, hash[name]));
     } else if (Array.isArray(name)) {
+        // eslint-disable-next-line no-shadow
         return name.map(name => insWatcher(name, watcher));
     } else {
         return insWatcher(name, watcher);
@@ -275,7 +282,9 @@ function applyWatchers(newValue, oldValue, receiver, name) {
             let watchers = catalog[prop];
             watchers && watchers.slice().forEach(destroyable => destroyable.proc(receiver[prop], oldValue, receiver, name));
             if (!holdStarNotifications) {
-                (watchers = catalog[STAR]) && watchers.slice().forEach(destroyable => destroyable.proc(receiver, oldValue, receiver, name));
+                (watchers = catalog[STAR]) && watchers.slice().forEach(
+                    destroyable => destroyable.proc(receiver, oldValue, receiver, name)
+                );
             }
         }
     }
@@ -318,7 +327,7 @@ function set(target, prop, value, receiver) {
     }
 }
 
-const watcher = {
+const objectProxyHandler = {
     set
 };
 
@@ -331,7 +340,7 @@ const noop$1 = () => {
     // do nothing
 };
 
-const arrayWatcher = {
+const arrayProxyHandler = {
     set(target, prop, value, receiver) {
         if (prop === 'length') {
             const result = Reflect.set(target, prop, value, receiver);
@@ -343,7 +352,6 @@ const arrayWatcher = {
         }
     }
 };
-
 
 function getAdvice(owner, method) {
     const advice = owner[BEFORE_ADVICE] && owner[BEFORE_ADVICE][method];
@@ -594,7 +602,7 @@ function silentSet(watchable, prop, value, enumerable, configurable) {
 function createWatchable(src, owner, prop) {
     const keys = Reflect.ownKeys(src);
     const isArray = Array.isArray(src);
-    const result = isArray ? new Proxy(new WatchableArray(), arrayWatcher) : new Proxy({}, watcher);
+    const result = isArray ? new Proxy(new WatchableArray(), arrayProxyHandler) : new Proxy({}, objectProxyHandler);
     if (isArray) {
         keys.forEach(k => k !== 'length' && (result[k] = src[k]));
         Object.defineProperty(result, OLD_LENGTH, {writable: true, value: result.length});
@@ -805,7 +813,7 @@ function watchHub(superClass) {
             if (!variables) {
                 watcherCatalog.set(this, (variables = {}));
             }
-            const result = destroyable(watcher, variables[name] || (variables[name] = []));
+            const result = new Destroyable(watcher, variables[name] || (variables[name] = []));
             this.own && this.own(result);
             return result;
         }
@@ -1416,7 +1424,7 @@ function eventHub(superClass) {
                 if (!events) {
                     listenerCatalog.set(this, (events = {}));
                 }
-                const result = destroyable(handler, events[eventName] || (events[eventName] = []));
+                const result = new Destroyable(handler, events[eventName] || (events[eventName] = []));
                 this.own && this.own(result);
                 return result;
             }
@@ -1603,7 +1611,7 @@ class Component extends eventHub(WatchHub) {
             this.unrender();
             const handles = ownedHandlesCatalog.get(this);
             if (handles) {
-                destroyAll(handles);
+                Destroyable.destroyAll(handles);
                 ownedHandlesCatalog.delete(this);
             }
             this.destroyWatch();
@@ -1690,7 +1698,7 @@ class Component extends eventHub(WatchHub) {
                 domNodeToComponent.delete(root);
                 root.parentNode && root.parentNode.removeChild(root);
             }
-            destroyAll(this.bdDom.handles);
+            Destroyable.destroyAll(this.bdDom.handles);
             delete this.bdDom;
             delete this._dom;
             delete this._hiddenDisplayStyle;
@@ -2233,7 +2241,9 @@ class Component extends eventHub(WatchHub) {
                 if (children) {
                     const renderedChildren = Component.renderElements(owner, children);
                     if (Array.isArray(renderedChildren)) {
-                        renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType));
+                        renderedChildren.forEach(
+                            (child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType)
+                        );
                     } else {
                         addChildToDomNode(owner, domNode, renderedChildren, children.isComponentType);
                     }
@@ -2946,7 +2956,7 @@ class Collection extends Component {
                     destroy() {
                         // multiple calls imply no-op
                         setupHandle.destroy = () => 0;
-                        destroyAll(handles);
+                        Destroyable.destroyAll(handles);
                     }
                 };
                 this.own(setupHandle);
@@ -3103,6 +3113,6 @@ CollectionChild.withWatchables = (...args) => {
 
 setGlobal(window);
 
-const version = "3.1.0";
+const version = '3.1.0';
 
-export { Collection, CollectionChild, Component, Element, EventHub, OWNER, OWNER_NULL, PROP, STAR, UNKNOWN_OLD_VALUE, WatchHub, WatchableRef, adviseGlobal, animate, biBind, bind, connect, create, destroyAll, destroyDomChildren, destroyDomNode, destroyable, div, element as e, element, eql, eqlComparators, eventHub, focusManager, fromWatchable, getAttr, getAttributeValueFromEvent, getComputedStyle, getMaxZIndex, getPosit, getPostProcessingFunction, getStyle, getStyles, getWatchableRef, global, hide, insPostProcessingFunction, insert, isWatchable, render, replacePostProcessingFunction, setAttr, setGlobal, setPosit, setStyle, show, silentSet, stopEvent, svg, toWatchable, version, viewportWatcher, watch, watchHub, withWatchables };
+export { Collection, CollectionChild, Component, Destroyable, Element, EventHub, OWNER, OWNER_NULL, PROP, STAR, UNKNOWN_OLD_VALUE, WatchHub, WatchableRef, adviseGlobal, animate, biBind, bind, connect, create, destroyDomChildren, destroyDomNode, div, element as e, element, eql, eqlComparators, eventHub, focusManager, fromWatchable, getAttr, getAttributeValueFromEvent, getComputedStyle, getMaxZIndex, getPosit, getPostProcessingFunction, getStyle, getStyles, getWatchableRef, global, hide, insPostProcessingFunction, insert, isWatchable, render, replacePostProcessingFunction, setAttr, setGlobal, setPosit, setStyle, show, silentSet, stopEvent, svg, toWatchable, version, viewportWatcher, watch, watchHub, withWatchables };
