@@ -4,7 +4,7 @@ import {getPostProcessingFunction} from './postProcessingCatalog.js';
 import {Element} from './element.js';
 import {eventHub} from './eventHub.js';
 import {WatchHub, withWatchables} from './watchUtils.js';
-import {destroyAll} from './destroyable.js';
+import {Destroyable} from './destroyable.js';
 
 let document = 0;
 adviseGlobal(window => {
@@ -163,7 +163,7 @@ export class Component extends eventHub(WatchHub) {
             this.unrender();
             const handles = ownedHandlesCatalog.get(this);
             if (handles) {
-                destroyAll(handles);
+                Destroyable.destroyAll(handles);
                 ownedHandlesCatalog.delete(this);
             }
             this.destroyWatch();
@@ -250,7 +250,7 @@ export class Component extends eventHub(WatchHub) {
                 domNodeToComponent.delete(root);
                 root.parentNode && root.parentNode.removeChild(root);
             }
-            destroyAll(this.bdDom.handles);
+            Destroyable.destroyAll(this.bdDom.handles);
             delete this.bdDom;
             delete this._dom;
             delete this._hiddenDisplayStyle;
@@ -793,7 +793,9 @@ export class Component extends eventHub(WatchHub) {
                 if (children) {
                     const renderedChildren = Component.renderElements(owner, children);
                     if (Array.isArray(renderedChildren)) {
-                        renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType));
+                        renderedChildren.forEach(
+                            (child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType)
+                        );
                     } else {
                         addChildToDomNode(owner, domNode, renderedChildren, children.isComponentType);
                     }

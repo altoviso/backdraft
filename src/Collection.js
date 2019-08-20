@@ -1,5 +1,5 @@
 import {Component} from './Component.js';
-import {destroyAll} from './destroyable.js';
+import {Destroyable} from './destroyable.js';
 import {UNKNOWN_OLD_VALUE, toWatchable, isWatchable, withWatchables} from './watchUtils.js';
 
 function applyLengthWatchers(owner, newValue, oldValue) {
@@ -191,7 +191,7 @@ export class Collection extends Component {
                     destroy() {
                         // multiple calls imply no-op
                         setupHandle.destroy = () => 0;
-                        destroyAll(handles);
+                        Destroyable.destroyAll(handles);
                     }
                 };
                 this.own(setupHandle);

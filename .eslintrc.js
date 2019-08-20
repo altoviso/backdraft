@@ -14,7 +14,9 @@ module.exports = {
         'backdraft'
     ],
 
-    rules: {},
+    rules: {
+        'no-shadow': ["warn", { "allow": ["e"] }]
+    },
 
     overrides: [
         {

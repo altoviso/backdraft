@@ -1,4 +1,4 @@
-import {destroyable} from './destroyable.js';
+import {Destroyable} from './destroyable.js';
 import {STAR} from './symbols.js';
 
 const listenerCatalog = new WeakMap();
@@ -57,7 +57,7 @@ function eventHub(superClass) {
                 if (!events) {
                     listenerCatalog.set(this, (events = {}));
                 }
-                const result = destroyable(handler, events[eventName] || (events[eventName] = []));
+                const result = new Destroyable(handler, events[eventName] || (events[eventName] = []));
                 this.own && this.own(result);
                 return result;
             }
