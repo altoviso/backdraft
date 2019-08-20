@@ -32,7 +32,6 @@
 
     if (isNode) {
         tests.map(item => smoke.defBrowserTestRef(item[0]));
-        config.capabilities = isNode ? require('./test/capabilities') : [];
     } else {
         // browser
         config.load = config.load.concat(tests.map(item => item[1]));
