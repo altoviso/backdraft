@@ -2693,7 +2693,7 @@
 
         connect(document.body, 'focusin', e => {
             const node = e.target;
-            if (!node || node.parentNode || node === focusedNode) {
+            if (!node || !node.parentNode || node === focusedNode) {
                 return;
             }
 
@@ -3119,7 +3119,7 @@
 
     setGlobal(window);
 
-    const version = '3.1.0';
+    const version = '3.1.2';
 
     exports.Collection = Collection;
     exports.CollectionChild = CollectionChild;

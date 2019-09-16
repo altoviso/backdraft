@@ -2687,7 +2687,7 @@ adviseGlobal(window => {
 
     connect(document.body, 'focusin', e => {
         const node = e.target;
-        if (!node || node.parentNode || node === focusedNode) {
+        if (!node || !node.parentNode || node === focusedNode) {
             return;
         }
 
@@ -3113,6 +3113,6 @@ CollectionChild.withWatchables = (...args) => {
 
 setGlobal(window);
 
-const version = '3.1.0';
+const version = '3.1.2';
 
 export { Collection, CollectionChild, Component, Destroyable, Element, EventHub, OWNER, OWNER_NULL, PROP, STAR, UNKNOWN_OLD_VALUE, WatchHub, WatchableRef, adviseGlobal, animate, biBind, bind, connect, create, destroyDomChildren, destroyDomNode, div, element as e, element, eql, eqlComparators, eventHub, focusManager, fromWatchable, getAttr, getAttributeValueFromEvent, getComputedStyle, getMaxZIndex, getPosit, getPostProcessingFunction, getStyle, getStyles, getWatchableRef, global, hide, insPostProcessingFunction, insert, isWatchable, render, replacePostProcessingFunction, setAttr, setGlobal, setPosit, setStyle, show, silentSet, stopEvent, svg, toWatchable, version, viewportWatcher, watch, watchHub, withWatchables };
