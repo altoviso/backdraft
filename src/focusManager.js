@@ -103,7 +103,7 @@ adviseGlobal(window => {
 
     connect(document.body, 'focusin', e => {
         const node = e.target;
-        if (!node || node.parentNode || node === focusedNode) {
+        if (!node || !node.parentNode || node === focusedNode) {
             return;
         }
 
