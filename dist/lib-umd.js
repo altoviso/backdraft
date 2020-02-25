@@ -2,7 +2,7 @@
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
     (global = global || self, factory(global.bd = {}));
-}(this, function (exports) { 'use strict';
+}(this, (function (exports) { 'use strict';
 
     let _global = 0;
     let watchers = [];
@@ -1068,7 +1068,6 @@
                 case 'z':
                     node.style.zIndex = posit.z === false ? '' : posit.z;
                     break;
-                default:
                 // ignore...this allows clients to stuff other properties into posit for other reasons
             }
         });
@@ -1346,7 +1345,7 @@
         }
     };
 
-    'a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr'.split('.').forEach(element.addElementType);
+    'a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.h2.h3.h4.h5.h6.h7.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr'.split('.').forEach(element.addElementType);
 
     function div(props, ...children) {
         // eslint-disable-next-line no-console
@@ -3119,7 +3118,7 @@
 
     setGlobal(window);
 
-    const version = '3.1.2';
+    const version = '3.2.0';
 
     exports.Collection = Collection;
     exports.CollectionChild = CollectionChild;
@@ -3183,4 +3182,4 @@
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
-}));
+})));

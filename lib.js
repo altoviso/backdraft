@@ -17,4 +17,4 @@ export * from './src/viewportWatcher.js';
 export * from './src/Component.js';
 export * from './src/Collection.js';
 
-export const version = '3.1.2';
+export const version = '3.2.0';
