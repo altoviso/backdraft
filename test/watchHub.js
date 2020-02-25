@@ -1,11 +1,11 @@
+import {smoke} from '../node_modules/bd-smoke/smoke.js';
 import {watchHub, eqlComparators, STAR, toWatchable, Component} from '../lib.js';
-
-const smoke = typeof window !== 'undefined' ? window.smoke : require('bd-smoke');
 
 const assert = smoke.assert;
 
 smoke.defTest({
     id: 'watchHub',
+    order: 2,
     tests: [
         ['usage', function () {
             // Typically, watchHub is used to provide watchers on member data of some other class.

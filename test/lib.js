@@ -1,6 +1,5 @@
+import {smoke} from '../node_modules/bd-smoke/smoke.js';
 import {Component, e} from '../lib.js';
-
-const smoke = window ? window.smoke : require('bd-smoke');
 
 const assert = smoke.assert;
 

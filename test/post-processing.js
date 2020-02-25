@@ -1,12 +1,12 @@
+import {smoke} from '../node_modules/bd-smoke/smoke.js';
 import {e, render, Component, destroyDomChildren, withWatchables, watchHub, getAttr} from '../lib.js';
-
-const smoke = typeof window !== 'undefined' ? window.smoke : require('bd-smoke');
 
 const assert = smoke.assert;
 const root = document.getElementById('bd-smoke-root');
 
 smoke.defBrowserTest({
     id: 'post-processing',
+    order: 5,
     tests: [
         ['advise', function () {
             class Component1 extends Component {

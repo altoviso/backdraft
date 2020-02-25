@@ -1,6 +1,5 @@
+import {smoke} from '../node_modules/bd-smoke/smoke.js';
 import {e, Component, render} from '../lib.js';
-
-const smoke = typeof window !== 'undefined' ? window.smoke : require('bd-smoke');
 
 const assert = smoke.assert;
 const root = document.getElementById('bd-smoke-root');
@@ -38,6 +37,7 @@ class Parent extends Component_ {
 
 smoke.defBrowserTest({
     id: 'Component',
+    order: 4,
     tests: [
         ['constructor-default', function () {
             let c = new Component({});

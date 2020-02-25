@@ -54,6 +54,13 @@ The Backdraft library makes no judgement about how you condition your code for p
 
 The GitHub repo [altoviso/backdraft-examples](https://github.com/altoviso/backdraft-tutorial) includes several examples including all [tutorial](http://backdraftjs.org/tutorial.html) code, the [todomvc example](https://github.com/tastejs/todomvc), and the [js-framework-benchmark example](https://github.com/krausest/js-framework-benchmark).
 
+## Tests
+
+To run the tests, start a http server that can serve the project directory and navigate to
+
+http://<your-host-name>/bd-core/node_modules/bd-smoke/smoke-runner.html
+
+
 ## Support
 
 If you have a usage question, please open an issue on [stackoverflow](https://stackoverflow.com/questions/ask/advice?); please tag the question with "backdraft".

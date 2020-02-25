@@ -1,11 +1,11 @@
+import {smoke} from '../node_modules/bd-smoke/smoke.js';
 import {e, Element, Component} from '../lib.js';
-
-const smoke = typeof window !== 'undefined' ? window.smoke : require('bd-smoke');
 
 const assert = smoke.assert;
 
 smoke.defTest({
     id: 'Element',
+    order: 1,
     tests: [
         ['constructor', function () {
             // here's a typical Element with all constructor arguments utilized

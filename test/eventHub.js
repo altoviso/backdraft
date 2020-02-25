@@ -1,11 +1,11 @@
+import {smoke} from '../node_modules/bd-smoke/smoke.js';
 import {eventHub} from '../lib.js';
-
-const smoke = typeof window !== 'undefined' ? window.smoke : require('bd-smoke');
 
 const assert = smoke.assert;
 
 smoke.defBrowserTest({
     id: 'eventHub',
+    order: 3,
     tests: [
         ['usage', function () {
             // eventHub is used to signal events. Notice that eventHub

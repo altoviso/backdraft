@@ -1,3 +1,4 @@
+import {smoke} from '../node_modules/bd-smoke/smoke.js';
 import {watch, toWatchable, fromWatchable, UNKNOWN_OLD_VALUE} from '../lib.js';
 
 const path = [];
@@ -33,9 +34,6 @@ function _deepEql(x, y, name) {
     return result;
 }
 
-
-const smoke = typeof window !== 'undefined' ? window.smoke : require('bd-smoke');
-
 const assert = smoke.assert;
 
 let data;
@@ -61,6 +59,7 @@ function logWatcher(watchId) {
 
 smoke.defTest({
     id: 'watchable',
+    order: 7,
     beforeEach() {
         // window.data so we can play with data in the debug console
         logResult = [];
