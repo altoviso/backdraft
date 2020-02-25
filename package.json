@@ -22,7 +22,7 @@
 	],
 	"scripts": {
 		"build": "./node_modules/.bin/rollup -c",
-		"test": "node node_modules/bd-smoke/smoke.js",
+		"test": "node node_modules/bd-smoke/smoke-runner-node.js",
 		"lint": "./node_modules/.bin/eslint src"
 	},
 	"author": "Rawld Gill",
@@ -41,10 +41,11 @@
 		"browser application library"
 	],
 	"devDependencies": {
-		"bd-smoke": "^1.2.2",
-		"eslint": "^6.2.0",
+		"bd-smoke": "^1.6.0",
+		"eslint": "^6.8.0",
 		"eslint-config-backdraft": "^1.0.1",
-		"eslint-plugin-import": "^2.18.2",
-		"rollup": "^1.19.4"
+		"eslint-plugin-import": "^2.20.1",
+		"rollup": "^1.31.1",
+		"selenium-webdriver": "^4.0.0-alpha.5"
 	}
 }
