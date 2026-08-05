@@ -970,6 +970,13 @@ export class Component extends eventHub(WatchHub) {
         return domNodeToComponent.get(closest(domNode, node => domNodeToComponent.get(node)));
     }
 
+    isDescendantOf(component) {
+        while (component.parent && component.parent !== this) {
+            component = component.parent;
+        }
+        return component.parent === this;
+    }
+
     static renderElements(owner, e) {
         if (Array.isArray(e)) {
             // eslint-disable-next-line no-shadow
