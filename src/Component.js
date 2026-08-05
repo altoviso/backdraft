@@ -288,6 +288,10 @@ export class Component extends eventHub(WatchHub) {
         pushHandles(this.bdDom.handles || (this.bdDom.handles = []), ...handles);
     }
 
+    ownWhileAttached(...handles) {
+        pushHandles(this.bdAttachedHandles || (this.bdAttachedHandles = []), ...handles);
+    }
+
     get parent() {
         return this.bdParent;
     }
@@ -306,6 +310,8 @@ export class Component extends eventHub(WatchHub) {
         if (this.bdMutate('attachedToDoc', 'bdAttachedToDoc', !!value)) {
             if (value && this.resize) {
                 this.resize();
+            } else {
+                this.bdAttachedHandles && destroyAll(this.bdAttachedHandles);
             }
             this.children && this.children.forEach(child => child.bdAttachToDoc(value));
             return true;
