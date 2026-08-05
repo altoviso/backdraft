@@ -1,6 +1,18 @@
 import { destroyAll } from './destroyable.js';
+import {
+    stringifyScalar,
+    getAttr,
+    setAttr,
+    getStyle,
+    getStyles,
+    setStyle,
+    setPosit,
+    getPosit,
+    create,
+    insert,
+    connect
+} from './dom.js';
 import {adviseGlobal} from './global.js';
-import {getAttr, setAttr, getStyle, getStyles, setStyle, setPosit, getPosit, create, insert, connect} from './dom.js';
 import {getPostProcessingFunction} from './postProcessingCatalog.js';
 import {Element} from './element.js';
 import {eventHub} from './eventHub.js';
@@ -34,7 +46,7 @@ function classValueToRegExp(v, args) {
 function calcDomClassName(component) {
     const staticClassName = component.staticClassName;
     const className = component.bdClassName;
-    return staticClassName && className ? (`${staticClassName} ${className}`) : (staticClassName || className);
+    return staticClassName && className ? (`${staticClassName} ${className}`) : (staticClassName || className || '');
 }
 
 function addChildToDomNode(parent, domNode, child, childIsComponent) {
