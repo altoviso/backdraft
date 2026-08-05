@@ -145,3 +145,16 @@ export class DestroyableInterval extends Destroyable {
 export function destroyable(proc, container, onEmpty) {
     return new Destroyable(proc, container, onEmpty);
 }
+
+export function destroyAll(container) {
+    // deterministic and robust algorithm to destroy handles:
+    //   * deterministic even when handle destructors insert handles (though the new handles will not be destroyed)
+    //   * robust even when handle destructors cause other handles to be destroyed
+    // container is emptied before destroying begins...so if destroying creates handles (probably a bug)
+    // then container will not be empty upon return
+    if (Array.isArray(container)) {
+        const toDestroy = container.slice();
+        container.splice(0);
+        toDestroy.forEach(h => h.destroy());
+    }// else container was likely falsy and never used
+}
