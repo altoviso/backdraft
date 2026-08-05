@@ -191,15 +191,16 @@ insPostProcessingFunction(
     'bdAdvise', true,
     (ppfOwner, ppfTarget, listeners) => {
         Reflect.ownKeys(listeners).forEach(eventType => {
+            let options;
             let listener = listeners[eventType];
+            if (Array.isArray(listener)) {
+                options = listener[1];
+                listener = listener[0];
+            }
             if (typeof listener !== 'function') {
                 listener = ppfOwner[listener].bind(ppfOwner);
             }
-            ppfOwner.ownWhileRendered(
-                ppfTarget instanceof Component ?
-                    ppfTarget.advise(eventType, listener) :
-                    connect(ppfTarget, eventType, listener)
-            );
+            ppfOwner.ownWhileRendered(ppfTarget instanceof Component ? ppfTarget.advise(eventType, listener) : connect(ppfTarget, eventType, listener, options));
         });
     }
 );
