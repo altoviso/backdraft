@@ -10,6 +10,7 @@ import {
     getPosit,
     create,
     insert,
+    removeNode,
     connect
 } from './dom.js';
 import {adviseGlobal} from './global.js';
@@ -501,9 +502,6 @@ export class Component extends eventHub(WatchHub) {
         const index = this.children ? this.children.indexOf(child) : -1;
         if (index !== -1) {
             const root = child.bdDom && child.bdDom.root;
-            const removeNode = node => {
-                node.parentNode && node.parentNode.removeChild(node);
-            };
             Array.isArray(root) ? root.forEach(removeNode) : removeNode(root);
             child.bdMutate('parent', 'bdParent', null);
             child.bdAttachToDoc(false);
