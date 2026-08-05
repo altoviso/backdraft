@@ -915,6 +915,7 @@ function isWatchable(target) {
 
 function withWatchables(superClass, ...args) {
     const publicPropNames = [];
+    const privatePropNames = [];
 
     function def(name) {
         let pname;
@@ -925,7 +926,7 @@ function withWatchables(superClass, ...args) {
             pname = `_${name}`;
         }
         publicPropNames.push(name);
-        // eslint-disable-next-line no-use-before-define
+        privatePropNames.push(pname);
         Object.defineProperty(prototype, name, {
             enumerable: true,
             get() {
@@ -938,9 +939,10 @@ function withWatchables(superClass, ...args) {
     }
 
     function init(owner, kwargs) {
-        publicPropNames.forEach(name => {
+        publicPropNames.forEach((name, i) => {
             if (kwargs.hasOwnProperty(name)) {
-                owner[name] = kwargs[name];
+                // avoid applying onMutateBefore/onMutate before the instance is fully initialized
+                owner[privatePropNames[i]] = kwargs[name];
             }
         });
     }
