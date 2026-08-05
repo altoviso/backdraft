@@ -1161,7 +1161,7 @@ function decodeRender(args) {
             // eslint-disable-next-line no-lonely-if
             if (Object.getPrototypeOf(arg2) === prototypeOfObject) {
                 // [4] or [6]
-                // WARNING: this signature requires kwargs to be a plain Javascript Object (which is should be!)
+                // WARNING: this signature requires kwargs to be a plain javascript Object
                 return { src: new Element(arg1, arg2), attachPoint: arg3, position: arg4 };
             } else {
                 // [5]
@@ -1189,7 +1189,7 @@ export function render(...args) {
     if (src instanceof Element) {
         if (src.isComponentType) {
             // eslint-disable-next-line new-cap
-            result = new src.type(src.ctorProps);
+            result = new src.type({ ...src.ctorProps, ...src.ppFuncs });
         } else {
             result = new Component({ elements: src });
         }
