@@ -21,7 +21,15 @@ insPostProcessingFunction(
 );
 
 insPostProcessingFunction(
-    'bdWatch', true,
+    'bdWatch',
+    (prop, value) => {
+        if (prop) {
+            // e.g., bdWatch_prop: handler
+            return { [prop]: value };
+        }
+        // e.g., bdWatch:{p1:handler, p2:handler, ...}
+        return value;
+    },
     (ppfOwner, ppfTarget, watchers) => {
         Reflect.ownKeys(watchers).forEach(eventType => {
             let watcher = watchers[eventType];
