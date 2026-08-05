@@ -296,12 +296,23 @@ export class Component extends eventHub(WatchHub) {
         return this.bdParent;
     }
 
-    bdAdopt(child) {
-        if (child.bdParent) {
-            throw new Error('unexpected');
+    bdAdopt(child, refIndex) {
+        const oldParent = child.bdParent;
+        if (oldParent === this) {
+            return;
         }
-        (this.children || (this.children = [])).push(child);
-
+        if (oldParent) {
+            const index = oldParent.children ? oldParent.children.indexOf(child) : -1;
+            if (index !== -1) {
+                oldParent.children.splice(index, 1);
+            }
+        }
+        const children = this.children || (this.children = []);
+        if (refIndex !== undefined) {
+            children.splice(refIndex, 0, child);
+        } else {
+            children.push(child);
+        }
         child.bdMutate('parent', 'bdParent', this);
         child.bdAttachToDoc(this.bdAttachedToDoc);
     }
