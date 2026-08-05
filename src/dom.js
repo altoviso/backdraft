@@ -264,6 +264,29 @@ function create(tag, props, refNode, position) {
     return result;
 }
 
+let scratch = 0;
+
+function createHtml(html) {
+    (scratch || (scratch = document.createElement('div'))).innerHTML = html;
+    const children = scratch.children;
+    const end = children.length;
+    let result;
+
+    // incredibly, IE9 won't let you just take and keep references to the nodes in children
+    // and will instead destroy those children when you set scratch.innerHTML to '';
+    // therefore, we must actually remove the nodes...
+    if (end === 1) {
+        result = scratch.removeChild(children[0]);
+    } else {
+        result = [];
+        for (let i = 0; i < end; i++) {
+            result.push(scratch.removeChild(children[0]));
+        }
+    }
+    scratch.innerHTML = '';
+    return result;
+}
+
 const DATA_BD_HIDE_SAVED_VALUE = 'data-bd-hide-saved-value';
 
 function hide(...nodes) {
@@ -375,6 +398,7 @@ export {
     setStyle,
     setPosit,
     create,
+    createHtml,
     insert,
     hide,
     show,
