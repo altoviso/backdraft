@@ -69,7 +69,7 @@ function setAttr(node, name, value) {
 }
 
 function getAttr(node, name) {
-    if (name in node && node instanceof HTMLElement) {
+    if (name in node.constructor.prototype) {
         return node[name];
     } else {
         return node.getAttribute(name);
