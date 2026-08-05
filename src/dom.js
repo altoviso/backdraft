@@ -24,6 +24,19 @@ adviseGlobal(global => {
     }
 });
 
+// dom node attribute values are generally strings; it's easy and natural to slip into the idea that "clearing"
+// an attribute value can be accomplished by setting it to false, null, or undefined. But then the programmer is
+// surprised when, e.g., the title of a dom node is "undefined". Properly employed, the follow function allows
+// components to be built that allow the easy and natural idea to "just work".
+//
+// note that the scalar zero (i.e., a Number with value===0) stringifyScalar's to '0'. So using "x = 0" to
+// intend "x = false" will _not_ get you what you want. We choose this because it seems irrational to say that
+// stringifyScalar(1) === '1', stringifyScalar(2) === '2', ..., but stringifyScalar(0) === ''
+function stringifyScalar(v) {
+    // '', false, null, undefined => ''
+    return v === 0 ? '0' : (v ? `${v}` : '');
+}
+
 function getAttributeValueFromEvent(e, attributeName, stopNode) {
     let node = e.target;
     while (node && node !== stopNode) {
@@ -340,6 +353,7 @@ function animate(node, className, onComplete) {
 }
 
 export {
+    stringifyScalar,
     getAttributeValueFromEvent,
     setAttr,
     getAttr,
