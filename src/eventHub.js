@@ -1,5 +1,5 @@
-import {Destroyable} from './Destroyable.js';
-import {STAR} from './symbols.js';
+import { destroyable } from './destroyable.js';
+import { STAR } from './symbols.js';
 
 const listenerCatalog = new WeakMap();
 
@@ -23,7 +23,7 @@ function eventHub(superClass) {
                     e.target = this;
                 } else if (!e.name) {
                     handlers = events[e];
-                    e = {type: e, name: e, target: this};
+                    e = { type: e, name: e, target: this };
                 } else {
                     // eslint-disable-next-line no-console
                     console.warn('event.name is deprecated; use event.type');
@@ -34,10 +34,10 @@ function eventHub(superClass) {
             }
 
             if (handlers) {
-                handlers.slice().forEach(theDestroyable => theDestroyable.proc(e));
+                handlers.slice().forEach(destroyable => destroyable.proc(e));
             }
             if ((handlers = events[STAR])) {
-                handlers.slice().forEach(theDestroyable => theDestroyable.proc(e));
+                handlers.slice().forEach(destroyable => destroyable.proc(e));
             }
         }
 
@@ -53,14 +53,62 @@ function eventHub(superClass) {
             } else if (Array.isArray(eventName)) {
                 return eventName.map(name => this.advise(name, handler));
             } else {
+                if (eventName === '_eventHubAdviseNoEvents') {
+                    throw new Error('cannot advise on reserved event name');
+                }
+                if (this._notifyingNoEvents) {
+                    throw new Error('cannot create advise in all listeners destroyed handler');
+                }
                 let events = listenerCatalog.get(this);
                 if (!events) {
                     listenerCatalog.set(this, (events = {}));
                 }
-                const result = new Destroyable(handler, events[eventName] || (events[eventName] = []));
+                let eventHandlerList = events[eventName];
+                if (!eventHandlerList) {
+                    eventHandlerList = events[eventName] = [];
+                    eventHandlerList.onEmpty = () => {
+                        delete events[eventName];
+                        if (Object.keys(events).length === 1 && events._eventHubAdviseNoEvents) {
+                            // the only listeners left are the "special" listeners waiting to be advised when all other
+                            // listeners have been destroyed
+                            try {
+                                this._notifyingNoEvents = true;
+                                const e = { type: 'all-listeners-destroyed', target: this };
+                                events._eventHubAdviseNoEvents.slice().forEach(destroyable => destroyable.proc(e));
+                            } catch (e) {
+                                // squelch
+                                // eslint-disable-next-line no-console
+                                console.error(e);
+                            }
+                            this._notifyingNoEvents = false;
+                        }
+                    };
+                }
+                const result = destroyable(handler, eventHandlerList);
                 this.own && this.own(result);
                 return result;
             }
+        }
+
+        adviseAllListenersDestroyed(handler) {
+            if (this._notifyingNoEvents) {
+                throw new Error('cannot create all listeners destroyed advice in all listeners destroyed handler');
+            }
+            let events = listenerCatalog.get(this);
+            if (!events) {
+                listenerCatalog.set(this, (events = {}));
+            }
+            const result = destroyable(handler, events._eventHubAdviseNoEvents || (events._eventHubAdviseNoEvents = []));
+            this.own && this.own(result);
+            return result;
+        }
+
+        adviseOnce(eventName, handler) {
+            const h = this.advise(eventName, () => {
+                h.destroy();
+                handler();
+            });
+            return h;
         }
 
         destroyAdvise(eventName) {
@@ -75,12 +123,18 @@ function eventHub(superClass) {
                     delete events[eventName];
                 }
             } else {
-                // eslint-disable-next-line no-shadow
                 Reflect.ownKeys(events).forEach(eventName => {
-                    events[eventName].forEach(h => h.destroy());
+                    if (eventName !== '_eventHubAdviseNoEvents') {
+                        events[eventName].forEach(h => h.destroy());
+                    }
                 });
                 listenerCatalog.delete(this);
             }
+        }
+
+        get hasListeners() {
+            const events = listenerCatalog.get(this);
+            return Boolean(events && Object.keys(events).find(key => key !== '_eventHubAdviseNoEvents' && events[key].length));
         }
     };
 }
