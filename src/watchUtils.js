@@ -8,13 +8,13 @@ function eql(refValue, otherValue) {
         return otherValue === refValue;
     }
     if (refValue instanceof Object) {
-        const comparator = eqlComparators.get(refValue.constructor);
+        const comparator = refValue.constructor.eql || eqlComparators.get(refValue.constructor);
         if (comparator) {
             return comparator(refValue, otherValue);
         }
     }
     if (otherValue instanceof Object) {
-        const comparator = eqlComparators.get(otherValue.constructor);
+        const comparator = refValue.constructor.eql || eqlComparators.get(otherValue.constructor);
         if (comparator) {
             return comparator(otherValue, refValue);
         }
