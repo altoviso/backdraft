@@ -638,6 +638,37 @@ export class Component extends eventHub(WatchHub) {
         return this;
     }
 
+    twiddleClassName(set, onValue, offValue) {
+        // if set then ensure className contains onValue (if any); otherwise ensure className contains offValue (if any)
+        // by example
+        // assume className starts out as ''
+        // twiddleClassName(true, "turn-on", "turn-off") => className contains "turn-on"
+        // twiddleClassName(true, "turn-on", "turn-off") => className still contains one "turn-on"
+        // twiddleClassName(false, "turn-on", "turn-off") => className contains "turn-off" and does not contain "turn-on"
+        // twiddleClassName(false, "turn-on", "turn-off") => className still contains just one "turn-off" and does not contain "turn-on"
+        //
+        // sometimes there is no "on" value...
+        // twiddleClassName(true, 0, "turn-off") => no mutation to className
+        // twiddleClassName(false, 0, "turn-off") => className contains "turn-off"
+        // twiddleClassName(false, 0, "turn-off") => className still contains just one "turn-off"
+
+        if (set) {
+            if (onValue && !this.containsClassName(onValue)) {
+                this.addClassName(onValue);
+            }
+            if (offValue && this.containsClassName(offValue)) {
+                this.removeClassName(offValue);
+            }
+        } else {
+            if (onValue && this.containsClassName(onValue)) {
+                this.removeClassName(onValue);
+            }
+            if (offValue && !this.containsClassName(offValue)) {
+                this.addClassName(offValue);
+            }
+        }
+    }
+
     get classList() {
         if (!this._classList) {
             const self = this;
