@@ -221,7 +221,7 @@ function insert(node, refNode, position) {
                 break;
             case 'replace':
                 refNode.parentNode.replaceChild(node, refNode);
-                return (refNode);
+                return refNode;
             case 'only': {
                 const result = [];
                 while (refNode.firstChild) {
@@ -377,8 +377,9 @@ export {
     show,
     getPosit,
     getMaxZIndex,
-    destroyDomChildren,
-    destroyDomNode,
+    removeChildren,
+    removeNode,
+    removeNodes,
     connect,
     animate,
     stopEvent
