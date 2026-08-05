@@ -214,7 +214,7 @@ export class Component extends eventHub(WatchHub) {
                         this.bdDom.tabIndexNode.tabIndex = this.bdTabIndex;
                     }
                 } else if (this.bdTabIndex !== undefined) {
-                    (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex = this.bdTabIndex;
+                    this.bdDom.root.tabIndex = this.bdTabIndex;
                 }
                 if (this.bdTitle !== undefined) {
                     (this.bdDom.titleNode || this.bdDom.root).title = this.bdTitle;
