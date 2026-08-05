@@ -318,17 +318,17 @@ export class Component extends eventHub(WatchHub) {
     }
 
     bdAttachToDoc(value) {
-        if (this.bdMutate('attachedToDoc', 'bdAttachedToDoc', !!value)) {
-            if (value && this.resize) {
-                this.resize();
+        value = !!value;
+        if (value !== this.attachedToDoc) {
+            this.children && this.children.forEach(child => child.bdAttachToDoc(value));
+            if (value) {
+                this.resize && this.resize();
             } else {
                 this.bdAttachedHandles && destroyAll(this.bdAttachedHandles);
             }
-            this.children && this.children.forEach(child => child.bdAttachToDoc(value));
-            return true;
-        } else {
-            return false;
-        }
+            return this.bdMutate('attachedToDoc', 'bdAttachedToDoc', value);
+        }// else no change, therefore, no op
+        return false;
     }
 
     get attachedToDoc() {
