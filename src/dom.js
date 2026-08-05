@@ -328,15 +328,21 @@ function getMaxZIndex(parent) {
     return max;
 }
 
-function destroyDomChildren(node) {
+function removeChildren(node) {
     let childNode;
+    const result = [];
     while ((childNode = node.lastChild)) {
-        node.removeChild(childNode);
+        result.push(node.removeChild(childNode));
     }
+    return result.reverse();
 }
 
-function destroyDomNode(node) {
-    node && node.parentNode && node.parentNode.removeChild(node);
+function removeNode(node) {
+    return node && node.parentNode && node.parentNode.removeChild(node);
+}
+
+function removeNodes(nodes) {
+    return nodes ? nodes.map(removeNode) : [];
 }
 
 function connect(target, type, listener, options) {
