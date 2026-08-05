@@ -1,5 +1,5 @@
-import {Destroyable} from './Destroyable.js';
-import {STAR} from './symbols.js';
+import { destroyable, destroyAll } from './destroyable.js';
+import { STAR } from './symbols.js';
 
 const eqlComparators = new Map();
 
@@ -101,7 +101,6 @@ class WatchableRef {
                         }
                         if (newValue && newValue[OWNER]) {
                             // value is a watchable
-                            // eslint-disable-next-line no-shadow
                             this[pWatchableHandles].push(watch(newValue, (newValue, oldValue, receiver, referenceProp) => {
                                 callback(receiver, UNKNOWN_OLD_VALUE, referenceObject, referenceProp);
                             }));
@@ -145,13 +144,13 @@ class WatchableRef {
     }
 
     destroy() {
-        Destroyable.destroyAll(this[pWatchableWatchers]);
+        destroyAll(this[pWatchableWatchers]);
     }
 
     watch(watcher) {
         this[pWatchableHandles] || this[pWatchableSetup]();
-        return new Destroyable(watcher, this[pWatchableWatchers], () => {
-            Destroyable.destroyAll(this[pWatchableHandles]);
+        return destroyable(watcher, this[pWatchableWatchers], () => {
+            destroyAll(this[pWatchableHandles]);
             delete this[pWatchableHandles];
         });
     }
@@ -187,14 +186,11 @@ function watch(watchable, name, watcher) {
         watcherCatalog.set(watchable, (variables = {}));
     }
 
-    // eslint-disable-next-line no-shadow
-    const insWatcher = (name, watcher) => new Destroyable(watcher, variables[name] || (variables[name] = []));
+    const insWatcher = (name, watcher) => destroyable(watcher, variables[name] || (variables[name] = []));
     if (!watcher) {
         const hash = name;
-        // eslint-disable-next-line no-shadow
         return Reflect.ownKeys(hash).map(name => insWatcher(name, hash[name]));
     } else if (Array.isArray(name)) {
-        // eslint-disable-next-line no-shadow
         return name.map(name => insWatcher(name, watcher));
     } else {
         return insWatcher(name, watcher);
@@ -214,9 +210,7 @@ function applyWatchers(newValue, oldValue, receiver, name) {
             let watchers = catalog[prop];
             watchers && watchers.slice().forEach(destroyable => destroyable.proc(receiver[prop], oldValue, receiver, name));
             if (!holdStarNotifications) {
-                (watchers = catalog[STAR]) && watchers.slice().forEach(
-                    destroyable => destroyable.proc(receiver, oldValue, receiver, name)
-                );
+                (watchers = catalog[STAR]) && watchers.slice().forEach(destroyable => destroyable.proc(receiver, oldValue, receiver, name));
             }
         }
     }
@@ -302,7 +296,7 @@ class WatchableArray extends Array {
     before(method, proc) {
         let beforeAdvice = this[BEFORE_ADVICE];
         if (!beforeAdvice) {
-            Object.defineProperty(this, BEFORE_ADVICE, {value: {}});
+            Object.defineProperty(this, BEFORE_ADVICE, { value: {} });
             beforeAdvice = this[BEFORE_ADVICE];
         }
         const stack = beforeAdvice[method] || (beforeAdvice[method] = []);
@@ -537,15 +531,15 @@ function createWatchable(src, owner, prop) {
     const result = isArray ? new Proxy(new WatchableArray(), arrayProxyHandler) : new Proxy({}, objectProxyHandler);
     if (isArray) {
         keys.forEach(k => k !== 'length' && (result[k] = src[k]));
-        Object.defineProperty(result, OLD_LENGTH, {writable: true, value: result.length});
+        Object.defineProperty(result, OLD_LENGTH, { writable: true, value: result.length });
     } else {
         keys.forEach(k => (result[k] = src[k]));
     }
 
     const silentHold = _silentSet;
     _silentSet = true;
-    Object.defineProperty(result, OWNER, {writable: true, value: owner});
-    prop !== undefined && Object.defineProperty(result, PROP, {writable: true, value: prop});
+    Object.defineProperty(result, OWNER, { writable: true, value: owner });
+    prop !== undefined && Object.defineProperty(result, PROP, { writable: true, value: prop });
     _silentSet = silentHold;
     return result;
 }
@@ -632,8 +626,9 @@ function mutate(owner, name, privateName, newValue) {
             owner[privateName] = newValue;
         } else {
             // not enumerable or configurable
-            Object.defineProperty(owner, privateName, {writable: true, value: newValue});
+            Object.defineProperty(owner, privateName, { writable: true, value: newValue });
         }
+
         onMutateName && owner[onMutateName] && owner[onMutateName](newValue, oldValue);
 
         return [name, newValue, oldValue, onMutateAfterName];
@@ -805,7 +800,7 @@ function watchHub(superClass) {
             // sig 1
             const name = args[0];
             const watcher = getWatcher(this, args[1]);
-            const result = new Destroyable(watcher, getWatcherList(this, name));
+            const result = destroyable(watcher, getWatcherList(this, name));
             this.own && this.own(result);
             if (initialize) {
                 result.proc(this[name], undefined, this, name);
