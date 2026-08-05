@@ -253,10 +253,13 @@ function insert(node, refNode, position) {
     return 0;
 }
 
-function create(tag, props) {
+function create(tag, props, refNode, position) {
     const result = Array.isArray(tag) ? document.createElementNS(`${tag[0]}`, tag[1]) : document.createElement(tag);
     if (props) {
         Reflect.ownKeys(props).forEach(p => setAttr(result, p, props[p]));
+    }
+    if (refNode) {
+        create.replacedNodes = insert(result, refNode, position);
     }
     return result;
 }
