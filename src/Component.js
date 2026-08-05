@@ -339,88 +339,160 @@ export class Component extends eventHub(WatchHub) {
         if (!this.rendered) {
             throw new Error('parent component must be rendered before explicitly inserting a child');
         }
+
+        // we're going to ad a child, let's just make sure we have a children array from the start
+        const children = this.children || (this.children = []);
+
+        // decode, juggle; validate position as it makes the insert logic easier
         let { src, attachPoint, position } = decodeRender(args);
+        if (/before|after|replace|only|first|last/.test(attachPoint) || typeof attachPoint === 'number') {
+            position = attachPoint;
+            attachPoint = 0;
+        } else if (position === undefined) {
+            position = 'last';
+        } else if (!/before|after|replace|only|first|last/.test(position) && typeof position !== 'number') {
+            throw new Error('unexpected');
+        }
+        if (typeof position == 'number') {
+            if (position !== Math.floor(position) || position < 0 || children.length < position) {
+                // not an integer or not in [0..children.length]
+                throw new Error('unexpected');
+            }
+        }
+        // position is now guaranteed one of {before, after, first, last, replace, only} or an integer in [0..children.length]
+
+        // get the rendered child component instance
         let child;
         if (src instanceof Component) {
             child = src;
-            if (child.parent) {
-                child.parent.delChild(child, true);
-            }
             child.render();
-        } else { // child instanceof Element
+        } else {
+            // src instanceof Element
             if (!src.isComponentType) {
                 src = new Element(Component, { elements: src });
             }
             child = this.constructor.renderElements(this, src);
         }
 
-        if (/before|after|replace|only|first|last/.test(attachPoint) || typeof attachPoint === 'number') {
-            position = attachPoint;
-            attachPoint = 0;
+        const childIndex = child => children.indexOf(child);
+        const insChildDom = (child, refNode, position) => {
+            const childRoot = child.bdDom.root;
+            let result;
+            if (Array.isArray(childRoot)) {
+                const firstChildNode = childRoot[0];
+                result = insert(firstChildNode, refNode, position);
+                childRoot.slice(1).reduce((prevNode, node) => {
+                    insert(node, prevNode, 'after');
+                    return node;
+                }, firstChildNode);
+            } else {
+                result = insert(childRoot, refNode, position);
+            }
+            return result;
+        };
+
+        // child is telling the parent where it wants to go
+        // (this is more specific than bdChildrenAttachPoint or bdDom.root)
+        if (!attachPoint && child.bdParentAttachPoint) {
+            attachPoint = child.bdParentAttachPoint;
         }
 
-        if (attachPoint) {
-            if (attachPoint in this) {
-                // node reference
-                attachPoint = this[attachPoint];
-            } else if (typeof attachPoint === 'string') {
-                attachPoint = document.getElementById(attachPoint);
-                if (!attachPoint) {
-                    throw new Error('unexpected');
-                }
-            } else if (position !== undefined) {
-                // attachPoint must be a child Component
-                const index = this.children ? this.children.indexOf(attachPoint) : -1;
-                if (index !== -1) {
-                    // attachPoint is a child
-                    attachPoint = attachPoint.bdDom.root;
-                    if (Array.isArray(attachPoint)) {
-                        switch (position) {
-                            case 'replace':
-                            case 'only':
-                            case 'before':
-                                attachPoint = attachPoint[0];
-                                break;
-                            case 'after':
-                                attachPoint = attachPoint[attachPoint.length - 1];
-                                break;
-                            default:
-                                throw new Error('unexpected');
-                        }
+        if (attachPoint instanceof Component) {
+            // attachPoint must be a child already in this.children and position must be one of {before, after, replace}
+            const refIndex = childIndex(attachPoint);
+            if (refIndex === -1) {
+                throw new Error('unexpected');
+            }
+            let refNode = attachPoint.bdDom.root;
+            switch (position) {
+                case 'before':
+                case 'replace':
+                    if (Array.isArray(refNode)) {
+                        refNode = refNode[0];
                     }
-                } else {
+                    insChildDom(child, refNode, 'before');
+                    this.bdAdopt(child, refIndex);
+                    if (position === 'replace') {
+                        this.delChild(attachPoint);
+                    }
+                    break;
+                case 'after':
+                    if (Array.isArray(refNode)) {
+                        refNode = refNode[refNode.length - 1];
+                    }
+                    insChildDom(child, refNode, 'after');
+                    this.bdAdopt(child, refIndex + 1);
+                    break;
+                default:
                     throw new Error('unexpected');
-                }
-            } else {
-                // attachPoint without a position must give a node reference
-                throw new Error('unexpected');
             }
-        } else if (child.bdParentAttachPoint) {
-            // child is telling the parent where it wants to go; this is more specific than pChildrenAttachPoint
-            if (child.bdParentAttachPoint in this) {
-                attachPoint = this[child.bdParentAttachPoint];
-            } else {
-                throw new Error('unexpected');
-            }
-        } else {
+            return child;
+        }
+
+        // attachPoint was not a child; therefore it must be either a node or a reference to a node or one of the defaults
+        if (typeof attachPoint === 'string') {
+            // a reference...
+            attachPoint = this[attachPoint] || document.getElementById(attachPoint);
+        } else if (!attachPoint) {
+            // the defaults...
             attachPoint = this.bdChildrenAttachPoint || this.bdDom.root;
-            if (Array.isArray(attachPoint)) {
-                throw new Error('unexpected');
+        }// else attachPoint must be a dom node
+        if (!(attachPoint instanceof window.Element)) {
+            throw new Error('unexpected');
+        }
+
+        if (attachPoint === this.bdChildrenAttachPoint || attachPoint === this.bdDom.root) {
+            // this is the normal path...attaching a child to the child container node
+            // in this path, position is relative to this.children (before, after, replace are illegal)
+
+            // simplify the switch a little
+            if (position === 0) {
+                position = 'first';
+            } else if (position === children.length) {
+                position = 'last';
             }
+
+            switch (position) {
+                case 'only':
+                    children.slice().forEach(child => this.delChild(child));
+                    insChildDom(child, attachPoint, 'last');
+                    this.bdAdopt(child);
+                    break;
+
+                case 'first':
+                    insChildDom(child, attachPoint, 'first');
+                    this.bdAdopt(child, 0);
+                    break;
+
+
+                case 'last':
+                    insChildDom(child, attachPoint, 'last');
+                    this.bdAdopt(child, this.children.length);
+                    break;
+
+                case 'before':
+                case 'after':
+                case 'replace':
+                    // these positions don't make sense in this context
+                    throw new Error('unexpected');
+
+                default: {
+                    // position will be in [1..this.children.length-1]
+                    let refNode = children[position].bdDom.root;
+                    if (Array.isArray(refNode)) {
+                        refNode = refNode[0];
+                    }
+                    insChildDom(child, refNode, 'before');
+                    this.bdAdopt(child, position);
+                    break;
+                }
+            }
+            return child;
         }
 
-        const childRoot = child.bdDom.root;
-        if (Array.isArray(childRoot)) {
-            const firstChildNode = childRoot[0];
-            unrender(insert(firstChildNode, attachPoint, position));
-            childRoot.slice(1).reduce((prevNode, node) => {
-                insert(node, prevNode, 'after');
-                return node;
-            }, firstChildNode);
-        } else {
-            unrender(insert(childRoot, attachPoint, position));
-        }
-
+        // attachPoint is just a dom node, position gives the dom node position relative to attachPoint and has
+        // nothing to do with this.children
+        unrender(insChildDom(child, attachPoint, position));
         this.bdAdopt(child);
         return child;
     }
