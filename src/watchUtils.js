@@ -35,34 +35,34 @@ const pWatchableHandles = Symbol('bd-pWatchableHandles');
 const pWatchableSetup = Symbol('bd-pWatchableSetup');
 
 class WatchableRef {
-    constructor(referenceObject, prop, formatter) {
-        if (typeof prop === 'function') {
-            // no prop,...star watcher
-            formatter = prop;
-            prop = STAR;
+    constructor(referenceObject, referenceProp, formatter) {
+        if (typeof referenceProp === 'function') {
+            // no referenceProp,...star watcher
+            formatter = referenceProp;
+            referenceProp = STAR;
         }
 
         Object.defineProperty(this, 'value', {
             enumerable: true,
             // eslint-disable-next-line func-names
-            get: ((function () {
+            get: (function () {
                 if (formatter) {
-                    if (prop === STAR) {
+                    if (referenceProp === STAR) {
                         return () => formatter(referenceObject);
                     } else {
-                        return () => formatter(referenceObject[prop]);
+                        return () => formatter(referenceObject[referenceProp]);
                     }
-                } else if (prop === STAR) {
+                } else if (referenceProp === STAR) {
                     return () => referenceObject;
                 } else {
-                    return () => referenceObject[prop];
+                    return () => referenceObject[referenceProp];
                 }
-            })())
+            })()
         });
 
-        // if (referenceObject[OWNER] && prop === STAR), then we cValue===newValue===referenceObject...
+        // if (referenceObject[OWNER] && referenceProp === STAR), then we cValue===newValue===referenceObject...
         // therefore can't detect internal mutations to referenceObject, so don't try
-        const cannotDetectMutations = prop === STAR && referenceObject[OWNER];
+        const cannotDetectMutations = referenceProp === STAR && referenceObject[OWNER];
 
         this[pWatchableWatchers] = [];
 
@@ -82,8 +82,8 @@ class WatchableRef {
         this[pWatchableSetup] = () => {
             cValue = this.value;
             if (referenceObject[OWNER]) {
-                this[pWatchableHandles] = [watch(referenceObject, prop, (newValue, oldValue, receiver, _prop) => {
-                    if (prop === STAR) {
+                this[pWatchableHandles] = [watch(referenceObject, referenceProp, (newValue, oldValue, receiver, _prop) => {
+                    if (referenceProp === STAR) {
                         callback(referenceObject, UNKNOWN_OLD_VALUE, referenceObject, _prop);
                     } else {
                         callback(newValue, oldValue, referenceObject, _prop);
@@ -91,8 +91,8 @@ class WatchableRef {
                 })];
             } else if (referenceObject.watch) {
                 this[pWatchableHandles] = [
-                    referenceObject.watch(prop, (newValue, oldValue, target) => {
-                        callback(newValue, oldValue, target, prop);
+                    referenceObject.watch(referenceProp, (newValue, oldValue, target) => {
+                        callback(newValue, oldValue, target, referenceProp);
                         if (this[pWatchableHandles].length === 2) {
                             this[pWatchableHandles].pop().destroy();
                         }
@@ -105,7 +105,7 @@ class WatchableRef {
                         }
                     })
                 ];
-                const value = referenceObject[prop];
+                const value = referenceObject[referenceProp];
                 if (value && value[OWNER]) {
                     // value is a watchable
                     this[pWatchableHandles].push(watch(value, (newValue, oldValue, receiver, referenceProp) => {
