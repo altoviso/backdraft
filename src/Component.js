@@ -12,7 +12,8 @@ adviseGlobal(window => {
 });
 
 function cleanClassName(s) {
-    return s.replace(/\s{2,}/g, ' ').trim();
+    s = stringifyScalar(s);
+    return s ? s.replace(/\s{2,}/g, ' ').trim() : '';
 }
 
 function conditionClassNameArgs(args) {
