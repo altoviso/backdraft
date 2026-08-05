@@ -1088,6 +1088,8 @@ export class Component extends eventHub(WatchHub) {
 Component.watchables = ['rendered', 'parent', 'attachedToDoc', 'className', 'hasFocus', 'tabIndex', 'enabled', 'visible', 'title'];
 Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
+Component.getAllTopLevelNodes = () => [...domNodeToComponent.keys()];
+Component.getAllComponents = () => [...domNodeToComponent.values()];
 Component.debounceDelay = 200;
 
 function isComponentDerivedCtor(f) {
