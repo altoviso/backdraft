@@ -1,6 +1,7 @@
-import {Component} from './Component.js';
-import {Destroyable} from './Destroyable.js';
-import {UNKNOWN_OLD_VALUE, toWatchable, isWatchable, withWatchables} from './watchUtils.js';
+import { Component } from './Component.js';
+import { destroyAll } from './destroyable.js';
+import { insert } from './dom.js';
+import { UNKNOWN_OLD_VALUE, toWatchable, isWatchable, withWatchables } from './watchUtils.js';
 
 function applyLengthWatchers(owner, newValue, oldValue) {
     if (oldValue !== newValue) {
@@ -27,7 +28,7 @@ function updateChildren(collection, owner, oldLength) {
         } else {
             if (j !== i) {
                 // moved child
-                Component.insertNode(child.bdDom.root, child.bdDom.root.parentNode, i);
+                insert(child.bdDom.root, child.bdDom.root.parentNode, i);
                 children.splice(j, 1);
                 children.splice(i, 0, child);
             }
@@ -191,7 +192,7 @@ export class Collection extends Component {
                     destroy() {
                         // multiple calls imply no-op
                         setupHandle.destroy = () => 0;
-                        Destroyable.destroyAll(handles);
+                        destroyAll(handles);
                     }
                 };
                 this.own(setupHandle);
@@ -215,8 +216,8 @@ export class Collection extends Component {
 
     insChild(collectionIndex) {
         // eslint-disable-next-line new-cap
-        const child = new this.kwargs.childType({parent: this, collectionIndex});
-        Component.insertNode(child.render(), this.bdChildrenAttachPoint || this.bdDom.root, collectionIndex);
+        const child = new this.kwargs.childType({ parent: this, collectionIndex });
+        insert(child.render(), this.bdChildrenAttachPoint || this.bdDom.root, collectionIndex);
         this.children.splice(collectionIndex, 0, child);
         child.bdAttachToDoc(this.bdAttachedToDoc);
         return child;
