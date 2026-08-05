@@ -69,14 +69,16 @@ class WatchableRef {
 
         let cValue;
         const callback = (newValue, oldValue, target, referenceProp) => {
+            if (this._pauseOnce || this._pause) {
+                this._pauseOnce && (this._pauseOnce = 0);
+                return;
+            }
             if (formatter) {
                 oldValue = oldValue === UNKNOWN_OLD_VALUE ? oldValue : formatter(oldValue);
                 newValue = formatter(newValue);
             }
             if (cannotDetectMutations || oldValue === UNKNOWN_OLD_VALUE || !eql(cValue, newValue)) {
-                this[pWatchableWatchers].slice().forEach(
-                    destroyable => destroyable.proc((cValue = newValue), oldValue, target, referenceProp)
-                );
+                this[pWatchableWatchers].slice().forEach(destroyable => destroyable.proc((cValue = newValue), oldValue, target, referenceProp));
             }
         };
 
@@ -118,6 +120,28 @@ class WatchableRef {
                 throw new Error("don't know how to watch referenceObject");
             }
         };
+    }
+
+    pause() {
+        if (!this._pause) {
+            this._pause = 1;
+        } else {
+            ++this._pause;
+        }
+        return this;
+    }
+
+    pauseOnce() {
+        this._pauseOnce = true;
+    }
+
+    unpause() {
+        this._pause && --this._pause;
+        return this;
+    }
+
+    unpauseAll() {
+        this._pause = this._pauseOnce = 0;
     }
 
     destroy() {
@@ -620,6 +644,31 @@ function getWatcher(owner, watcher) {
     return typeof watcher === 'function' ? watcher : owner[watcher].bind(owner);
 }
 
+function getWatcherList(owner, name) {
+    let variables = watcherCatalog.get(owner);
+    if (!variables) {
+        watcherCatalog.set(owner, (variables = {}));
+    }
+    if (variables[name]) {
+        return variables[name];
+    }
+    const result = variables[name] = [];
+    result.pause = 0;
+    return result;
+}
+
+function getWatchers(variables, name) {
+    const watchers = variables[name];
+    if (!watchers) {
+        return 0;
+    }
+    if (watchers._pauseOnce || watchers._pause) {
+        watchers._pauseOnce && (watchers._pauseOnce = 0);
+        return 0;
+    }
+    return watchers;
+}
+
 function watchHub(superClass) {
     return class extends (superClass || class {
     }) {
@@ -635,7 +684,7 @@ function watchHub(superClass) {
                 name.forEach(p => {
                     if (p) {
                         doStar = true;
-                        const watchers = variables[p[0]];
+                        const watchers = getWatchers(variables, p[0]);
                         if (watchers) {
                             newValue = p[1];
                             oldValue = p[2];
@@ -644,17 +693,17 @@ function watchHub(superClass) {
                     }
                 });
                 if (doStar) {
-                    const watchers = variables[STAR];
+                    const watchers = getWatchers(variables, STAR);
                     if (watchers) {
                         watchers.slice().forEach(destroyable => destroyable.proc(this, oldValue, this, name));
                     }
                 }
             } else {
-                let watchers = variables[name];
+                let watchers = getWatchers(variables, name);
                 if (watchers) {
                     watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this, name));
                 }
-                watchers = variables[STAR];
+                watchers = getWatchers(variables, STAR);
                 if (watchers) {
                     watchers.slice().forEach(destroyable => destroyable.proc(newValue, oldValue, this, name));
                 }
@@ -703,13 +752,22 @@ function watchHub(superClass) {
 
         watch(...args) {
             // possible sigs:
-            // 1: name, watcher
-            // 2: name[], watcher
-            // 3: hash: name -> watcher
-            // 4: watchable, name, watcher
-            // 5: watchable, name[], watcher
-            // 6: watchable, hash: name -> watcher
-            // 7: watchable, watcher // STAR watcher
+            // 1: [true], name, watcher
+            // 2: [true], name[], watcher
+            // 3: [true], hash: name -> watcher
+            // 4: [true], watchable, name, watcher
+            // 5: [true], watchable, name[], watcher
+            // 6: [true], watchable, hash: name -> watcher
+            // 7: [true], watchable, watcher // STAR watcher
+
+            // each of these sigs can optionally begin with true; if true then the watcher is called;
+            // this feature is used where initialization scenarios are required
+
+            let initialize = false;
+            if (args[0] === true) {
+                initialize = true;
+                args.shift();
+            }
 
             if (arguments.length === 1) {
                 // sig 3
@@ -738,18 +796,66 @@ function watchHub(superClass) {
             }
             if (Array.isArray(args[0])) {
                 // sig 2
-                return args[0].map(name => this.watch(name, getWatcher(this, args[1])));
+                const result = args[0].map(name => this.watch(name, getWatcher(this, args[1])));
+                if (initialize) {
+                    result.forEach(h => h.proc());
+                }
+                return result;
             }
             // sig 1
             const name = args[0];
             const watcher = getWatcher(this, args[1]);
-            let variables = watcherCatalog.get(this);
-            if (!variables) {
-                watcherCatalog.set(this, (variables = {}));
-            }
-            const result = new Destroyable(watcher, variables[name] || (variables[name] = []));
+            const result = new Destroyable(watcher, getWatcherList(this, name));
             this.own && this.own(result);
+            if (initialize) {
+                result.proc(this[name], undefined, this, name);
+            }
             return result;
+        }
+
+        pauseWatch(...args) {
+            if (typeof args.last === 'function') {
+                const proc = args.pop();
+                this.pauseWatch(...args);
+                let error = 0;
+                try {
+                    proc();
+                } catch (e) {
+                    error = e;
+                }
+                this.unpauseWatch(...args);
+                return error;
+            }
+            args.forEach(name => {
+                const watchers = getWatcherList(this, name);
+                if (!watchers._pause) {
+                    watchers._pause = 1;
+                } else {
+                    ++watchers._pause;
+                }
+            });
+            return 0;
+        }
+
+        unpauseWatch(...args) {
+            args.forEach(name => {
+                const watchers = getWatcherList(this, name);
+                watchers._pause && --watchers._pause;
+            });
+        }
+
+
+        pauseOnceWatch(...args) {
+            args.forEach(name => {
+                getWatcherList(this, name)._pauseOnce = true;
+            });
+        }
+
+        unpauseAll(...args) {
+            args.forEach(name => {
+                const watchers = getWatcherList(this, name);
+                watchers._pause = watchers._pauseOnce = 0;
+            });
         }
 
         destroyWatch(name) {
