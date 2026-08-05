@@ -518,7 +518,7 @@ export class Component extends eventHub(WatchHub) {
     }
 
     delChildren(preserve) {
-        return this.children.slice().map(child => this.delChild(child, preserve));
+        return this.children && this.children.slice().map(child => this.delChild(child, preserve));
     }
 
     reorderChildren(children) {
