@@ -7,7 +7,8 @@ insPostProcessingFunction(
     'bdAttach',
     (ppfOwner, ppfTarget, name) => {
         if (typeof name === 'function') {
-            ppfOwner.ownWhileRendered(name(ppfTarget, ppfOwner));
+            const result = name(ppfTarget, ppfOwner);
+            result && result.destroy && ppfOwner.ownWhileRendered(result);
         } else {
             ppfOwner[name] = ppfTarget;
             ppfOwner.ownWhileRendered({
