@@ -1132,6 +1132,7 @@ function unrender(node) {
         if (component) {
             component.destroy();
         }
+        node && node.parentNode && node.parentNode.removeChild(node);
     }
 
     Array.isArray(node) ? node.forEach(unrender_) : (node && unrender_(node));
@@ -1159,6 +1160,7 @@ export function render(...args) {
 
     if (attachPoint) {
         const root = result.bdDom.root;
+        const isAttachedToDoc = document.body.contains(attachPoint);
         if (Array.isArray(root)) {
             const firstChildNode = root[0];
             unrender(insert(firstChildNode, attachPoint, position));
@@ -1169,7 +1171,7 @@ export function render(...args) {
         } else {
             unrender(insert(root, attachPoint, position));
         }
-        result.bdAttachToDoc(document.body.contains(attachPoint));
+        result.bdAttachToDoc(isAttachedToDoc);
     }
     return result;
 }
