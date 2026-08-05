@@ -11,7 +11,7 @@ function insPostProcessingFunction(name, transform, func) {
     }
     if (arguments.length === 3) {
         if (typeof transform !== 'function') {
-            transform = (prop, value) => prop ? {[prop]: value} : value;
+            transform = (prop, value) => prop ? { [prop]: value } : value;
         }
     } else {
         func = transform;
@@ -32,4 +32,4 @@ function getPostProcessingFunction(name) {
     return postProcessingFuncs[name];
 }
 
-export {insPostProcessingFunction, replacePostProcessingFunction, getPostProcessingFunction};
+export { insPostProcessingFunction, replacePostProcessingFunction, getPostProcessingFunction };
