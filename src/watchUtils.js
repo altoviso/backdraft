@@ -29,6 +29,7 @@ const PROP = Symbol('bd-prop');
 const UNKNOWN_OLD_VALUE = {
     value: 'UNKNOWN_OLD_VALUE'
 };
+const CANCEL_MUTATION = Symbol('bd-cancel-mutation');
 
 const pWatchableWatchers = Symbol('bd-pWatchableWatchers');
 const pWatchableHandles = Symbol('bd-pWatchableHandles');
@@ -589,10 +590,18 @@ function mutate(owner, name, privateName, newValue) {
 
         if (onMutateBeforeName && owner[onMutateBeforeName]) {
             newValue = owner[onMutateBeforeName](newValue, oldValue);
+            if (newValue === CANCEL_MUTATION) {
+                // the proposed mutation is illegal
+                return false;
+            }
         }
 
         if (owner.beforeMutateWatchable) {
             newValue = owner.beforeMutateWatchable(name, newValue, oldValue);
+            if (newValue === CANCEL_MUTATION) {
+                // the proposed mutation is illegal
+                return false;
+            }
         }
 
         if (owner.hasOwnProperty(privateName)) {
@@ -845,6 +854,7 @@ export {
     OWNER,
     OWNER_NULL,
     PROP,
+    CANCEL_MUTATION,
     silentSet,
     WatchableRef,
     getWatchableRef,
