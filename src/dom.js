@@ -1,10 +1,27 @@
-import {adviseGlobal} from './global.js';
+import { adviseGlobal } from './global.js';
 
 let window = 0;
 let document = 0;
+let supportsPassive = false;
 adviseGlobal(global => {
     window = global;
     document = window.document;
+
+    // test via a getter in the options object to see if the passive property is accessed
+    // this is tricky; see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener#improving_scrolling_performance_with_passive_listeners
+    // for a complete explanation
+    try {
+        const opts = Object.defineProperty({}, 'passive', {
+            get() {
+                supportsPassive = true;
+                return false;
+            }
+        });
+        window.addEventListener('testPassive', null, opts);
+        window.removeEventListener('testPassive', null, opts);
+    } catch (e) {
+        supportsPassive = false;
+    }
 });
 
 function getAttributeValueFromEvent(e, attributeName, stopNode) {
@@ -274,15 +291,29 @@ function destroyDomNode(node) {
     node && node.parentNode && node.parentNode.removeChild(node);
 }
 
-function connect(target, type, listener, useCapture) {
+function connect(target, type, listener, options) {
     let destroyed = false;
-    useCapture = !!useCapture;
-    target.addEventListener(type, listener, useCapture);
+    if (options === undefined) {
+        // do nothing, this is the common case
+    } else if (!supportsPassive) {
+        if (typeof options === 'object') {
+            // options as an object is not supported, capture is the only argument that is meaningful
+            options = !!options.capture;
+        } else {
+            // ensure a boolean
+            options = !!options;
+        }
+    } else if (typeof options !== 'object') {
+        // options was given as a boolean, indicating it was really passed as a capture argument; ensure a boolean
+        options = !!options;
+    }
+
+    target.addEventListener(type, listener, options);
     return {
         destroy() {
             if (!destroyed) {
                 destroyed = true;
-                target.removeEventListener(type, listener, useCapture);
+                target.removeEventListener(type, listener, options);
             }
         }
     };
