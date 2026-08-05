@@ -522,21 +522,45 @@ export class Component extends eventHub(WatchHub) {
     }
 
     reorderChildren(children) {
-        if (children === this.children) {
-            children = this.children.slice();
+        if (!this.children || !this.children.length) {
+            return false;
         }
-        const thisChildren = this.children;
-        if (thisChildren && thisChildren.length) {
-            const node = children.bdDom.root.parentNode;
-            children.forEach((child, i) => {
-                if (thisChildren[i] !== child) {
-                    const index = thisChildren.indexOf(child, i + 1);
-                    thisChildren.splice(index, 1);
-                    node.insertBefore(child.bdDom.root, thisChildren[i].bdDom.root);
-                    thisChildren.splice(i, 0, child);
+
+        if (this.children.length !== children.length) {
+            return false;
+        }
+
+        // the following must be true for this routine to work!
+        if (!children.every(child => child.parent === this)) {
+            return false;
+        }
+
+        // at this point we are reasonably sure children has the same contents as this.children, but maybe in a different order
+
+        const parentNode = Array.isArray(children[0].bdDom.root) ? children[0].bdDom.root[0].parentNode : children[0].bdDom.root.parentNode;
+        const existingNodes = parentNode.childNodes;
+        let existingNodePtr = 0;
+        const reorderedChildrenArray = [];
+        children.forEach(child => {
+            reorderedChildrenArray.push(child);
+            const childRoot = child.bdDom.root;
+            if (existingNodePtr < existingNodes.length) {
+                if (Array.isArray(childRoot)) {
+                    childRoot.forEach(node => parentNode.insertBefore(node, existingNodes[existingNodePtr++]));
+                } else {
+                    parentNode.insertBefore(childRoot, existingNodes[existingNodePtr++]);
                 }
-            });
-        }
+            } else if (Array.isArray(childRoot)) {
+                childRoot.forEach(node => parentNode.appentChild(node));
+            } else {
+                parentNode.appentChild(childRoot);
+            }
+        });
+
+        // reorder this.children in place
+        reorderedChildrenArray.forEach((child, i) => (this.children[i] = child));
+
+        return true;
     }
 
     get staticClassName() {
