@@ -108,6 +108,40 @@ export class Destroyable {
     }
 }
 
+export class DestroyableTimeout extends Destroyable {
+    constructor(proc, delay, container, onEmpty) {
+        super(proc, container, onEmpty);
+        this._handle = window.setTimeout(() => {
+            this.exec();
+            this._handle = 0;
+            this.destroy();
+        }, delay);
+    }
+
+    destroy() {
+        if (this._handle) {
+            window.clearTimeout(this._handle);
+            delete this._handle;
+        }
+        super.destroy();
+    }
+}
+
+export class DestroyableInterval extends Destroyable {
+    constructor(proc, interval, container, onEmpty) {
+        super(proc, container, onEmpty);
+        this._handle = window.setInterval(this.exec.bind(this), interval);
+    }
+
+    destroy() {
+        if (this._handle) {
+            window.clearInterval(this._handle);
+            delete this._handle;
+        }
+        super.destroy();
+    }
+}
+
 export function destroyable(proc, container, onEmpty) {
     return new Destroyable(proc, container, onEmpty);
 }
