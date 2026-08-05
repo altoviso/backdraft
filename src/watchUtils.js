@@ -560,33 +560,41 @@ function fromWatchable(data) {
     }
 }
 
-const onMutateBeforeNames = {};
 const onMutateNames = {};
+const symbolOnMutateNames = {};
+
+function createOnMutateNames(name) {
+    if (typeof name === 'symbol') {
+        return (onMutateNames[name] = symbolOnMutateNames);
+    }
+
+    const suffix = name.substring(0, 1).toUpperCase() + name.substring(1);
+    return (onMutateNames[name] = {
+        onMutateBeforeName: `onMutateBefore${suffix}`,
+        onMutateName: `onMutate${suffix}`,
+        onMutateAfterName: `onMutateAfter${suffix}`,
+    });
+}
 
 function mutate(owner, name, privateName, newValue) {
     const oldValue = owner[privateName];
     if (eql(oldValue, newValue)) {
         return false;
     } else {
-        let onMutateBeforeName,
-            onMutateName;
-        if (typeof name !== 'symbol') {
-            onMutateBeforeName = onMutateBeforeNames[name];
-            if (!onMutateBeforeName) {
-                const suffix = name.substring(0, 1).toUpperCase() + name.substring(1);
-                onMutateBeforeName = onMutateBeforeNames[name] = `onMutateBefore${suffix}`;
-                onMutateName = onMutateNames[name] = `onMutate${suffix}`;
-            } else {
-                onMutateName = onMutateNames[name];
-            }
-        }
+        const {
+            onMutateBeforeName,
+            onMutateName,
+            onMutateAfterName
+        } = onMutateNames[name] || createOnMutateNames(name);
 
         if (onMutateBeforeName && owner[onMutateBeforeName]) {
-            if (owner[onMutateBeforeName](newValue, oldValue) === false) {
-                // the proposed mutation is illegal
-                return false;
-            }
+            newValue = owner[onMutateBeforeName](newValue, oldValue);
         }
+
+        if (owner.beforeMutateWatchable) {
+            newValue = owner.beforeMutateWatchable(name, newValue, oldValue);
+        }
+
         if (owner.hasOwnProperty(privateName)) {
             owner[privateName] = newValue;
         } else {
@@ -594,7 +602,8 @@ function mutate(owner, name, privateName, newValue) {
             Object.defineProperty(owner, privateName, {writable: true, value: newValue});
         }
         onMutateName && owner[onMutateName] && owner[onMutateName](newValue, oldValue);
-        return [name, newValue, oldValue];
+
+        return [name, newValue, oldValue, onMutateAfterName];
     }
 }
 
@@ -612,7 +621,7 @@ function watchHub(superClass) {
                 return;
             }
             if (Array.isArray(name)) {
-                // each element in name is either a triple ([name, oldValue, newValue]) or false
+                // each element in name is either a triple ([name, oldValue, newValue, onMutateAfterName]) or false
                 let doStar = false;
                 name.forEach(p => {
                     if (p) {
@@ -656,13 +665,22 @@ function watchHub(superClass) {
                 }
                 if (mutateOccurred) {
                     this.bdMutateNotify(results);
+                    results.forEach(result => {
+                        if (result) {
+                            // eslint-disable-next-line no-unused-vars
+                            const [unused, newValue, oldValue, onMutateAfterName] = result;
+                            onMutateAfterName && this[onMutateAfterName] && this[onMutateAfterName](newValue, oldValue);
+                        }
+                    });
                     return results;
                 }
                 return false;
             } else {
                 const result = mutate(this, name, privateName, newValue);
                 if (result) {
-                    this.bdMutateNotify(...result);
+                    const [name, newValue, oldValue, onMutateAfterName] = result;
+                    this.bdMutateNotify(name, newValue, oldValue);
+                    onMutateAfterName && this[onMutateAfterName] && this[onMutateAfterName](newValue, oldValue);
                     return result;
                 }
                 return false;
