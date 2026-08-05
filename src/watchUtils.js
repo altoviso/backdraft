@@ -883,6 +883,27 @@ function watchHub(superClass) {
             this.own && this.own(result);
             return result;
         }
+
+        defineWatchable(name, pname, initialValue) {
+            if (arguments.length === 2) {
+                initialValue = pname;
+                pname = undefined;
+            }
+            if (!pname) {
+                pname = `_${name}`;
+            }
+            Object.defineProperty(this, name, {
+                enumerable: true,
+                get() {
+                    return this[pname];
+                },
+                set(value) {
+                    this.bdMutate(name, pname, value);
+                }
+            });
+            // this allows clients to set up a watcher before the property is defined and get it's initial value
+            this[name] = initialValue;
+        }
     };
 }
 
