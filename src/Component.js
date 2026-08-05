@@ -1,10 +1,10 @@
+import { destroyAll } from './destroyable.js';
 import {adviseGlobal} from './global.js';
 import {getAttr, setAttr, getStyle, getStyles, setStyle, setPosit, getPosit, create, insert, connect} from './dom.js';
 import {getPostProcessingFunction} from './postProcessingCatalog.js';
 import {Element} from './element.js';
 import {eventHub} from './eventHub.js';
 import {WatchHub, withWatchables} from './watchUtils.js';
-import {Destroyable} from './Destroyable.js';
 
 let document = 0;
 adviseGlobal(window => {
@@ -163,7 +163,7 @@ export class Component extends eventHub(WatchHub) {
             this.unrender();
             const handles = ownedHandlesCatalog.get(this);
             if (handles) {
-                Destroyable.destroyAll(handles);
+                destroyAll(handles);
                 ownedHandlesCatalog.delete(this);
             }
             this.destroyWatch();
@@ -250,7 +250,7 @@ export class Component extends eventHub(WatchHub) {
                 domNodeToComponent.delete(root);
                 root.parentNode && root.parentNode.removeChild(root);
             }
-            Destroyable.destroyAll(this.bdDom.handles);
+            destroyAll(this.bdDom.handles);
             delete this.bdDom;
             delete this._dom;
             delete this._hiddenDisplayStyle;
