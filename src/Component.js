@@ -11,7 +11,8 @@ import {
     create,
     insert,
     removeNode,
-    connect
+    connect,
+    closest
 } from './dom.js';
 import {adviseGlobal} from './global.js';
 import {getPostProcessingFunction} from './postProcessingCatalog.js';
@@ -963,6 +964,10 @@ export class Component extends eventHub(WatchHub) {
 
     static get(domNode) {
         return domNodeToComponent.get(domNode);
+    }
+
+    static closest(domNode) {
+        return domNodeToComponent.get(closest(domNode, node => domNodeToComponent.get(node)));
     }
 
     static renderElements(owner, e) {
