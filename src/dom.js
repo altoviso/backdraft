@@ -145,51 +145,53 @@ function getPosit(node) {
     return result;
 }
 
-function positStyle(v) {
-    return v === false ? '' : `${v}px`;
-}
+const abbrToStyleProp = {
+    t: 'top',
+    b: 'bottom',
+    l: 'left',
+    r: 'right',
+    h: 'height',
+    w: 'width',
+    maxH: 'maxHeight',
+    maxW: 'maxWidth',
+    minH: 'minHeight',
+    minW: 'minWidth',
+    m: 'margin',
+    mt: 'marginTop',
+    mb: 'marginBottom',
+    ml: 'marginLeft',
+    mr: 'marginRight',
+    p: 'padding',
+    pt: 'paddingTop',
+    pb: 'paddingBottom',
+    pl: 'paddingLeft',
+    pr: 'paddingRight',
+    bw: 'borderWidth',
+    bwt: 'borderTopWidth',
+    bwb: 'borderBottomWidth',
+    bwl: 'borderLeftWidth',
+    bwr: 'borderRightWidth',
+    br: 'borderRadius',
+    brtl: 'borderTopLeftRadius',
+    brtr: 'borderTopRightRadius',
+    brbl: 'borderBottomLeftRadius',
+    brbr: 'borderBottomRightRadius'
+};
 
 function setPosit(node, posit) {
-    // eslint-disable-next-line guard-for-in,no-restricted-syntax
     Object.keys(posit).forEach(p => {
-        switch (p) {
-            case 't':
-                node.style.top = positStyle(posit.t);
-                break;
-            case 'b':
-                node.style.bottom = positStyle(posit.b);
-                break;
-            case 'l':
-                node.style.left = positStyle(posit.l);
-                break;
-            case 'r':
-                node.style.right = positStyle(posit.r);
-                break;
-            case 'h':
-                node.style.height = positStyle(posit.h);
-                break;
-            case 'w':
-                node.style.width = positStyle(posit.w);
-                break;
-            case 'maxH':
-                node.style.maxHeight = positStyle(posit.maxH);
-                break;
-            case 'maxW':
-                node.style.maxWidth = positStyle(posit.maxW);
-                break;
-            case 'minH':
-                node.style.minHeight = positStyle(posit.minH);
-                break;
-            case 'minW':
-                node.style.minWidth = positStyle(posit.minW);
-                break;
-            case 'z':
-                node.style.zIndex = posit.z === false ? '' : posit.z;
-                break;
-            default:
-            // ignore...this allows clients to stuff other properties into posit for other reasons
+        const styleProp = abbrToStyleProp[p];
+        if (styleProp) {
+            const value = posit[p];
+            node.style[styleProp] = value === false ? '' : `${value}px`;
         }
     });
+    if ('z' in posit) {
+        node.style.zIndex = posit.z === false ? '' : posit.z;
+    }
+    if ('posit' in posit) {
+        node.style.position = posit.posit === false ? '' : posit.posit;
+    }
 }
 
 function insertBefore(node, refNode) {
