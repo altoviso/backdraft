@@ -122,7 +122,7 @@ function getStyles(node, ...styleNames) {
 function setStyle(node, property, value) {
     if (arguments.length === 2) {
         if (typeof property === 'string') {
-            node.style = property;
+            node.style.cssText = property;
         } else {
             // property is a hash
             Object.keys(property).forEach(p => {
