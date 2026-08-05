@@ -830,6 +830,16 @@ export class Component extends eventHub(WatchHub) {
         setPosit(this.bdDom.root, posit);
     }
 
+    get posit() {
+        // WARNING: does not work for multi-root components
+        return this.bdDom && getPosit(this.bdDom.root);
+    }
+
+    set posit(posit) {
+        // WARNING: does not work for multi-root components
+        this.bdDom && setPosit(this.bdDom.root, posit);
+    }
+
     get uid() {
         return this.bdUid || (this.bdUid = Symbol('component-instance-uid'));
     }
@@ -910,9 +920,41 @@ export class Component extends eventHub(WatchHub) {
     }
 
     set title(value) {
+        // WARNING: does not work for multi-root components
+        value = stringifyScalar(value);
         if (this.bdMutate('title', 'bdTitle', value)) {
             this.rendered && ((this.bdDom.titleNode || this.bdDom.root).title = value);
         }
+    }
+
+    qs(selector) {
+        if (this.rendered) {
+            const root = this.bdDom.root;
+            if (Array.isArray(root)) {
+                let result;
+                root.find(node => (result = node.querySelector(selector)));
+                return result;
+            } else {
+                return root.querySelector(selector);
+            }
+        }
+        return null;
+    }
+
+    qsa(selector) {
+        if (this.rendered) {
+            const root = this.bdDom.root;
+            if (Array.isArray(root)) {
+                const result = [];
+                root.foreEach(node => {
+                    node.querySelectorAll(selector).forEach(node => result.push(node));
+                });
+                return result;
+            } else {
+                return Array.from(root.querySelectorAll(selector));
+            }
+        }
+        return [];
     }
 
     static get(domNode) {
