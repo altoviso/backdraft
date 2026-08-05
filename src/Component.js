@@ -14,11 +14,11 @@ import {
     connect,
     closest
 } from './dom.js';
-import {adviseGlobal} from './global.js';
-import {getPostProcessingFunction} from './postProcessingCatalog.js';
-import {Element} from './element.js';
-import {eventHub} from './eventHub.js';
-import {WatchHub, withWatchables} from './watchUtils.js';
+import { Element } from './element.js';
+import { eventHub } from './eventHub.js';
+import { adviseGlobal } from './global.js';
+import { getPostProcessingFunction } from './postProcessingCatalog.js';
+import { WatchHub, withWatchables } from './watchUtils.js';
 
 let document = 0;
 adviseGlobal(window => {
@@ -85,7 +85,6 @@ function postProcess(ppFuncs, owner, target) {
 }
 
 function noop() {
-    // do nothing
 }
 
 function pushHandles(dest, ...handles) {
@@ -198,14 +197,39 @@ export class Component extends eventHub(WatchHub) {
             const root = dom.root = this.constructor.renderElements(this, elements);
             if (Array.isArray(root)) {
                 root.forEach(node => domNodeToComponent.set(node, this));
+
+                // note: the framework assumes all root nodes of multi-root components have the same className
+
+                // renderedClassName is the className that arrives on the node after rendering bdElements() which
+                // applies all the post-processing functions...perhaps reflecting into className; however...
+                // rendering bdElements _does not_ include this.className, which may have been set/mutated before rendering
+                const renderedClassName = root[0].getAttribute('class') || '';
+                if (renderedClassName) {
+                    this.addClassName(renderedClassName);
+                }
+
+                // now add any additional className components that were set on this.className before rendering
+                const className = calcDomClassName(this);
+                if ((className || renderedClassName) && className !== renderedClassName) {
+                    root.forEach(node => node.setAttribute('class', className));
+                }
             } else {
                 domNodeToComponent.set(root, this);
                 if (this.id) {
                     root.id = this.id;
                 }
-                this.addClassName(root.getAttribute('class') || '');
+
+                // renderedClassName is the className that arrives on the node after rendering bdElements() which
+                // applies all the post-processing functions...perhaps reflecting into className; however...
+                // rendering bdElements _does not_ include this.className, which may have been set/mutated before rendering
+                const renderedClassName = root.getAttribute('class');
+                if (renderedClassName) {
+                    this.addClassName(renderedClassName);
+                }
+
+                // now add any additional className components that were set/mutated on this.className before rendering
                 const className = calcDomClassName(this);
-                if (className) {
+                if ((className || renderedClassName) && className !== renderedClassName) {
                     root.setAttribute('class', className);
                 }
 
@@ -571,6 +595,8 @@ export class Component extends eventHub(WatchHub) {
 
     get className() {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT returned
+        // WARNING: returns className for first root for multi-root components
+
         if (this.rendered) {
             // if rendered, then look at what's actually in the document...maybe client code _improperly_ manipulated directly
             let root = this.bdDom.root;
@@ -590,6 +616,7 @@ export class Component extends eventHub(WatchHub) {
 
     set className(value) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT affected
+        // WARNING: sets className for all roots for multi-root components
 
         // clean up any space sloppiness, sometimes caused by client-code algorithms that manipulate className
         value = cleanClassName(value);
@@ -605,8 +632,7 @@ export class Component extends eventHub(WatchHub) {
     containsClassName(value) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
 
-        value = cleanClassName(value);
-        return (` ${this.bdClassName || ''} `).indexOf(value) !== -1;
+        return (` ${this.bdClassName || ''} `).indexOf(` ${cleanClassName(value)} `) !== -1;
     }
 
     addClassName(...values) {
@@ -718,10 +744,13 @@ export class Component extends eventHub(WatchHub) {
         if (newValue !== oldValue) {
             this.bdClassName = newValue;
             if (this.rendered) {
-                this.bdDom.root.setAttribute('class', calcDomClassName(this));
-            }
-            if (this.rendered && !Array.isArray(this.bdDom.root)) {
-                this.bdDom.root.setAttribute('class', calcDomClassName(this));
+                const root = this.bdDom.root;
+                const newClassName = calcDomClassName(this);
+                if (Array.isArray(root)) {
+                    root.forEach(node => node.setAttribute('class', newClassName));
+                } else {
+                    root.setAttribute('class', newClassName);
+                }
             }
             this.bdMutateNotify('className', newValue, oldValue);
             const oldVisibleValue = oldValue ? oldValue.indexOf('bd-hidden') === -1 : true,
@@ -733,7 +762,11 @@ export class Component extends eventHub(WatchHub) {
     }
 
     bdOnFocus() {
-        this.addClassName('bd-focused');
+        if (this.bdDom && !Array.isArray(this.bdDom.root)) {
+            this.addClassName('bd-focused');
+        }// else multi-roots do not get their className updated with bd-focused b/c...
+        // multiple sibling can't possibly all have the focus
+
         this.bdMutate('hasFocus', 'bdHasFocus', true);
     }
 
@@ -748,7 +781,8 @@ export class Component extends eventHub(WatchHub) {
 
     focus() {
         if (this.bdDom) {
-            (this.bdDom.tabIndexNode || this.bdDom.root).focus();
+            const root = this.bdDom.root;
+            (this.bdDom.tabIndexNode || (Array.isArray(root) ? root[0] : root)).focus();
         }
     }
 
@@ -787,22 +821,27 @@ export class Component extends eventHub(WatchHub) {
     }
 
     getAttr(name) {
+        // WARNING: does not work for multi-root components
         return getAttr(this.bdDom.root, name);
     }
 
     setAttr(name, value) {
+        // WARNING: does not work for multi-root components
         return setAttr(this.bdDom.root, name, value);
     }
 
     getStyle(property) {
+        // WARNING: does not work for multi-root components
         return getStyle(this.bdDom.root, property);
     }
 
     getStyles(...styleNames) {
+        // WARNING: does not work for multi-root components
         return getStyles(this.bdDom.root, styleNames);
     }
 
     setStyle(property, value) {
+        // WARNING: does not work for multi-root components
         return setStyle(this.bdDom.root, property, value);
     }
 
@@ -824,10 +863,12 @@ export class Component extends eventHub(WatchHub) {
     }
 
     getPosit() {
+        // WARNING: does not work for multi-root components
         return getPosit(this.bdDom.root);
     }
 
     setPosit(posit) {
+        // WARNING: does not work for multi-root components
         setPosit(this.bdDom.root, posit);
     }
 
@@ -846,6 +887,7 @@ export class Component extends eventHub(WatchHub) {
     }
 
     get tabIndex() {
+        // WARNING: does not work for multi-root components
         if (this.rendered) {
             // unconditionally make sure this.bdTabIndex and the dom is synchronized on each get
             return (this.bdTabIndex = (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex);
@@ -855,6 +897,7 @@ export class Component extends eventHub(WatchHub) {
     }
 
     set tabIndex(value) {
+        // WARNING: does not work for multi-root components
         if (!value && value !== 0) {
             value = '';
         }
@@ -886,33 +929,35 @@ export class Component extends eventHub(WatchHub) {
     }
 
     get visible() {
+        // WARNING: does not work for multi-root components
         return !this.containsClassName('bd-hidden');
     }
 
     set visible(value) {
+        // WARNING: does not work for multi-root components
         value = !!value;
         if (value !== !this.containsClassName('bd-hidden')) {
             if (value) {
-                this.removeClassName('bd-hidden');
                 const node = this.bdDom && this.bdDom.root;
                 if (this._hiddenDisplayStyle !== undefined) {
                     node && (node.style.display = this._hiddenDisplayStyle);
                     delete this._hiddenDisplayStyle;
                 }
+                this.removeClassName('bd-hidden');
                 this.resize && this.resize();
             } else {
-                this.addClassName('bd-hidden');
                 const node = this.bdDom && this.bdDom.root;
                 if (node) {
                     this._hiddenDisplayStyle = node.style.display;
                     node.style.display = 'none';
                 }
+                this.addClassName('bd-hidden');
             }
-            this.bdMutateNotify('visible', value, !value);
         }
     }
 
     get title() {
+        // WARNING: does not work for multi-root components
         if (this.rendered) {
             return (this.bdDom.titleNode || this.bdDom.root).title;
         } else {
@@ -1000,7 +1045,6 @@ export class Component extends eventHub(WatchHub) {
 
     static renderElements(owner, e) {
         if (Array.isArray(e)) {
-            // eslint-disable-next-line no-shadow
             return e.map(e => Component.renderElements(owner, e));
         } else if (e instanceof Element) {
             const { type, ctorProps, ppFuncs, children } = e;
@@ -1027,9 +1071,7 @@ export class Component extends eventHub(WatchHub) {
                 if (children) {
                     const renderedChildren = Component.renderElements(owner, children);
                     if (Array.isArray(renderedChildren)) {
-                        renderedChildren.forEach(
-                            (child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType)
-                        );
+                        renderedChildren.forEach((child, i) => addChildToDomNode(owner, domNode, child, children[i].isComponentType));
                     } else {
                         addChildToDomNode(owner, domNode, renderedChildren, children.isComponentType);
                     }
