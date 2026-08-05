@@ -957,6 +957,10 @@ export class Component extends eventHub(WatchHub) {
         return [];
     }
 
+    scrollIntoView() {
+        this.bdDom && this.bdDom.root && this.bdDom.root.scrollIntoView();
+    }
+
     static get(domNode) {
         return domNodeToComponent.get(domNode);
     }
