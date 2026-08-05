@@ -403,6 +403,23 @@ function animate(node, className, onComplete) {
     node.classList.add(className);
 }
 
+function closest(element, predicate) {
+    if (!element) {
+        return null;
+    }
+    if (typeof predicate === 'string') {
+        const selector = predicate;
+        predicate = element => element.matches && element.matches(selector);
+    }
+    while (element) {
+        if (predicate(element)) {
+            return element;
+        }
+        element = element.parentElement;
+    }
+    return null;
+}
+
 export {
     stringifyScalar,
     getAttributeValueFromEvent,
@@ -425,5 +442,6 @@ export {
     removeNodes,
     connect,
     animate,
-    stopEvent
+    stopEvent,
+    closest
 };
