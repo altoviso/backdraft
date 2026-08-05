@@ -1,8 +1,8 @@
-import {adviseGlobal} from './global.js';
-import {connect} from './dom.js';
-import {EventHub} from './eventHub.js';
-import {watchHub} from './watchUtils.js';
-import {Component} from './Component.js';
+import { Component } from './Component.js';
+import { connect } from './dom.js';
+import { EventHub } from './eventHub.js';
+import { adviseGlobal } from './global.js';
+import { watchHub } from './watchUtils.js';
 
 let focusedNode = null;
 let previousFocusedNode = null;
@@ -39,7 +39,9 @@ class FocusManager extends watchHub(EventHub) {
 
 export const focusManager = new FocusManager();
 
-function processNode(node) {
+function processNode_(node) {
+    // send all the signals and twiddle all the variables upon a focus change
+
     const previousPreviousFocusedNode = previousFocusedNode;
     previousFocusedNode = focusedNode;
     focusedNode = node;
@@ -77,16 +79,24 @@ function processNode(node) {
     for (j = i; j < oldStackLength; j++) {
         component = focusStack.pop();
         if (!component.destroyed) {
-            component.bdOnBlur();
-            focusManager.bdNotify({type: 'blurComponent', component});
+            try {
+                component.bdOnBlur();
+            } catch (e) {
+                console.error(e);
+            }
+            focusManager.bdNotify({ type: 'blurComponent', component });
         }
     }
 
     // signal focus for all new components that just gained the focus
     for (j = i; j < newStackLength; j++) {
         focusStack.push(component = stack[j]);
-        component.bdOnFocus();
-        focusManager.bdNotify({type: 'focusComponent', component});
+        try {
+            component.bdOnFocus();
+        } catch (e) {
+            console.error(e);
+        }
+        focusManager.bdNotify({ type: 'focusComponent', component });
     }
 
     previousFocusedComponent = focusedComponent;
@@ -95,8 +105,57 @@ function processNode(node) {
     nextFocusedComponent = 0;
 }
 
+let queue = [];
+let processing = false;
+const WATCHDOG_LIMIT = 10;
+
+function processNode(node) {
+    // it is possible this routine may be applied recursively. to protect
+    // against infinite recursion, it guards against a maximum recursive depth
+    // of WATCHDOG_LIMIT. When that limit is reached, focus events are
+    // ignored for a short period (currently 50ms) to allow the system
+    // to clear itself.
+
+    queue.push(node);
+    if (!processing) {
+        processing = true;
+        let watchdog = 0;
+        while (queue.length && watchdog < WATCHDOG_LIMIT) {
+            watchdog++;
+            if (watchdog > 1) {
+                // recursive application of processNode. this happens when code reacting to a focus
+                // change causes another focus change and further that the browser fired  a recursive
+                // focusin event on the same code path
+                // console.log('recursive focus in', node);
+            }
+            try {
+                // notice that an application of processNode_ will never be interrupted by a focus change
+                processNode_(queue.shift());
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.log(e);
+            }
+        }
+        if (watchdog >= WATCHDOG_LIMIT) {
+            // eslint-disable-next-line no-console
+            console.log('the focus watchdog barked');
+            // let things settle again
+            setTimeout(() => {
+                queue = [];
+                processing = false;
+            }, 50);
+        } else {
+            processing = false;
+        }
+    }
+}
 
 adviseGlobal(window => {
+    // recall focusin/focusout bubble and are not cancelable
+    // see https://developer.mozilla.org/en-US/docs/Web/API/Element/focusin_event
+
+    // recall the browser may raise focusin events recursively on the same code path
+
     const document = window.document;
 
     let focusWatcher = 0;
