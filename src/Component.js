@@ -977,6 +977,27 @@ export class Component extends eventHub(WatchHub) {
         return component.parent === this;
     }
 
+    debounce(id, proc, delay) {
+        if (delay === undefined) {
+            delay = this.constructor.debounceDelay;
+        }
+        const debounceHandles = this.bdDebounceHandles || (this.bdDebounceHandles = {});
+        const h = debounceHandles[id];
+        h && clearTimeout(h);
+        debounceHandles[id] = setTimeout(() => {
+            delete debounceHandles[id];
+            this.rendered && proc();
+        }, delay);
+    }
+
+    clearDebounce(id) {
+        const h = this.bdDebounceHandles && this.bdDebounceHandles[id];
+        if (h) {
+            clearTimeout(h);
+            delete this.bdDebounceHandles[id];
+        }
+    }
+
     static renderElements(owner, e) {
         if (Array.isArray(e)) {
             // eslint-disable-next-line no-shadow
@@ -1025,6 +1046,7 @@ export class Component extends eventHub(WatchHub) {
 Component.watchables = ['rendered', 'parent', 'attachedToDoc', 'className', 'hasFocus', 'tabIndex', 'enabled', 'visible', 'title'];
 Component.events = [];
 Component.withWatchables = (...args) => withWatchables(Component, ...args);
+Component.debounceDelay = 200;
 
 function isComponentDerivedCtor(f) {
     return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
