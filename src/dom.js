@@ -57,6 +57,13 @@ function setAttr(node, name, value) {
     } else if (name === 'innerHTML' || (name in node && node instanceof HTMLElement)) {
         node[name] = value;
     } else {
+        if (name === 'className') {
+            // note: the other mappings we have to worry about are htmlfor=>for, and for
+            // iexplorer, tabindex=>tabIndex and readonly=>readOnly. but all of those are
+            // only relevant for an HTMLElement type nodes, so we won't get here.
+            // we *do* get here for, e.g., svg nodes though.
+            name = 'class';
+        }
         node.setAttribute(name, value);
     }
 }
