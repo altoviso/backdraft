@@ -346,31 +346,41 @@ function removeNodes(nodes) {
 }
 
 function connect(target, type, listener, options) {
-    let destroyed = false;
-    if (options === undefined) {
-        // do nothing, this is the common case
-    } else if (!supportsPassive) {
-        if (typeof options === 'object') {
-            // options as an object is not supported, capture is the only argument that is meaningful
-            options = !!options.capture;
-        } else {
-            // ensure a boolean
+    try {
+        let destroyed = false;
+        if (options === undefined) {
+            // do nothing, this is the common case
+        } else if (!supportsPassive) {
+            if (typeof options === 'object') {
+                // options as an object is not supported, capture is the only argument that is meaningful
+                options = !!options.capture;
+            } else {
+                // ensure a boolean
+                options = !!options;
+            }
+        } else if (typeof options !== 'object') {
+            // options was given as a boolean, indicating it was really passed as a capture argument; ensure a boolean
             options = !!options;
         }
-    } else if (typeof options !== 'object') {
-        // options was given as a boolean, indicating it was really passed as a capture argument; ensure a boolean
-        options = !!options;
-    }
 
-    target.addEventListener(type, listener, options);
-    return {
-        destroy() {
-            if (!destroyed) {
-                destroyed = true;
-                target.removeEventListener(type, listener, options);
+        target.addEventListener(type, listener, options);
+        return {
+            destroy() {
+                if (!destroyed) {
+                    destroyed = true;
+                    target.removeEventListener(type, listener, options);
+                }
             }
-        }
-    };
+        };
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e);
+        return {
+            destroy() {
+            },
+            failed: true
+        };
+    }
 }
 
 function stopEvent(event) {
