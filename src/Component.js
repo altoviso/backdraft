@@ -11,7 +11,6 @@ import {
     create,
     insert,
     removeNode,
-    connect,
     closest
 } from './dom.js';
 import { Element } from './element.js';
@@ -843,23 +842,6 @@ export class Component extends eventHub(WatchHub) {
     setStyle(property, value) {
         // WARNING: does not work for multi-root components
         return setStyle(this.bdDom.root, property, value);
-    }
-
-    animate(className, onComplete) {
-        if (this.rendered) {
-            const h = connect(this.bdDom.root, 'animationend', e => {
-                if (e.animationName === className) {
-                    h.destroy();
-                    !this.destroyed && this.removeClassName(className);
-                    if (onComplete) {
-                        onComplete.destroy ? onComplete.destroy() : onComplete();
-                    }
-                }
-            });
-            if (!this.containsClassName(className)) {
-                this.addClassName(className);
-            }
-        }
     }
 
     getPosit() {

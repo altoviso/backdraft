@@ -390,19 +390,6 @@ function stopEvent(event) {
     }
 }
 
-function animate(node, className, onComplete) {
-    const h = connect(node, 'animationend', e => {
-        if (e.animationName === className) {
-            h.destroy();
-            node.classList.remove(className);
-            if (onComplete) {
-                onComplete.destroy ? onComplete.destroy() : onComplete();
-            }
-        }
-    });
-    node.classList.add(className);
-}
-
 function closest(element, predicate) {
     if (!element) {
         return null;
@@ -441,7 +428,6 @@ export {
     removeNode,
     removeNodes,
     connect,
-    animate,
     stopEvent,
     closest
 };
