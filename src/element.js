@@ -1,4 +1,4 @@
-import {getPostProcessingFunction} from './postProcessingCatalog.js';
+import { getPostProcessingFunction } from './postProcessingCatalog.js';
 
 function flattenChildren(children) {
     // children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep

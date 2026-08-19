@@ -2,6 +2,7 @@ import { Component } from './Component.js';
 import { connect } from './dom.js';
 import { EventHub } from './eventHub.js';
 import { adviseGlobal } from './global.js';
+import { handleUnexpected } from './unexpectedHandler.js';
 import { watchHub } from './watchUtils.js';
 
 let focusedNode = null;

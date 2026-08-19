@@ -1,17 +1,17 @@
 import { destroyAll, pushDestroyables } from './destroyable.js';
 import {
-    stringifyScalar,
+    closest,
+    create,
     getAttr,
-    setAttr,
+    getPosit,
     getStyle,
     getStyles,
-    setStyle,
-    setPosit,
-    getPosit,
-    create,
     insert,
     removeNode,
-    closest
+    setAttr,
+    setPosit,
+    setStyle,
+    stringifyScalar
 } from './dom.js';
 import { Element } from './element.js';
 import { eventHub } from './eventHub.js';

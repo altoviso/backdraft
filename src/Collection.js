@@ -1,7 +1,7 @@
 import { Component } from './Component.js';
 import { destroyAll } from './destroyable.js';
 import { insert } from './dom.js';
-import { UNKNOWN_OLD_VALUE, toWatchable, isWatchable, withWatchables } from './watchUtils.js';
+import { isWatchable, toWatchable, UNKNOWN_OLD_VALUE, withWatchables } from './watchUtils.js';
 
 function applyLengthWatchers(owner, newValue, oldValue) {
     if (oldValue !== newValue) {
