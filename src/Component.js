@@ -342,13 +342,27 @@ export class Component extends eventHub(WatchHub) {
             } else {
                 this.bdAttachedHandles && destroyAll(this.bdAttachedHandles);
             }
-            return this.bdMutate('attachedToDoc', 'bdAttachedToDoc', value);
+            if (value) {
+                this.onAttachToDoc();
+            } else {
+                this.onUnattachToDoc();
+            }
+            return  this.bdMutate('attachedToDoc', 'bdAttachedToDoc', value);
         }// else no change, therefore, no op
         return false;
     }
 
     get attachedToDoc() {
         return !!this.bdAttachedToDoc;
+    }
+
+    onAttachToDoc() {
+        // base class noop
+    }
+
+
+    onUnattachToDoc() {
+        // base class noop
     }
 
     insChild(...args) {
