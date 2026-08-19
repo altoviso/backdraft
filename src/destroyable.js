@@ -1,13 +1,4 @@
-let unexpectedHandler = function (e) {
-    // eslint-disable-next-line no-console
-    console.error(e);
-};
-
-export function setUnexpectedHandler(h) {
-    const oldHandler = unexpectedHandler;
-    unexpectedHandler = h;
-    return oldHandler;
-}
+import { handleUnexpected } from './unexpectedHandler.js';
 
 export class Destroyable {
     constructor(proc, container, onEmpty, onDestroy) {
@@ -30,7 +21,7 @@ export class Destroyable {
             !this._pause && !this._pauseOnce && this._proc && this._proc(...args);
             this._pauseOnce && (this._pauseOnce = 0);
         } catch (e) {
-            unexpectedHandler(e);
+            handleUnexpected(e);
         }
         return this;
     }
@@ -46,7 +37,7 @@ export class Destroyable {
             try {
                 proc();
             } catch (e) {
-                unexpectedHandler(e);
+                handleUnexpected(e);
             }
             this.unpause();
             return this;
@@ -80,8 +71,7 @@ export class Destroyable {
                 this.onDestroy();
                 delete this.onDestroy;
             } catch (e) {
-                // squelch
-                unexpectedHandler(e);
+                handleUnexpected(e);
             }
         }
         delete this._proc;
@@ -96,16 +86,14 @@ export class Destroyable {
                     try {
                         this._onEmpty();
                     } catch (e) {
-                        // squelch
-                        unexpectedHandler(e);
+                        handleUnexpected(e);
                     }
                 }
                 if (container.onEmpty) {
                     try {
                         container.onEmpty();
                     } catch (e) {
-                        // squelch
-                        unexpectedHandler(e);
+                        handleUnexpected(e);
                     }
                 }
             }
@@ -161,5 +149,8 @@ export function destroyAll(container) {
         const toDestroy = container.slice();
         container.splice(0);
         toDestroy.forEach(h => h.destroy());
+        if (container.length) {
+            handleUnexpected(new Error('container not empty after destroyAll'));
+        }
     }// else container was likely falsy and never used
 }

@@ -82,7 +82,7 @@ function processNode_(node) {
             try {
                 component.bdOnBlur();
             } catch (e) {
-                console.error(e);
+                handleUnexpected(e);
             }
             focusManager.bdNotify({ type: 'blurComponent', component });
         }
@@ -94,7 +94,7 @@ function processNode_(node) {
         try {
             component.bdOnFocus();
         } catch (e) {
-            console.error(e);
+            handleUnexpected(e);
         }
         focusManager.bdNotify({ type: 'focusComponent', component });
     }

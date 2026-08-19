@@ -1,7 +1,8 @@
 import { connect, createHtml } from './dom.js';
 import { EventHub } from './eventHub.js';
 import { adviseGlobal } from './global.js';
-import { withWatchables, watchHub } from './watchUtils.js';
+import { handleUnexpected } from './unexpectedHandler.js';
+import { watchHub, withWatchables } from './watchUtils.js';
 
 // design of resizing
 //
@@ -191,7 +192,7 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), 'vh', 'vw', 're
                     };
                     child.style.display = 'none';
                 } catch (e) {
-                    cl && cl.unexpected && cl.unexpected(e);
+                    handleUnexpected(e);
                 }
             }
         }
@@ -214,7 +215,7 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), 'vh', 'vw', 're
                     node.scrollLeft = state.scrollLeft;
                 }
             } catch (e) {
-                cl && cl.unexpected && cl.unexpected(e);
+                handleUnexpected(e);
             }
         }
         window.scrollTo(scrollLeft, scrollTop);

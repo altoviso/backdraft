@@ -1,4 +1,6 @@
 import { adviseGlobal } from './global.js';
+import { handleUnexpected } from './unexpectedHandler.js';
+
 
 let window = 0;
 let document = 0;
@@ -373,8 +375,7 @@ function connect(target, type, listener, options) {
             }
         };
     } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error(e);
+        handleUnexpected(e);
         return {
             destroy() {
             },
