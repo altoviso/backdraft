@@ -849,16 +849,6 @@ export class Component extends eventHub(WatchHub) {
         return setStyle(this.bdDom.root, property, value);
     }
 
-    getPosit() {
-        // WARNING: does not work for multi-root components
-        return getPosit(this.bdDom.root);
-    }
-
-    setPosit(posit) {
-        // WARNING: does not work for multi-root components
-        setPosit(this.bdDom.root, posit);
-    }
-
     get posit() {
         // WARNING: does not work for multi-root components
         return this.bdDom && getPosit(this.bdDom.root);
