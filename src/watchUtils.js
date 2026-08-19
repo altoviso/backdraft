@@ -224,10 +224,10 @@ function applyWatchers(newValue, oldValue, receiver, name) {
 
 let pauseWatchers = false;
 const moving = false;
-let _silentSet = false;
+let settingSilently = false;
 
 function set(target, prop, value, receiver) {
-    if (_silentSet) {
+    if (settingSilently) {
         target[prop] = value;
         return true;
     }
@@ -268,7 +268,7 @@ const arrayProxyHandler = {
         if (prop === 'length') {
             const result = Reflect.set(target, prop, value, receiver);
             const oldValue = target[SWAP_OLD_LENGTH](value);
-            !pauseWatchers && !_silentSet && applyWatchers(value, oldValue, receiver, ['length']);
+            !pauseWatchers && !settingSilently && applyWatchers(value, oldValue, receiver, ['length']);
             return result;
         }
         return set(target, prop, value, receiver);
@@ -312,7 +312,7 @@ class WatchableArray extends Array {
         const changeSet = [];
         let result;
         try {
-            _silentSet = true;
+            settingSilently = true;
             result = super.splice(...args);
             for (let i = 0, end = Math.max(oldValues.length, this.length); i < end; i++) {
                 let value = this[i];
@@ -341,7 +341,7 @@ class WatchableArray extends Array {
                     changeSet.push(NO_CHANGE);
                 }
             }
-            _silentSet = false;
+            settingSilently = false;
         } catch (e) {
             try {
                 oldValues.forEach((value, i) => (this[i] = value));
@@ -349,7 +349,7 @@ class WatchableArray extends Array {
                 // eslint-disable-next-line no-console
                 console.error(e);
             }
-            _silentSet = false;
+            settingSilently = false;
             throw e;
         }
         try {
@@ -411,7 +411,7 @@ class WatchableArray extends Array {
         const advice = getAdvice(this, 'reverse');
         const oldValues = this.slice(QUICK_COPY);
         try {
-            _silentSet = true;
+            settingSilently = true;
             for (let i = 0, j = this.length - 1; i < j; i++, j--) {
                 const temp = this[i];
                 this[i] = this[j];
@@ -419,9 +419,9 @@ class WatchableArray extends Array {
                 this[j] = temp;
                 temp[PROP] = j;
             }
-            _silentSet = false;
+            settingSilently = false;
         } catch (e) {
-            _silentSet = false;
+            settingSilently = false;
             throw e;
         }
         try {
@@ -453,7 +453,7 @@ class WatchableArray extends Array {
         const changeSet = Array(this.length).fill(false);
         let changes = false;
         try {
-            _silentSet = true;
+            settingSilently = true;
             proc(this);
             this.forEach((value, i) => {
                 // eslint-disable-next-line eqeqeq
@@ -463,9 +463,9 @@ class WatchableArray extends Array {
                     changes = true;
                 }
             });
-            _silentSet = false;
+            settingSilently = false;
         } catch (e) {
-            _silentSet = false;
+            settingSilently = false;
             throw e;
         }
         try {
@@ -502,7 +502,7 @@ class WatchableArray extends Array {
 
 function silentSet(watchable, prop, value, enumerable, configurable) {
     try {
-        _silentSet = true;
+        settingSilently = true;
         if (value === undefined) {
             delete watchable[prop];
         } else if (enumerable !== undefined && !enumerable && !watchable.hasOwnProperty(prop)) {
@@ -514,9 +514,9 @@ function silentSet(watchable, prop, value, enumerable, configurable) {
         } else {
             watchable[prop] = value;
         }
-        _silentSet = false;
+        settingSilently = false;
     } catch (e) {
-        _silentSet = false;
+        settingSilently = false;
         throw e;
     }
 }
@@ -532,11 +532,11 @@ function createWatchable(src, owner, prop) {
         keys.forEach(k => (result[k] = src[k]));
     }
 
-    const silentHold = _silentSet;
-    _silentSet = true;
+    const silentHold = settingSilently;
+    settingSilently = true;
     Object.defineProperty(result, OWNER, { writable: true, value: owner });
     prop !== undefined && Object.defineProperty(result, PROP, { writable: true, value: prop });
-    _silentSet = silentHold;
+    settingSilently = silentHold;
     return result;
 }
 

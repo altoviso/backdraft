@@ -1,13 +1,13 @@
-let _global = 0;
+let global = 0;
 let watchers = [];
 
-export function global() {
-    return _global;
+export function getGlobal() {
+    return global;
 }
 
 export function setGlobal(theGlobal) {
-    if (!_global) {
-        _global = theGlobal;
+    if (!global) {
+        global = theGlobal;
         watchers.forEach(handler => handler(theGlobal));
         watchers = null;
     } else {
@@ -16,8 +16,8 @@ export function setGlobal(theGlobal) {
 }
 
 export function adviseGlobal(handler) {
-    if (_global) {
-        handler(_global);
+    if (global) {
+        handler(global);
     } else {
         watchers.push(handler);
     }

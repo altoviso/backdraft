@@ -1140,7 +1140,7 @@ function decodeRender(args) {
 }
 
 function unrender(node) {
-    function unrender_(n) {
+    function doUnrender(n) {
         const component = domNodeToComponent.get(n);
         if (component) {
             component.destroy();
@@ -1148,7 +1148,7 @@ function unrender(node) {
         node && node.parentNode && node.parentNode.removeChild(node);
     }
 
-    Array.isArray(node) ? node.forEach(unrender_) : (node && unrender_(node));
+    Array.isArray(node) ? node.forEach(doUnrender) : (node && doUnrender(node));
 }
 
 export function render(...args) {

@@ -4,15 +4,15 @@ function flattenChildren(children) {
     // children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
     const result = [];
 
-    function flatten_(child) {
+    function flatten(child) {
         if (Array.isArray(child)) {
-            child.forEach(flatten_);
+            child.forEach(flatten);
         } else if (child) {
             result.push(child);
         }
     }
 
-    flatten_(children);
+    flatten(children);
     return result;
 }
 

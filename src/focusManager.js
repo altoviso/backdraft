@@ -40,7 +40,7 @@ class FocusManager extends watchHub(EventHub) {
 
 export const focusManager = new FocusManager();
 
-function processNode_(node) {
+function doProcessNodeWork(node) {
     // send all the signals and twiddle all the variables upon a focus change
 
     const previousPreviousFocusedNode = previousFocusedNode;
@@ -130,8 +130,8 @@ function processNode(node) {
                 // console.log('recursive focus in', node);
             }
             try {
-                // notice that an application of processNode_ will never be interrupted by a focus change
-                processNode_(queue.shift());
+                // notice that an application of doProcessNodeWork will never be interrupted by a focus change
+                doProcessNodeWork(queue.shift());
             } catch (e) {
                 // eslint-disable-next-line no-console
                 console.log(e);
