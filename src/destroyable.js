@@ -10,13 +10,18 @@ export function setUnexpectedHandler(h) {
 }
 
 export class Destroyable {
-    constructor(proc, container, onEmpty) {
+    constructor(proc, container, onEmpty, onDestroy) {
         this._proc = proc;
         if (container) {
-            (this.container = container).push(this);
+            (this._container = container).push(this);
+            if (onEmpty) {
+                this._onEmpty = onEmpty;
+            }
         }
-        if (onEmpty) {
-            this.onEmpty = onEmpty;
+
+        // onDestroy is mutable
+        if (onDestroy) {
+            this.onDestroy = onDestroy;
         }
     }
 
@@ -80,16 +85,16 @@ export class Destroyable {
             }
         }
         delete this._proc;
-        const container = this.container;
+        const container = this._container;
         if (container) {
             const index = container.indexOf(this);
             if (index !== -1) {
                 container.splice(index, 1);
             }
             if (!container.length) {
-                if (this.onEmpty) {
+                if (this._onEmpty) {
                     try {
-                        this.onEmpty();
+                        this._onEmpty();
                     } catch (e) {
                         // squelch
                         unexpectedHandler(e);
@@ -142,8 +147,8 @@ export class DestroyableInterval extends Destroyable {
     }
 }
 
-export function destroyable(proc, container, onEmpty) {
-    return new Destroyable(proc, container, onEmpty);
+export function destroyable(proc, container, onEmpty, onDestroy) {
+    return new Destroyable(proc, container, onEmpty, onDestroy);
 }
 
 export function destroyAll(container) {
