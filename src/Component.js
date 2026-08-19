@@ -593,8 +593,9 @@ export class Component extends eventHub(WatchHub) {
     }
 
     get staticClassName() {
-        return this.kwargs.hasOwnProperty('staticClassName') ?
-            this.kwargs.staticClassName : (this.constructor.className || '');
+        return this.kwargs && Object.hasOwn(this.kwargs, 'staticClassName')
+            ? this.kwargs.staticClassName
+            : (this.constructor.className || '');
     }
 
     get className() {

@@ -240,9 +240,9 @@ const onMutateNames = {};
 function onMutateItemWatchable(propName, owner, newValue, oldValue) {
     let procName = onMutateNames[propName];
     if (procName === undefined) {
-        procName = onMutateNames[propName] = typeof propName === 'symbol' ?
-            false :
-            `onMutate${propName.substring(0, 1).toUpperCase()}${propName.substring(1)}`;
+        procName = onMutateNames[propName] = typeof propName === 'symbol'
+            ? false
+            : `onMutate${propName.substring(0, 1).toUpperCase()}${propName.substring(1)}`;
     }
     procName && owner[procName] && owner[procName](newValue, oldValue);
 }
