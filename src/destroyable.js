@@ -66,6 +66,10 @@ export class Destroyable {
     }
 
     destroy() {
+        if (!this._proc) {
+            // already destroyed
+            return;
+        }
         if (this.onDestroy) {
             try {
                 this.onDestroy();
@@ -153,4 +157,27 @@ export function destroyAll(container) {
             handleUnexpected(new Error('container not empty after destroyAll'));
         }
     }// else container was likely falsy and never used
+}
+
+function noop() {
+    // noop
+}
+
+export function pushDestroyables(dest, ...destroyables) {
+    destroyables.forEach(destroyable => {
+        if (Array.isArray(destroyable)) {
+            pushDestroyables(dest, ...destroyable);
+        } else if (destroyable) {
+            const destroy = destroyable.destroy.bind(destroyable);
+            destroyable.destroy = () => {
+                destroy();
+                const index = dest.indexOf(destroyable);
+                if (index !== -1) {
+                    dest.splice(index, 1);
+                }
+                destroyable.destroy = noop;
+            };
+            dest.push(destroyable);
+        }
+    });
 }

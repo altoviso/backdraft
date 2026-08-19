@@ -1,4 +1,4 @@
-import { destroyAll } from './destroyable.js';
+import { destroyAll, pushDestroyables } from './destroyable.js';
 import {
     stringifyScalar,
     getAttr,
@@ -79,28 +79,6 @@ function postProcess(ppFuncs, owner, target) {
             getPostProcessingFunction(ppf)(owner, target, ...args);
         } else {
             getPostProcessingFunction(ppf)(owner, target, args);
-        }
-    });
-}
-
-function noop() {
-}
-
-function pushHandles(dest, ...handles) {
-    handles.forEach(h => {
-        if (Array.isArray(h)) {
-            pushHandles(dest, ...h);
-        } else if (h) {
-            const destroy = h.destroy.bind(h);
-            h.destroy = () => {
-                destroy();
-                const index = dest.indexOf(h);
-                if (index !== -1) {
-                    dest.splice(index, 1);
-                }
-                h.destroy = noop;
-            };
-            dest.push(h);
         }
     });
 }
@@ -306,15 +284,15 @@ export class Component extends eventHub(WatchHub) {
         if (!_handles) {
             ownedHandlesCatalog.set(this, (_handles = []));
         }
-        pushHandles(_handles, ...handles);
+        pushDestroyables(_handles, ...handles);
     }
 
     ownWhileRendered(...handles) {
-        pushHandles(this.bdDom.handles || (this.bdDom.handles = []), ...handles);
+        pushDestroyables(this.bdDom.handles || (this.bdDom.handles = []), ...handles);
     }
 
     ownWhileAttached(...handles) {
-        pushHandles(this.bdAttachedHandles || (this.bdAttachedHandles = []), ...handles);
+        pushDestroyables(this.bdAttachedHandles || (this.bdAttachedHandles = []), ...handles);
     }
 
     get parent() {
