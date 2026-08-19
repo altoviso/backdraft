@@ -83,6 +83,10 @@ function postProcess(ppFuncs, owner, target) {
     });
 }
 
+function nonnullHandleExists(handles) {
+    return handles.find(h => Array.isArray(h) ? nonnullHandleExists(h) : h);
+}
+
 const ownedHandlesCatalog = new WeakMap();
 const domNodeToComponent = new Map();
 
@@ -280,6 +284,9 @@ export class Component extends eventHub(WatchHub) {
     }
 
     own(...handles) {
+        if (!nonnullHandleExists(handles)) {
+            return;
+        }
         let _handles = ownedHandlesCatalog.get(this);
         if (!_handles) {
             ownedHandlesCatalog.set(this, (_handles = []));
@@ -288,10 +295,16 @@ export class Component extends eventHub(WatchHub) {
     }
 
     ownWhileRendered(...handles) {
+        if (!nonnullHandleExists(handles)) {
+            return;
+        }
         pushDestroyables(this.bdDom.handles || (this.bdDom.handles = []), ...handles);
     }
 
     ownWhileAttached(...handles) {
+        if (!nonnullHandleExists(handles)) {
+            return;
+        }
         pushDestroyables(this.bdAttachedHandles || (this.bdAttachedHandles = []), ...handles);
     }
 
