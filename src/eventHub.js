@@ -52,42 +52,41 @@ function eventHub(superClass) {
                 return Reflect.ownKeys(hash).map(key => this.advise(key, hash[key]));
             } else if (Array.isArray(eventName)) {
                 return eventName.map(name => this.advise(name, handler));
-            } else {
-                if (eventName === '_eventHubAdviseNoEvents') {
-                    throw new Error('cannot advise on reserved event name');
-                }
-                if (this._notifyingNoEvents) {
-                    throw new Error('cannot create advise in all listeners destroyed handler');
-                }
-                let events = listenerCatalog.get(this);
-                if (!events) {
-                    listenerCatalog.set(this, (events = {}));
-                }
-                let eventHandlerList = events[eventName];
-                if (!eventHandlerList) {
-                    eventHandlerList = events[eventName] = [];
-                    eventHandlerList.onEmpty = () => {
-                        delete events[eventName];
-                        if (Object.keys(events).length === 1 && events._eventHubAdviseNoEvents) {
-                            // the only listeners left are the "special" listeners waiting to be advised when all other
-                            // listeners have been destroyed
-                            try {
-                                this._notifyingNoEvents = true;
-                                const e = { type: 'all-listeners-destroyed', target: this };
-                                events._eventHubAdviseNoEvents.slice().forEach(destroyable => destroyable.proc(e));
-                            } catch (e) {
-                                // squelch
-                                // eslint-disable-next-line no-console
-                                console.error(e);
-                            }
-                            this._notifyingNoEvents = false;
-                        }
-                    };
-                }
-                const result = destroyable(handler, eventHandlerList);
-                this.own && this.own(result);
-                return result;
             }
+            if (eventName === '_eventHubAdviseNoEvents') {
+                throw new Error('cannot advise on reserved event name');
+            }
+            if (this._notifyingNoEvents) {
+                throw new Error('cannot create advise in all listeners destroyed handler');
+            }
+            let events = listenerCatalog.get(this);
+            if (!events) {
+                listenerCatalog.set(this, (events = {}));
+            }
+            let eventHandlerList = events[eventName];
+            if (!eventHandlerList) {
+                eventHandlerList = events[eventName] = [];
+                eventHandlerList.onEmpty = () => {
+                    delete events[eventName];
+                    if (Object.keys(events).length === 1 && events._eventHubAdviseNoEvents) {
+                        // the only listeners left are the "special" listeners waiting to be advised when all other
+                        // listeners have been destroyed
+                        try {
+                            this._notifyingNoEvents = true;
+                            const e = { type: 'all-listeners-destroyed', target: this };
+                            events._eventHubAdviseNoEvents.slice().forEach(destroyable => destroyable.proc(e));
+                        } catch (e) {
+                            // squelch
+                            // eslint-disable-next-line no-console
+                            console.error(e);
+                        }
+                        this._notifyingNoEvents = false;
+                    }
+                };
+            }
+            const result = destroyable(handler, eventHandlerList);
+            this.own && this.own(result);
+            return result;
         }
 
         adviseAllListenersDestroyed(handler) {

@@ -614,9 +614,8 @@ export class Component extends eventHub(WatchHub) {
                 staticClassName.split(' ').forEach(s => (className = className.replace(s, '')));
             }
             return cleanClassName(className);
-        } else {
-            return this.bdClassName || '';
         }
+        return this.bdClassName || '';
     }
 
     set className(value) {
@@ -820,9 +819,8 @@ export class Component extends eventHub(WatchHub) {
             const result = data[args[i]];
             delete data[args[i]];
             return result;
-        } else {
-            return undefined;
         }
+        return undefined;
     }
 
     getAttr(name) {
@@ -869,9 +867,8 @@ export class Component extends eventHub(WatchHub) {
         if (this.rendered) {
             // unconditionally make sure this.bdTabIndex and the dom is synchronized on each get
             return (this.bdTabIndex = (this.bdDom.tabIndexNode || this.bdDom.root).tabIndex);
-        } else {
-            return this.bdTabIndex;
         }
+        return this.bdTabIndex;
     }
 
     set tabIndex(value) {
@@ -938,9 +935,8 @@ export class Component extends eventHub(WatchHub) {
         // WARNING: does not work for multi-root components
         if (this.rendered) {
             return (this.bdDom.titleNode || this.bdDom.root).title;
-        } else {
-            return this.bdTitle;
         }
+        return this.bdTitle;
     }
 
     set title(value) {
@@ -958,9 +954,8 @@ export class Component extends eventHub(WatchHub) {
                 let result;
                 root.find(node => (result = node.querySelector(selector)));
                 return result;
-            } else {
-                return root.querySelector(selector);
             }
+            return root.querySelector(selector);
         }
         return null;
     }
@@ -974,9 +969,8 @@ export class Component extends eventHub(WatchHub) {
                     node.querySelectorAll(selector).forEach(node => result.push(node));
                 });
                 return result;
-            } else {
-                return Array.from(root.querySelectorAll(selector));
             }
+            return Array.from(root.querySelectorAll(selector));
         }
         return [];
     }
@@ -1056,10 +1050,9 @@ export class Component extends eventHub(WatchHub) {
                 }
             }
             return result;
-        } else {
-            // e must be convertible to a string
-            return document.createTextNode(e);
         }
+        // e must be convertible to a string
+        return document.createTextNode(e);
     }
 }
 
@@ -1127,26 +1120,23 @@ function decodeRender(args) {
     if (arg1 instanceof Element || arg1 instanceof Component) {
         // [1] or [2] || [7] or [8]
         return { src: arg1, attachPoint: arg2, position: arg3 };
-    } else {
-        if (!isComponentDerivedCtor(arg1)) {
-            throw new Error('first argument must be an Element, Component, or a class derived from Component');
-        }
-        if (args.length === 1) {
-            // [3]
-            return { src: new Element(arg1) };
-        } else {
-            // more than one argument; the second argument is either props or not
-            // eslint-disable-next-line no-lonely-if
-            if (Object.getPrototypeOf(arg2) === prototypeOfObject) {
-                // [4] or [6]
-                // WARNING: this signature requires kwargs to be a plain javascript Object
-                return { src: new Element(arg1, arg2), attachPoint: arg3, position: arg4 };
-            } else {
-                // [5]
-                return { src: new Element(arg1), attachPoint: arg2, position: arg3 };
-            }
-        }
     }
+    if (!isComponentDerivedCtor(arg1)) {
+        throw new Error('first argument must be an Element, Component, or a class derived from Component');
+    }
+    if (args.length === 1) {
+        // [3]
+        return { src: new Element(arg1) };
+    }
+    // more than one argument; the second argument is either props or not
+
+    if (Object.getPrototypeOf(arg2) === prototypeOfObject) {
+        // [4] or [6]
+        // WARNING: this signature requires kwargs to be a plain javascript Object
+        return { src: new Element(arg1, arg2), attachPoint: arg3, position: arg4 };
+    }
+    // [5]
+    return { src: new Element(arg1), attachPoint: arg2, position: arg3 };
 }
 
 function unrender(node) {

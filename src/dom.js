@@ -73,9 +73,8 @@ function setAttr(node, name, value) {
 function getAttr(node, name) {
     if (name in node.constructor.prototype) {
         return node[name];
-    } else {
-        return node.getAttribute(name);
     }
+    return node.getAttribute(name);
 }
 
 let lastComputedStyleNode = 0;

@@ -50,14 +50,12 @@ class WatchableRef {
                 if (formatter) {
                     if (referenceProp === STAR) {
                         return () => formatter(referenceObject);
-                    } else {
-                        return () => formatter(referenceObject[referenceProp]);
                     }
+                    return () => formatter(referenceObject[referenceProp]);
                 } else if (referenceProp === STAR) {
                     return () => referenceObject;
-                } else {
-                    return () => referenceObject[referenceProp];
                 }
+                return () => referenceObject[referenceProp];
             })()
         });
 
@@ -232,25 +230,24 @@ function set(target, prop, value, receiver) {
     if (_silentSet) {
         target[prop] = value;
         return true;
-    } else {
-        const oldValue = target[prop];
-        if (value instanceof Object) {
-            const holdPauseWatchers = pauseWatchers;
-            try {
-                pauseWatchers = true;
-                value = moving ? value : createWatchable(value, receiver, prop);
-                pauseWatchers = holdPauseWatchers;
-            } catch (e) {
-                pauseWatchers = holdPauseWatchers;
-                throw e;
-            }
-        }
-        // we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
-        // even though we haven't seen the mutation before, e.g., length in an Array instance
-        const result = Reflect.set(target, prop, value, receiver);
-        !pauseWatchers && applyWatchers(value, oldValue, receiver, [prop]);
-        return result;
     }
+    const oldValue = target[prop];
+    if (value instanceof Object) {
+        const holdPauseWatchers = pauseWatchers;
+        try {
+            pauseWatchers = true;
+            value = moving ? value : createWatchable(value, receiver, prop);
+            pauseWatchers = holdPauseWatchers;
+        } catch (e) {
+            pauseWatchers = holdPauseWatchers;
+            throw e;
+        }
+    }
+    // we would like to set and applyWatchers iff target[prop] !== value. Unfortunately, sometimes target[prop] === value
+    // even though we haven't seen the mutation before, e.g., length in an Array instance
+    const result = Reflect.set(target, prop, value, receiver);
+    !pauseWatchers && applyWatchers(value, oldValue, receiver, [prop]);
+    return result;
 }
 
 const objectProxyHandler = {
@@ -273,9 +270,8 @@ const arrayProxyHandler = {
             const oldValue = target[SWAP_OLD_LENGTH](value);
             !pauseWatchers && !_silentSet && applyWatchers(value, oldValue, receiver, ['length']);
             return result;
-        } else {
-            return set(target, prop, value, receiver);
         }
+        return set(target, prop, value, receiver);
     }
 };
 
@@ -574,9 +570,8 @@ function fromWatchable(data) {
             }
         });
         return result;
-    } else {
-        return data;
     }
+    return data;
 }
 
 const onMutateNames = {};
@@ -599,40 +594,39 @@ function mutate(owner, name, privateName, newValue) {
     const oldValue = owner[privateName];
     if (eql(oldValue, newValue)) {
         return false;
-    } else {
-        const {
-            onMutateBeforeName,
-            onMutateName,
-            onMutateAfterName
-        } = onMutateNames[name] || createOnMutateNames(name);
-
-        if (onMutateBeforeName && owner[onMutateBeforeName]) {
-            newValue = owner[onMutateBeforeName](newValue, oldValue);
-            if (newValue === CANCEL_MUTATION) {
-                // the proposed mutation is illegal
-                return false;
-            }
-        }
-
-        if (owner.beforeMutateWatchable) {
-            newValue = owner.beforeMutateWatchable(name, newValue, oldValue);
-            if (newValue === CANCEL_MUTATION) {
-                // the proposed mutation is illegal
-                return false;
-            }
-        }
-
-        if (owner.hasOwnProperty(privateName)) {
-            owner[privateName] = newValue;
-        } else {
-            // not enumerable or configurable
-            Object.defineProperty(owner, privateName, { writable: true, value: newValue });
-        }
-
-        onMutateName && owner[onMutateName] && owner[onMutateName](newValue, oldValue);
-
-        return [name, newValue, oldValue, onMutateAfterName];
     }
+    const {
+        onMutateBeforeName,
+        onMutateName,
+        onMutateAfterName
+    } = onMutateNames[name] || createOnMutateNames(name);
+
+    if (onMutateBeforeName && owner[onMutateBeforeName]) {
+        newValue = owner[onMutateBeforeName](newValue, oldValue);
+        if (newValue === CANCEL_MUTATION) {
+            // the proposed mutation is illegal
+            return false;
+        }
+    }
+
+    if (owner.beforeMutateWatchable) {
+        newValue = owner.beforeMutateWatchable(name, newValue, oldValue);
+        if (newValue === CANCEL_MUTATION) {
+            // the proposed mutation is illegal
+            return false;
+        }
+    }
+
+    if (owner.hasOwnProperty(privateName)) {
+        owner[privateName] = newValue;
+    } else {
+        // not enumerable or configurable
+        Object.defineProperty(owner, privateName, { writable: true, value: newValue });
+    }
+
+    onMutateName && owner[onMutateName] && owner[onMutateName](newValue, oldValue);
+
+    return [name, newValue, oldValue, onMutateAfterName];
 }
 
 function getWatcher(owner, watcher) {
@@ -728,16 +722,15 @@ function watchHub(superClass) {
                     return results;
                 }
                 return false;
-            } else {
-                const result = mutate(this, name, privateName, newValue);
-                if (result) {
-                    const [name, newValue, oldValue, onMutateAfterName] = result;
-                    this.bdMutateNotify(name, newValue, oldValue);
-                    onMutateAfterName && this[onMutateAfterName] && this[onMutateAfterName](newValue, oldValue);
-                    return result;
-                }
-                return false;
             }
+            const result = mutate(this, name, privateName, newValue);
+            if (result) {
+                const [name, newValue, oldValue, onMutateAfterName] = result;
+                this.bdMutateNotify(name, newValue, oldValue);
+                onMutateAfterName && this[onMutateAfterName] && this[onMutateAfterName](newValue, oldValue);
+                return result;
+            }
+            return false;
         }
 
         // public interface...
@@ -961,9 +954,8 @@ function bind(src, srcProp, dest, destProp) {
         return src.watch(srcProp, newValue => (dest[destProp] = newValue));
     } else if (src[OWNER]) {
         return watch(srcProp, newValue => (dest[destProp] = newValue));
-    } else {
-        throw new Error('src is not watchable');
     }
+    throw new Error('src is not watchable');
 }
 
 function biBind(src1, prop1, src2, prop2) {

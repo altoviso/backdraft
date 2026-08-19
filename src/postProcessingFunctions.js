@@ -156,10 +156,9 @@ insPostProcessingFunction(
         } else if (prop) {
             // e.g., bdReflect_someProp: "someProp" -or- [[refObject,] "someOtherProp" [, someFormatter], ...]
             return { [prop]: value };
-        } else {
-            // e.g., bdReflect: "someProp" -or- [[refObject,] "someOtherProp" [, someFormatter], ...]
-            return { innerHTML: value };
         }
+        // e.g., bdReflect: "someProp" -or- [[refObject,] "someOtherProp" [, someFormatter], ...]
+        return { innerHTML: value };
     },
     (ppfOwner, ppfTarget, props) => {
         // props is a hash from property in ppfTarget to a property in ppfOwner or
@@ -221,10 +220,9 @@ insPostProcessingFunction(
         } else if (prop) {
             // e.g., bdPromise_someProp: somePromise -or- [somePromise [, initialValue] [, someFormatter], ...]
             return { [prop]: value };
-        } else {
-            // e.g., bdPromise: somePromise -or- [somePromise [, initialValue] [, someFormatter], ...]
-            return { innerHTML: value };
         }
+        // e.g., bdPromise: somePromise -or- [somePromise [, initialValue] [, someFormatter], ...]
+        return { innerHTML: value };
     },
     (ppfOwner, ppfTarget, props) => {
         // props is a hash from property in ppfTarget to a promise or
