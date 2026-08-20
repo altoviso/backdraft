@@ -41,11 +41,12 @@
 		"browser application library"
 	],
 	"devDependencies": {
-		"bd-smoke": "^1.6.0",
-		"eslint": "^6.8.0",
-		"eslint-config-backdraft": "^1.0.1",
-		"eslint-plugin-import": "^2.20.1",
-		"rollup": "^1.31.1",
-		"selenium-webdriver": "^4.0.0-alpha.5"
+		"@stylistic/eslint-plugin": "^5.10.0",
+		"bd-smoke": "^1.7.0",
+		"eslint": "^10.8.0",
+		"eslint-plugin-import-x": "^4.17.1",
+		"globals": "^17.9.0",
+		"rollup": "^4.62.4",
+		"selenium-webdriver": "^4.47.0"
 	}
 }
