@@ -377,6 +377,7 @@ function connect(target, type, listener, options) {
         handleUnexpected(e);
         return {
             destroy() {
+                // no-op since nothing to destroy
             },
             failed: true
         };

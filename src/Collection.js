@@ -20,7 +20,6 @@ function updateChildren(collection, owner, oldLength) {
         const childrenCount = children.length;
         let child,
             j = i;
-        // eslint-disable-next-line no-cond-assign
         while (j < childrenCount && (child = children[j]) && child.collectionItem !== item) j++;
         if (j >= childrenCount) {
             // new item

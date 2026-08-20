@@ -5,6 +5,8 @@ import { adviseGlobal } from './global.js';
 import { handleUnexpected } from './unexpectedHandler.js';
 import { watchHub } from './watchUtils.js';
 
+const UserReactionTime = 200;
+
 let focusedNode = null;
 let previousFocusedNode = null;
 let focusedComponent = null;
@@ -12,6 +14,7 @@ let previousFocusedComponent = null;
 let nextFocusedComponent = null;
 const focusStack = [];
 
+/* eslint-disable class-methods-use-this */
 class FocusManager extends watchHub(EventHub) {
     get focusedNode() {
         return focusedNode;
@@ -37,6 +40,7 @@ class FocusManager extends watchHub(EventHub) {
         return nextFocusedComponent;
     }
 }
+/* eslint-enable class-methods-use-this */
 
 export const focusManager = new FocusManager();
 
@@ -114,7 +118,7 @@ function processNode(node) {
     // it is possible this routine may be applied recursively. to protect
     // against infinite recursion, it guards against a maximum recursive depth
     // of WATCHDOG_LIMIT. When that limit is reached, focus events are
-    // ignored for a short period (currently 50ms) to allow the system
+    // ignored for a short period (currently UserReactionTime) to allow the system
     // to clear itself.
 
     queue.push(node);
@@ -127,7 +131,6 @@ function processNode(node) {
                 // recursive application of processNode. this happens when code reacting to a focus
                 // change causes another focus change and further that the browser fired  a recursive
                 // focusin event on the same code path
-                // console.log('recursive focus in', node);
             }
             try {
                 // notice that an application of doProcessNodeWork will never be interrupted by a focus change
@@ -144,7 +147,7 @@ function processNode(node) {
             setTimeout(() => {
                 queue = [];
                 processing = false;
-            }, 50);
+            }, UserReactionTime);
         } else {
             processing = false;
         }
@@ -174,7 +177,7 @@ adviseGlobal(window => {
         processNode(node);
     });
 
-    // eslint-disable-next-line no-unused-vars
+
     connect(document.body, 'focusout', () => {
         // If the blur event isn't followed by a focus event, it means the focus left the document
 

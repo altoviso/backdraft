@@ -42,6 +42,8 @@ function eventHub(superClass) {
         }
 
         // public interface...
+
+        // eslint-disable-next-line class-methods-use-this
         get isBdEventHub() {
             return true;
         }

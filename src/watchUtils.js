@@ -45,7 +45,6 @@ class WatchableRef {
 
         Object.defineProperty(this, 'value', {
             enumerable: true,
-            // eslint-disable-next-line func-names
             get: (function () {
                 if (formatter) {
                     if (referenceProp === STAR) {
@@ -190,9 +189,8 @@ function watch(watchable, name, watcher) {
         return Reflect.ownKeys(hash).map(name => insWatcher(name, hash[name]));
     } else if (Array.isArray(name)) {
         return name.map(name => insWatcher(name, watcher));
-    } else {
-        return insWatcher(name, watcher);
     }
+    return insWatcher(name, watcher);
 }
 
 let holdStarNotifications = false;
@@ -586,7 +584,7 @@ function createOnMutateNames(name) {
     return (onMutateNames[name] = {
         onMutateBeforeName: `onMutateBefore${suffix}`,
         onMutateName: `onMutate${suffix}`,
-        onMutateAfterName: `onMutateAfter${suffix}`,
+        onMutateAfterName: `onMutateAfter${suffix}`
     });
 }
 
@@ -734,6 +732,8 @@ function watchHub(superClass) {
         }
 
         // public interface...
+
+        // eslint-disable-next-line class-methods-use-this
         get isBdWatchHub() {
             return true;
         }
@@ -915,6 +915,7 @@ function withWatchables(superClass, ...args) {
         }
         publicPropNames.push(name);
         privatePropNames.push(pname);
+        // eslint-disable-next-line no-use-before-define
         Object.defineProperty(prototype, name, {
             enumerable: true,
             get() {

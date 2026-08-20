@@ -79,6 +79,8 @@ import { watchHub, withWatchables } from './watchUtils.js';
 //
 // If one of these conditions does not exist, then fixedMobileSizing should not be used and other CSS designs considered.
 
+// time in ms that a user will start to notice a delay
+const UserReactionTime = 200;
 
 let measureNode = 0;
 
@@ -94,7 +96,7 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), 'vh', 'vw', 're
     constructor(throttle) {
         super({});
         this.vh = this.vw = 0;
-        this.throttle = throttle || 300;
+        this.throttle = throttle || UserReactionTime;
         this._pause = true;
         this._scrollTimeoutHandle = 0;
         this._lastScrollEvent = {};
@@ -224,7 +226,7 @@ class ViewportWatcher extends withWatchables(watchHub(EventHub), 'vh', 'vw', 're
         this._notifyResize(vh, vw, rechecking ? 'rechecking' : 'event');
         this._lastResizeTs = Date.now();
         if (!rechecking) {
-            this._recheckSizeTimeoutHandle = setTimeout(this.onResize.bind(this, 'recheck'), Math.max(this.throttle, 200));
+            this._recheckSizeTimeoutHandle = setTimeout(this.onResize.bind(this, 'recheck'), Math.max(this.throttle, UserReactionTime));
         }
     }
 

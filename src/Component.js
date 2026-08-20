@@ -239,10 +239,12 @@ export class Component extends eventHub(WatchHub) {
         return this.bdDom.root;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     postRender() {
         // no-op
     }
 
+    // eslint-disable-next-line class-methods-use-this
     bdElements() {
         return new Element('div', {});
     }
@@ -347,7 +349,7 @@ export class Component extends eventHub(WatchHub) {
             } else {
                 this.onUnattachToDoc();
             }
-            return  this.bdMutate('attachedToDoc', 'bdAttachedToDoc', value);
+            return this.bdMutate('attachedToDoc', 'bdAttachedToDoc', value);
         }// else no change, therefore, no op
         return false;
     }
@@ -356,11 +358,12 @@ export class Component extends eventHub(WatchHub) {
         return !!this.bdAttachedToDoc;
     }
 
+    // eslint-disable-next-line class-methods-use-this
     onAttachToDoc() {
         // base class noop
     }
 
-
+    // eslint-disable-next-line class-methods-use-this
     onUnattachToDoc() {
         // base class noop
     }
@@ -383,7 +386,7 @@ export class Component extends eventHub(WatchHub) {
         } else if (!/before|after|replace|only|first|last/.test(position) && typeof position !== 'number') {
             throw new Error('unexpected');
         }
-        if (typeof position == 'number') {
+        if (typeof position === 'number') {
             if (position !== Math.floor(position) || position < 0 || children.length < position) {
                 // not an integer or not in [0..children.length]
                 throw new Error('unexpected');
@@ -641,18 +644,16 @@ export class Component extends eventHub(WatchHub) {
 
     addClassName(...values) {
         const current = this.bdClassName || '';
-        this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
-            return classValueToRegExp(value).test(className) ? className : `${className + value} `;
-        }, ` ${current} `).trim(), current);
+        this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) =>
+            classValueToRegExp(value).test(className) ? className : `${className + value} `, ` ${current} `).trim(), current);
         return this;
     }
 
     removeClassName(...values) {
         // WARNING: if a staticClassName was given as a constructor argument, then that part of node.className is NOT considered
         const current = this.bdClassName || '';
-        this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
-            return className.replace(classValueToRegExp(value, 'g'), ' ');
-        }, ` ${current} `).trim(), current);
+        this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) =>
+            className.replace(classValueToRegExp(value, 'g'), ' '), ` ${current} `).trim(), current);
         return this;
     }
 
@@ -662,9 +663,8 @@ export class Component extends eventHub(WatchHub) {
         this.bdSetClassName(conditionClassNameArgs(values).reduce((className, value) => {
             if (classValueToRegExp(value).test(className)) {
                 return className.replace(classValueToRegExp(value, 'g'), ' ');
-            } else {
-                return `${className + value} `;
             }
+            return `${className + value} `;
         }, ` ${current} `).trim(), current);
         return this;
     }
