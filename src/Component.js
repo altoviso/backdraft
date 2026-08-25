@@ -126,7 +126,7 @@ export class Component extends eventHub(WatchHub) {
 
         if (kwargs.elements) {
             if (typeof kwargs.elements === 'function') {
-                this.bdElements = kwargs.elements;
+                this.bdElements = kwargs.elements.bind(this);
             } else {
                 this.bdElements = () => kwargs.elements;
             }
