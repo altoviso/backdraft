@@ -13,7 +13,7 @@ import {
     setStyle,
     stringifyScalar
 } from './dom.js';
-import { Element } from './element.js';
+import { Element, element } from './element.js';
 import { eventHub } from './eventHub.js';
 import { adviseGlobal } from './global.js';
 import { getPostProcessingFunction } from './postProcessingCatalog.js';
@@ -1063,6 +1063,7 @@ Component.iconClassName = 'icon';
 Component.getAllTopLevelNodes = () => [...domNodeToComponent.keys()];
 Component.getAllComponents = () => [...domNodeToComponent.values()];
 Component.debounceDelay = 200;
+element.addElementType('Component', Component);
 
 function isComponentDerivedCtor(f) {
     return f === Component || (f && isComponentDerivedCtor(Object.getPrototypeOf(f)));
