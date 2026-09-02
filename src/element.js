@@ -1,4 +1,5 @@
 import { getPostProcessingFunction } from './postProcessingCatalog.js';
+import { handleUnexpected } from './unexpectedHandler.js';
 
 function flattenChildren(children) {
     // children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
@@ -32,6 +33,8 @@ export class Element {
                 this.type = type;
             } else if (type) {
                 // leave this.isComponentType === undefined
+                // e.g., new Element('div', <props>, <children>)
+                // e.g., new Element(['http://www.w3.org/2000/svg', 'circle'], <props>, <children>)
                 this.type = Array.isArray(type) ? type : `${type}`;
             } else {
                 throw new Error('type is required');
@@ -99,24 +102,38 @@ export function element(type, props, ...children) {
     return new Element(type, props, children);
 }
 
-element.addElementType = function addElementType(type) {
-    // type is either a constructor (a function) or a string
-    if (typeof type === 'function') {
-        if (type.name in element) {
-            // eslint-disable-next-line no-console
-            console.error(type.name, 'already in element');
-        } else {
-            element[type.name] = (props, ...children) => new Element(type, props, children);
-        }
-    } else {
-        // eslint-disable-next-line no-lonely-if
-        if (type in element) {
-            // eslint-disable-next-line no-console
-            console.error(type, 'already in element');
-        } else {
-            element[type] = (props, ...children) => new Element(type, props, children);
-        }
+// create syntax sugar, e.g.,
+//
+// element.addElementType('niceName", SomeComponentClass);
+// element.addElementType('ThreeStateCheckbox', Checkbox.ThreeState);
+//
+// allows the following expressions
+//
+// element.niceName(props, children)
+//     equivalent to new Element(SomeComponentClass, props, children);
+// element.ThreeStateCheckbox(props, children)
+//     equivalent to  new Element(Checkbox.ThreeState, props, children);
+//
+//
+// caution, this function cannot be simplified to addElementor(ctor), then
+//
+// if (typeof name === 'function' && !ctor) {
+//     ctor = name;
+//     name = ctor.name;
+// }
+//
+// because minimizers may change the function name!
+element.addElementType = function addElementType(name, ctor) {
+    if (!name) {
+        handleUnexpected(new Error('addElementType: missing name'));
+        return;
     }
+    if (name in element) {
+        handleUnexpected(new Error(`addElementType: "${name}" already defined`));
+        return;
+    }
+    const type = typeof ctor === 'function' ? ctor : name;
+    element[name] = (props, ...children) => new Element(type, props, children);
 };
 
 'a.abbr.address.area.article.aside.audio.base.bdi.bdo.blockquote.br.button.canvas.caption.cite.code.col.colgroup.data.datalist.dd.del.details.dfn.div.dl.dt.em.embed.fieldset.figcaption.figure.footer.form.h1.h2.h3.h4.h5.h6.h7.head.header.hr.html.i.iframe.img.input.ins.kbd.label.legend.li.link.main.map.mark.meta.meter.nav.noscript.object.ol.optgroup.option.output.p.param.picture.pre.progress.q.rb.rp.rt.rtc.ruby.s.samp.script.section.select.slot.small.source.span.strong.style.sub.summary.sup.table.tbody.td.template.textarea.tfoot.th.thead.time.title.tr.track.u.ul.var.video.wbr'.split('.').forEach(element.addElementType);
