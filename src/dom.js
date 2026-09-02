@@ -56,14 +56,26 @@ function setAttr(node, name, value) {
         Object.keys(name).forEach(n => setAttr(node, n, name[n]));
     } else if (name === 'style') {
         setStyle(node, value);
-    } else if (name === 'innerHTML' || (name in node && node instanceof HTMLElement)) {
-        node[name] = value;
+    } else if (
+        // the property is at least defined on node...though it may be read-only
+        name in node &&
+
+        // this branch deals only with HTMLElements
+        node instanceof HTMLElement &&
+
+        // node.list is read-only for HTMLInputElements and must be set via setAttribute
+        // https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/list
+        !(name === 'list' && node instanceof HTMLInputElement)
+    ) {
+        try {
+            node[name] = value;
+        } catch (e) {
+            // must be a property that's read-only; report and squelch
+            handleUnexpected(e);
+        }
     } else {
+        // this is universally true for non HTML nodes (e.g., svg);
         if (name === 'className') {
-            // note: the other mappings we have to worry about are htmlfor=>for, and for
-            // iexplorer, tabindex=>tabIndex and readonly=>readOnly. but all of those are
-            // only relevant for an HTMLElement type nodes, so we won't get here.
-            // we *do* get here for, e.g., svg nodes though.
             name = 'class';
         }
         node.setAttribute(name, value);
@@ -257,7 +269,14 @@ function insert(node, refNode, position) {
 function create(tag, props, refNode, position) {
     const result = Array.isArray(tag) ? document.createElementNS(`${tag[0]}`, tag[1]) : document.createElement(tag);
     if (props) {
-        Reflect.ownKeys(props).forEach(p => setAttr(result, p, props[p]));
+        Object.keys(props).forEach(p => {
+            if (p === 'bdDomAttributes') {
+                const attributes = props.bdDomAttributes;
+                Object.keys(attributes).forEach(p => result.setAttribute(p, attributes[p]));
+            } else {
+                setAttr(result, p, props[p]);
+            }
+        });
     }
     if (refNode) {
         create.replacedNodes = insert(result, refNode, position);
