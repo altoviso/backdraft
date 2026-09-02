@@ -71,7 +71,7 @@ function setAttr(node, name, value) {
 }
 
 function getAttr(node, name) {
-    if (name in node.constructor.prototype) {
+    if (name in node) {
         return node[name];
     }
     return node.getAttribute(name);
