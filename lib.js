@@ -3,8 +3,6 @@ import './src/postProcessingFunctions.js';
 
 setGlobal(window);
 
-export {element as e} from './src/element.js';
-
 export * from './src/Collection.js';
 export * from './src/Component.js';
 export * from './src/destroyable.js';

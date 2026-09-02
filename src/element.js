@@ -102,6 +102,9 @@ export function element(type, props, ...children) {
     return new Element(type, props, children);
 }
 
+// make elements with the shortest of syntax
+export const e = element;
+
 // create syntax sugar, e.g.,
 //
 // element.addElementType('niceName", SomeComponentClass);
