@@ -259,7 +259,7 @@ function insert(node, refNode, position) {
                         insertBefore(node, children[position < 0 ? Math.max(0, children.length + position) : position]);
                     }
                 } else {
-                    throw new Error('illegal position');
+                    throw new Error('dom.insert: illegal position');
                 }
         }
     }

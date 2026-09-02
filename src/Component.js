@@ -68,7 +68,7 @@ function validateElements(elements) {
     if (Array.isArray(elements)) {
         elements.forEach(validateElements);
     } else if (elements.isComponentType) {
-        throw new Error('Illegal: root element(s) for a Component cannot be Components');
+        throw new Error('Component.render: root element(s) for a Component cannot be Components');
     }
 }
 
@@ -370,7 +370,7 @@ export class Component extends eventHub(WatchHub) {
 
     insChild(...args) {
         if (!this.rendered) {
-            throw new Error('parent component must be rendered before explicitly inserting a child');
+            throw new Error('Component.insChild: parent component must be rendered before explicitly inserting a child');
         }
 
         // we're going to ad a child, let's just make sure we have a children array from the start
@@ -384,12 +384,12 @@ export class Component extends eventHub(WatchHub) {
         } else if (position === undefined) {
             position = 'last';
         } else if (!/before|after|replace|only|first|last/.test(position) && typeof position !== 'number') {
-            throw new Error('unexpected');
+            throw new Error('Component.insChild: unknown position');
         }
         if (typeof position === 'number') {
             if (position !== Math.floor(position) || position < 0 || children.length < position) {
                 // not an integer or not in [0..children.length]
-                throw new Error('unexpected');
+                throw new Error('Component.insChild: position out of range');
             }
         }
         // position is now guaranteed one of {before, after, first, last, replace, only} or an integer in [0..children.length]
@@ -434,7 +434,7 @@ export class Component extends eventHub(WatchHub) {
             // attachPoint must be a child already in this.children and position must be one of {before, after, replace}
             const refIndex = childIndex(attachPoint);
             if (refIndex === -1) {
-                throw new Error('unexpected');
+                throw new Error('Component.insChild: attachPoint not a child');
             }
             let refNode = attachPoint.bdDom.root;
             switch (position) {
@@ -457,7 +457,7 @@ export class Component extends eventHub(WatchHub) {
                     this.bdAdopt(child, refIndex + 1);
                     break;
                 default:
-                    throw new Error('unexpected');
+                    throw new Error('Component.insChild: illegal position relative to child component');
             }
             return child;
         }
@@ -471,7 +471,7 @@ export class Component extends eventHub(WatchHub) {
             attachPoint = this.bdChildrenAttachPoint || this.bdDom.root;
         }// else attachPoint must be a dom node
         if (!(attachPoint instanceof window.Element)) {
-            throw new Error('unexpected');
+            throw new Error('Component.insChild: attachPoint is not a dom node');
         }
 
         if (attachPoint === this.bdChildrenAttachPoint || attachPoint === this.bdDom.root) {
@@ -507,7 +507,7 @@ export class Component extends eventHub(WatchHub) {
                 case 'after':
                 case 'replace':
                     // these positions don't make sense in this context
-                    throw new Error('unexpected');
+                    throw new Error('Component.insChild: position is irrational relative to parent components dom tree');
 
                 default: {
                     // position will be in [1..this.children.length-1]
@@ -1122,7 +1122,7 @@ function decodeRender(args) {
         return { src: arg1, attachPoint: arg2, position: arg3 };
     }
     if (!isComponentDerivedCtor(arg1)) {
-        throw new Error('first argument must be an Element, Component, or a class derived from Component');
+        throw new Error('Component.decodeRender: first argument must be an Element, Component, or a class derived from Component');
     }
     if (args.length === 1) {
         // [3]

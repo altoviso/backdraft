@@ -154,7 +154,7 @@ export function destroyAll(container) {
         container.splice(0);
         toDestroy.forEach(h => h.destroy());
         if (container.length) {
-            handleUnexpected(new Error('container not empty after destroyAll'));
+            handleUnexpected(new Error('destroyable.destroyall: container not empty after destroyAll'));
         }
     }// else container was likely falsy and never used
 }

@@ -37,7 +37,7 @@ export class Element {
                 // e.g., new Element(['http://www.w3.org/2000/svg', 'circle'], <props>, <children>)
                 this.type = Array.isArray(type) ? type : `${type}`;
             } else {
-                throw new Error('type is required');
+                throw new Error('element.ctor: type is required');
             }
 
             // if the second arg is an Object and not an Element or and Array, then it is props...
@@ -128,12 +128,10 @@ export const e = element;
 // because minimizers may change the function name!
 element.addElementType = function addElementType(name, ctor) {
     if (!name) {
-        handleUnexpected(new Error('addElementType: missing name'));
-        return;
+        throw new Error('element.addElementType: missing name');
     }
     if (name in element) {
-        handleUnexpected(new Error(`addElementType: "${name}" already defined`));
-        return;
+        throw new Error(`element.addElementType: "${name}" already defined`);
     }
     const type = typeof ctor === 'function' ? ctor : name;
     element[name] = (props, ...children) => new Element(type, props, children);

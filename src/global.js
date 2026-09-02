@@ -11,7 +11,7 @@ export function setGlobal(theGlobal) {
         watchers.forEach(handler => handler(theGlobal));
         watchers = null;
     } else {
-        throw new Error('illegal to mutate global space');
+        throw new Error('global.setGlobal: illegal to mutate global space');
     }
 }
 

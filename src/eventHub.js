@@ -56,10 +56,10 @@ function eventHub(superClass) {
                 return eventName.map(name => this.advise(name, handler));
             }
             if (eventName === '_eventHubAdviseNoEvents') {
-                throw new Error('cannot advise on reserved event name');
+                throw new Error('eventHub.advise: cannot advise on reserved event name');
             }
             if (this._notifyingNoEvents) {
-                throw new Error('cannot create advise in all listeners destroyed handler');
+                throw new Error('eventHub.advise: cannot create advise in all listeners destroyed handler');
             }
             let events = listenerCatalog.get(this);
             if (!events) {
@@ -93,7 +93,7 @@ function eventHub(superClass) {
 
         adviseAllListenersDestroyed(handler) {
             if (this._notifyingNoEvents) {
-                throw new Error('cannot create all listeners destroyed advice in all listeners destroyed handler');
+                throw new Error('eventHub.advise: cannot create all listeners destroyed advice in all listeners destroyed handler');
             }
             let events = listenerCatalog.get(this);
             if (!events) {

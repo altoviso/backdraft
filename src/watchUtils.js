@@ -113,7 +113,7 @@ class WatchableRef {
                 }
                 referenceObject.own && referenceObject.own(this);
             } else {
-                throw new Error("don't know how to watch referenceObject");
+                throw new Error("WatchableRef.ctor: don't know how to watch referenceObject");
             }
         };
     }
@@ -540,7 +540,7 @@ function createWatchable(src, owner, prop) {
 
 function toWatchable(data) {
     if (!(data instanceof Object)) {
-        throw new Error('scalar values are not watchable');
+        throw new Error('watchUtils.toWatchable: scalar values are not watchable');
     }
     try {
         pauseWatchers = true;
@@ -956,7 +956,7 @@ function bind(src, srcProp, dest, destProp) {
     } else if (src[OWNER]) {
         return watch(srcProp, newValue => (dest[destProp] = newValue));
     }
-    throw new Error('src is not watchable');
+    throw new Error('watchUtils.bind: src is not watchable');
 }
 
 function biBind(src1, prop1, src2, prop2) {
