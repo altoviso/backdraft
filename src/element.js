@@ -1,5 +1,4 @@
 import { getPostProcessingFunction } from './postProcessingCatalog.js';
-import { handleUnexpected } from './unexpectedHandler.js';
 
 function flattenChildren(children) {
     // children can be falsey, single children (of type Element or string), or arrays of single children, arbitrarily deep
@@ -19,8 +18,15 @@ function flattenChildren(children) {
 
 export class Element {
     constructor(type, props, ...children) {
+        // type is one of
+        //    a constructor function
+        //    an HTML tag name, e.g., 'div'
+        //    a pair of strings giving namespace and a tag name known to said namespace, e.g., ['http://www.w3.org/2000/svg', 'circle']
+        // props, optional, is a plain object
+        // children, optional, a children array
+        //     a single child is an Element, a string, or falsey
+        //     children array items must be single child or children arrays
         if (type instanceof Element) {
-            // copy constructor
             this.type = type.type;
             type.isComponentType && (this.isComponentType = type.isComponentType);
             type.ctorProps && (this.ctorProps = type.ctorProps);
@@ -78,10 +84,10 @@ export class Element {
                     }
                 } else {
                     children.unshift(props);
-                    this.ctorProps = {};
+                    this.ctorProps = Object.freeze({});
                 }
             } else {
-                this.ctorProps = {};
+                this.ctorProps = Object.freeze({});
             }
 
             const flattenedChildren = flattenChildren(children);
